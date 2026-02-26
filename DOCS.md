@@ -2,155 +2,70 @@
 
 ## Обзор
 
-GeneoTools — браузерный инструмент для работы с генеалогическими базами программы «Древо Жизни» (`.atdb`).
+GeneoTools — браузерный инструмент для работы с генеалогическими базами программы «Древо Жизни 6» (`.atdb`).
+Все ключевые операции выполняются локально в браузере на базе `sql.js`.
 
-## Архитектура проекта
+## Актуальная структура проекта
 
-```
+```text
 geneotools/
 ├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── globals.css
 ├── components/
+│   ├── DataTable.tsx
+│   ├── ScrollableDataTable.tsx
+│   ├── FileUploader.tsx
+│   ├── Modal.tsx
+│   └── DebugAnalyzer.tsx
 ├── lib/
-├── public/
-├── DOCS.md        # Текущий файл документации
+│   ├── initSqlJs.ts
+│   ├── sqlProcessor.ts
+│   ├── parseAtdb.ts
+│   ├── buildAtdb.ts
+│   └── utils.ts
+├── docs/
+│   ├── atdb_format.md
+│   ├── codebase-analysis.md
+│   └── refactoring-plan.md
 ├── README.md
-└── ...
+└── DOCS.md
 ```
 
-## Функциональность
+## Основной пользовательский сценарий
 
-### Основные возможности:
-1. Загрузка локального файла `.atdb`
-2. Парсинг файла на сервере в JSON-структуру
-3. Отображение данных в таблицах с фильтрацией и редактированием
-4. Экспорт обратно в `.atdb` после изменений
-5. Полную автономность без базы данных и авторизации
+1. Пользователь загружает `.atdb` файл (drag-and-drop или выбор).
+2. Файл парсится в клиенте (`parseAtdb` из `lib/sqlProcessor.ts`).
+3. Данные отображаются в табличном интерфейсе (персоны, роды, события, места).
+4. Пользователь скачивает обновлённый `.atdb` (`buildAtdb` из `lib/sqlProcessor.ts`).
 
-### Новые возможности (добавленные функции):
+## Ключевые модули
 
-#### 1. Извлечение данных о родителях из событий рождения
-- Извлечение `fatherId` (ID отца) и `motherId` (ID матери) из событий рождения
-- Алгоритм:
-  - Находим событие рождения для персоны в `EventDetails`, где `p_id` = ID персоны и `er_id` = 1 (означает, что родился человек)
-  - Получаем `e_id` (ID события) из этой записи
-  - Находим все записи `EventDetails` с этим `e_id`, где `er_id` = 2 (отец) или `er_id` = 3 (мать)
-  - Используем `p_id` из этих записей как `fatherId` и `motherId`
+- `app/page.tsx` — композиция UI, обработка upload/download сценария.
+- `components/FileUploader.tsx` — загрузка и первичная валидация файла.
+- `components/ScrollableDataTable.tsx` — табы и скроллируемый контейнер таблиц.
+- `components/DataTable.tsx` — рендер и сортировка данных по сущностям.
+- `lib/initSqlJs.ts` — инициализация sql.js и создание Database.
+- `lib/sqlProcessor.ts` — текущее ядро парсинга/сборки `.atdb`.
 
-#### 2. Обновление отображения таблицы "Роды"
-- Добавлена колонка "Название рода" после колонки ID
-- Обновленное отображение таблицы "Роды" теперь показывает только следующие колонки:
-  - ID
-  - Название рода
-  - Мужская фамилия
-  - Женская фамилия
-  - Комментарий
+## Текущее состояние качества
 
-#### 3. Извлечение данных из таблицы ValuesStr
-- Новые поля для таблицы "Роды" берутся из таблицы `ValuesStr`:
-  - `f_id=50` — Название рода (familyName)
-  - `f_id=48` — Мужская фамилия (husbandLastName)
-  - `f_id=49` — Женская фамилия (wifeLastName)
-  - `f_id=52` — Комментарий (comment)
-- Используется `rec_table=9` для таблицы Families (по требованиям)
+- Проект находится на этапе MVP.
+- В кодовой базе есть технический долг, зафиксированный в отдельном анализе.
+- Рекомендуется выполнить план рефакторинга перед активным расширением функционала.
 
-## Структура данных
+## Связанные документы
 
-### Интерфейс Person
-```ts
-interface Person {
-  id: number;
-  firstName?: string;
-  lastName?: string;
-  patronymic?: string;
-  gender: 'M' | 'F' | 'Unknown';
-  birthDate?: string;
-  deathDate?: string;
-  birthPlace?: string;
-  deathPlace?: string;
-  birthPlaceId?: number;
-  deathPlaceId?: number;
-  notes?: string;
-  fatherId?: number;      // Новое поле
-  motherId?: number;      // Новое поле
-  spouseIds?: number[];
-}
-```
+- Анализ кодовой базы: `docs/codebase-analysis.md`
+- План рефакторинга: `docs/refactoring-plan.md`
+- Описание структуры `.atdb`: `docs/atdb_format.md`
 
-### Интерфейс Family
-```ts
-interface Family {
-  id: number;
-  familyName?: string;        // Название рода (f_id=50 from ValuesStr)
-  husbandLastName?: string;   // Мужская фамилия (f_id=48 from ValuesStr)
-  wifeLastName?: string;      // Женская фамилия (f_id=49 from ValuesStr)
-  comment?: string;           // Комментарий (f_id=52 from ValuesStr)
-  husbandId?: number;
-  wifeId?: number;
-  childrenIds: number[];
-  marriedDate?: string;
-  divorcedDate?: string;
-  notes?: string;
-  color?: number;
-}
-```
-
-## Архитектура компонентов
-
-### DataTable.tsx
-- Отображает три основные таблицы: Persons, Families, Events
-- Для таблицы Families реализовано новое отображение с нужными колонками
-- Использует сортировку по колонкам
-
-### SqlProcessor.ts
-- Основной модуль для обработки .atdb файлов
-- Содержит логику парсинга и сборки базы данных
-- Реализует извлечение родительских связей из событий рождения
-- Обрабатывает данные из таблицы ValuesStr для заполнения полей рода
-
-## Технологии
-
-- Next.js (App Router)
-- React
-- TypeScript
-- Tailwind CSS
-- sql.js (для работы с SQLite базами .atdb)
-- shadcn/ui (UI компоненты)
-
-## Запуск проекта
+## Команды разработки
 
 ```bash
 npm install
 npm run dev
-```
-
-## Сборка проекта
-
-```bash
+npm run lint
 npm run build
 ```
-
-## Структура базы данных .atdb
-
-Файлы .atdb являются SQLite базами данных с следующими основными таблицами:
-- `Persons` — информация о персонах
-- `Families` — информация о родах
-- `Events` — события
-- `EventDetails` — детали событий (связывает персон с событиями)
-- `ValuesStr` — строковые значения для различных полей
-- `ValuesNum` — числовые значения
-- `ValuesDates` — даты
-- `ValuesLinks` — связи между сущностями
-
-## Важные поля в EventDetails
-- `p_id` — ID персоны
-- `e_id` — ID события
-- `er_id` — ID роли в событии
-  - 1 — родился (для персоны)
-  - 2 — отец (для события рождения)
-  - 3 — мать (для события рождения)
-
-## Используемые поля в ValuesStr для таблицы Families (rec_table = 9)
-- `f_id = 48` — мужская фамилия
-- `f_id = 49` — женская фамилия
-- `f_id = 50` — название рода
-- `f_id = 52` — комментарий
