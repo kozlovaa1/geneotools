@@ -77,6 +77,15 @@ geneotools/
 
 ---
 
+
+## 📚 Аналитика и план развития
+
+- Подробный анализ текущего состояния: `docs/codebase-analysis.md`
+- Пошаговый план рефакторинга: `docs/refactoring-plan.md`
+- Формат базы `.atdb`: `docs/atdb_format.md`
+
+---
+
 ## 🧩 Установка и запуск
 
 ```bash
