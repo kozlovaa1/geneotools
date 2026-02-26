@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -39,3 +37,24 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+/.idea/
+/.vscode/
+
+# AI
+CLAUDE.md
+QWEN.md
+GEMINI.md
+COPILOT.md
+CURSOR.md
+AGENTS.md
+/.claude/
+/.cursor/
+/.copilot/
+/.github-copilot/
+/.qwen/
+/.gemini/
+/.ai-factory/
+.ai-factory.json
+.mcp.json

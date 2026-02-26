@@ -1,65 +1,190 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import FileUploader from '@/components/FileUploader';
+import DataTable from '@/components/DataTable';
+import ScrollableDataTable from '@/components/ScrollableDataTable';
+import Modal from '@/components/Modal';
+import { ParsedAtdb } from '@/lib/sqlProcessor'; // Updated import
+import Image from 'next/image';
 
 export default function Home() {
+  const [parsedData, setParsedData] = useState<ParsedAtdb | null>(null);
+  const [originalBuffer, setOriginalBuffer] = useState<Uint8Array | null>(null);
+  const [originalFilename, setOriginalFilename] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const handleFileUpload = async (file: File, buffer: ArrayBuffer) => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Dynamically import the sql processor functions
+      const { parseAtdb } = await import('@/lib/sqlProcessor');
+
+      // Convert ArrayBuffer to Uint8Array
+      const uint8Array = new Uint8Array(buffer);
+
+      // Parse the .atdb file
+      const parsedResult = await parseAtdb(uint8Array);
+      setParsedData(parsedResult);
+      setOriginalBuffer(uint8Array);
+      setOriginalFilename(file.name); // Store the original filename
+      setSuccess(`Файл .atdb успешно загружен: ${parsedResult.persons.length} персон, ${parsedResult.families.length} родов, ${parsedResult.events.length} событий.`);
+    } catch (err) {
+      console.error('Ошибка при разборе файла .atdb:', err);
+      setError(`Ошибка при разборе файла .atdb: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!parsedData) {
+      setError('Нет данных для загрузки');
+      return;
+    }
+
+    try {
+      // Dynamically import the sql processor functions
+      const { buildAtdb } = await import('@/lib/sqlProcessor');
+      
+      // Build the .atdb file from current data and original buffer
+      if (!originalBuffer) {
+        throw new Error('Original buffer not available');
+      }
+      const uint8Array = await buildAtdb(parsedData, originalBuffer);
+      
+      // Convert Uint8Array to Blob - use type assertion to fix the type issue
+      const blob = new Blob([uint8Array] as unknown as BlobPart[], { type: 'application/octet-stream' });
+      
+      // Create download link with original filename
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = originalFilename || 'updated_data.atdb';
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Show modal with instructions after download
+        if (originalFilename) {
+          // Extract filename without extension
+          const filenameWithoutExt = originalFilename.replace('.atdb', '');
+          // Set modal content and show it
+          setShowModal(true);
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Ошибка при создании файла .atdb:', err);
+      setError(`Ошибка при создании файла .atdb: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+      <main className="flex min-h-screen w-full flex-col items-center py-8 px-4 bg-white dark:bg-black">
+        <div className="w-full px-4">
+          <div className="flex items-center justify-center mb-8">
             <Image
               className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+              src="/logo.svg"
+              alt="logo"
+              width={100}
+              height={20}
+              priority
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+          
+          <h1 className="text-3xl font-semibold text-center text-black dark:text-zinc-50 mb-2">
+            GeneoTools - работа с файлами .atdb
+          </h1>
+          <p className="text-center text-zinc-600 dark:text-zinc-400 mb-8">
+            Загружайте, просматривайте и редактируйте генеалогические данные из файлов Древо Жизни 6
+          </p>
+          
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 mb-8">
+            <FileUploader 
+              onFileUpload={handleFileUpload} 
+              acceptedFileTypes={['.atdb']} 
+              maxFileSize={50 * 1024 * 1024} // 50MB
+            />
+            
+            {isLoading && (
+              <div className="mt-4 text-center flex flex-col items-center">
+                <div className="animate-spin mb-4">
+                  <Image
+                    className="dark:invert"
+                    src="/logo.svg"
+                    alt="logo"
+                    width={40}
+                    height={40}
+                    priority
+                  />
+                </div>
+                <p className="text-zinc-600 dark:text-zinc-400">Обработка файла...</p>
+              </div>
+            )}
+            
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
+                {error}
+              </div>
+            )}
+            
+            {success && (
+              <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
+                {success}
+              </div>
+            )}
+            
+            {parsedData && (
+              <div className="mt-8 -mx-6 flex-1 flex flex-col min-h-0">
+                <div className="sticky top-4 z-50 flex justify-center mb-4 px-6">
+                  <button
+                    onClick={handleDownload}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-lg"
+                  >
+                    Скачать обновленный .atdb
+                  </button>
+                </div>
+                <div className="flex-1 overflow-hidden min-h-0">
+                  <ScrollableDataTable
+                    persons={parsedData.persons}
+                    families={parsedData.families}
+                    events={parsedData.events}
+                    places={parsedData.places || []}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+            <p>GeneoTools - Инструмент для анализа и редактирования генеалогических файлов .atdb</p>
+          </div>
         </div>
       </main>
+
+      {/* Modal for download instructions */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Важная информация"
+      >
+        <p className="text-gray-700 dark:text-gray-300">
+          Перед открытием изменённого файла разместите рядом исходную папку с изображениями{' '}
+          <span className="font-semibold">{originalFilename ? originalFilename.replace('.atdb', '') + '.files' : '*.files'}</span>
+        </p>
+      </Modal>
     </div>
   );
 }

@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧬 GeneoTools
 
-## Getting Started
+**GeneoTools** — это веб-сервис для работы с генеалогическими базами программы **«Древо Жизни 6» (Agelong Tree 6)** (
+`.atdb`) прямо в браузере.
+Сервис позволяет загружать, просматривать, фильтровать и редактировать данные, а затем выгружать обновлённую версию
+базы.
 
-First, run the development server:
+**Важно:** Файлы `.atdb` являются SQLite базами данных. Приложение использует sql.js для обработки этих файлов в
+браузере.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 🚀 Текущий статус
+
+**Этап:** MVP
+**Хостинг:** [Vercel](https://vercel.com/)
+**Авторизация:** отсутствует (всё выполняется в рамках сессии, файлы не сохраняются на сервере)
+
+---
+
+## 🏗️ Архитектура
+
+### Фронтенд
+
+- **Next.js 16** (App Router)
+- **React 19**
+- **Tailwind CSS**
+- **TypeScript**
+- **sql.js** - для обработки SQLite баз данных (`.atdb` файлы)
+
+### Бэкенд
+
+- API routes / Edge functions Next.js
+- Парсер `.atdb` (SQLite) → JSON
+- Генератор JSON → `.atdb` (SQLite)
+- Все данные обрабатываются локально в браузере
+
+---
+
+## ⚙️ Основной функционал (MVP)
+
+| Функция              | Описание                                                                     |
+|----------------------|------------------------------------------------------------------------------|
+| **Загрузка `.atdb`** | Drag-and-drop или выбор файла с компьютера                                   |
+| **Парсинг**          | Преобразование в JSON-структуру с таблицами (персоны, роды, события и т. д.) |
+| **Просмотр**         | Отображение данных в таблицах (Persons, Families, Events, Places, Sources)   |
+| **Редактирование**   | Ручная корректировка полей данных в таблицах                                 |
+| **Сохранение**       | Выгрузка изменённого `.atdb` файла обратно на компьютер                      |
+| **Ошибки**           | Отображаются через toast-уведомления                                         |
+
+---
+
+## 📁 Структура проекта
+
+```
+geneotools/
+├── app/
+│   ├── layout.tsx           # Базовый макет приложения
+│   └── page.tsx             # Главная страница (загрузка и таблицы)
+├── components/
+│   ├── FileUploader.tsx     # drag&drop загрузка
+│   └── DataTable.tsx        # таблица с данными
+├── lib/
+│   ├─ parseAtdb.ts          # парсер .atdb формата (SQLite)
+│   └─ buildAtdb.ts          # генератор .atdb формата (SQLite)
+├── docs/
+│   └─ atdb-structure.md     # документация по формату .atdb
+├── public/                  # Static assets
+├── .gitignore
+├── next.config.ts           # Next.js configuration
+├── package.json             # Dependencies and scripts
+├── tsconfig.json            # TypeScript configuration
+├── eslint.config.mjs        # ESLint configuration
+├── postcss.config.mjs       # PostCSS configuration
+└── README.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🧩 Установка и запуск
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Установка зависимостей
+npm install
 
-## Learn More
+# Запуск dev-сервера
+next dev --webpack
 
-To learn more about Next.js, take a look at the following resources:
+# Открыть в браузере
+http://localhost:3000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🧪 Тестирование
 
-## Deploy on Vercel
+```bash
+# Линтер
+npm run lint
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🪶 Лицензия
+
+MIT License © 2025 GeneoTools
