@@ -1,70 +1,9 @@
 // This file handles sql.js operations and is designed to be imported dynamically
 // to avoid server-side rendering issues
 
-export interface Person {
-  id: number;
-  firstName?: string;
-  lastName?: string;
-  patronymic?: string;
-  gender: 'M' | 'F' | 'Unknown';
-  birthDate?: string; // Format: YYYY-MM-DD
-  deathDate?: string; // Format: YYYY-MM-DD
-  birthPlace?: string;
-  deathPlace?: string;
-  birthPlaceId?: number;
-  deathPlaceId?: number;
-  notes?: string;
-  fatherId?: number;
-  motherId?: number;
-  spouseIds?: number[];
-  occupation?: string;
-  motherLastName?: string;
-}
+import type { Event, Family, ParsedAtdb, Person, Place } from './types';
 
-export interface Family {
-  id: number;
-  familyName?: string;        // Название рода (f_id=50 from ValuesStr)
-  husbandLastName?: string;   // Мужская фамилия (f_id=48 from ValuesStr)
-  wifeLastName?: string;      // Женская фамилия (f_id=49 from ValuesStr)
-  comment?: string;           // Комментарий (f_id=52 from ValuesStr)
-  husbandId?: number;
-  wifeId?: number;
-  childrenIds: number[];
-  marriedDate?: string; // Format: YYYY-MM-DD
-  divorcedDate?: string; // Format: YYYY-MM-DD
-  notes?: string;
-  color?: number;
-}
-
-export interface Event {
-  id: number;
-  personIds?: number[];
-  eventType: string; // Birth, Death, Marriage, etc.
-  date?: string; // Format: YYYY-MM-DD
-  place?: string;
-  description?: string;
-}
-
-export interface Place {
-  id: number;
-  name?: string;
-  shortName?: string;
-  comment?: string;
-}
-
-export interface ParsedAtdb {
-  persons: Person[];
-  families: Family[];
-  events: Event[];
-  places: Place[];
-  metadata: {
-    version?: number;
-    guid?: string;
-    sourceGuid?: string;
-    mainLanguage?: string;
-    parameters?: string;
-  };
-}
+export type { Event, Family, ParsedAtdb, Person, Place } from './types';
 
 export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb> {
   // Dynamically import the SQL module
@@ -228,7 +167,6 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
           const valuesStrRow = valuesStrStmt.getAsObject();
           const fieldId = valuesStrRow.f_id as number;
           const recTable = valuesStrRow.rec_table as number;
-          const recId = valuesStrRow.rec_id as number;
           const valueStr = valuesStrRow.vstr as string;
           allNameValues[fieldId] = { rec_table: recTable, vstr: valueStr };
         }
@@ -389,7 +327,6 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
         valuesDatesStmt.bind([personId]);
 
         const allDateValues: { [key: number]: { y: number; m: number; d: number; rec_table: number; rec_id: number } } = {};
-        let dateRowCount = 0;
         while (valuesDatesStmt.step()) {
           const valuesDatesRow = valuesDatesStmt.getAsObject();
           const fieldId = valuesDatesRow.f_id as number;
@@ -399,7 +336,6 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
           const recTable = valuesDatesRow.rec_table as number;
           const recId = valuesDatesRow.rec_id as number;
           allDateValues[fieldId] = { y: year, m: month, d: day, rec_table: recTable, rec_id: recId };
-          dateRowCount++;
         }
         valuesDatesStmt.free();
 
@@ -523,7 +459,6 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
 
             while (eventDateStmt.step()) {
               const dateRow = eventDateStmt.getAsObject();
-              const fieldId = dateRow.f_id as number;
               const year = dateRow.y as number;
               const month = dateRow.m as number;
               const day = dateRow.d as number;
@@ -568,7 +503,6 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
 
             while (eventLinkStmt.step()) {
               const linkRow = eventLinkStmt.getAsObject();
-              const linkFieldId = linkRow.f_id as number;  // Not directly used in this approach
               const linkTable = linkRow.vlink_table as number;
               const linkedId = linkRow.vlink_id as number;
 
@@ -603,7 +537,6 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
         valuesLinksStmt.bind([personId]);
 
         const linkValues: { [key: number]: { vlink_table: number; vlink_id: number; rec_table: number; rec_id: number } } = {};
-        let linkRowCount = 0;
         while (valuesLinksStmt.step()) {
           const valuesLinksRow = valuesLinksStmt.getAsObject();
           const fieldId = valuesLinksRow.f_id as number;
@@ -612,7 +545,6 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
           const recTable = valuesLinksRow.rec_table as number;
           const recId = valuesLinksRow.rec_id as number;
           linkValues[fieldId] = { vlink_table: linkTable, vlink_id: linkedId, rec_table: recTable, rec_id: recId };
-          linkRowCount++;
         }
         valuesLinksStmt.free();
 
