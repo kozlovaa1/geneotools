@@ -1,58 +1,6 @@
 import React, { useState } from 'react';
 import { getEventTypeName } from '../lib/utils';
-
-interface Person {
-  id: number;
-  firstName?: string;
-  lastName?: string;
-  patronymic?: string;
-  gender: 'M' | 'F' | 'Unknown';
-  birthDate?: string;
-  deathDate?: string;
-  birthPlace?: string;
-  deathPlace?: string;
-  notes?: string;
-  fatherId?: number;
-  motherId?: number;
-  spouseIds?: number[];
-  occupation?: string; // Added to store main occupation
-  motherLastName?: string; // Added to store mother's maiden name if needed
-  [key: string]: any; // Index signature to allow dynamic property access
-}
-
-interface Family {
-  id: number;
-  familyName?: string;        // Название рода (f_id=50 from ValuesStr)
-  husbandLastName?: string;   // Мужская фамилия (f_id=48 from ValuesStr)
-  wifeLastName?: string;      // Женская фамилия (f_id=49 from ValuesStr)
-  comment?: string;           // Комментарий (f_id=52 from ValuesStr)
-  husbandId?: number;
-  wifeId?: number;
-  childrenIds: number[];
-  marriedDate?: string;
-  divorcedDate?: string;
-  notes?: string;
-  color?: number;
-  [key: string]: any; // Index signature to allow dynamic property access
-}
-
-interface Event {
-  id: number;
-  personIds?: number[];
-  eventType: string;
-  date?: string;
-  place?: string;
-  description?: string;
-  [key: string]: any; // Index signature to allow dynamic property access
-}
-
-interface Place {
-  id: number;
-  name?: string;
-  shortName?: string;
-  comment?: string;
-  [key: string]: any; // Index signature to allow dynamic property access
-}
+import type { Event, Family, Person, Place } from '@/lib/types';
 
 interface SortConfig {
   key: string;
@@ -74,14 +22,7 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
   const [eventSortConfig, setEventSortConfig] = useState<SortConfig | null>(null);
   const [placeSortConfig, setPlaceSortConfig] = useState<SortConfig | null>(null);
 
-  // Debug: log the first person and first family data to see what we're receiving
-  if (typeof window !== 'undefined' && persons.length > 0 && sessionStorage.getItem('debug-data') !== 'false') {
-    console.log('DataTable received persons data:', persons.slice(0, 3)); // Log first 3 persons
-    console.log('DataTable received families data:', families.slice(0, 3)); // Log first 3 families
-    console.log('DataTable received events data:', events.slice(0, 3));   // Log first 3 events
-    console.log('DataTable received places data:', places.slice(0, 3));   // Log first 3 places
-    sessionStorage.setItem('debug-data', 'false'); // Prevent logging on every render
-  }
+  const getValue = (record: object, key: string): unknown => (record as Record<string, unknown>)[key];
 
   const handlePersonSort = (key: string) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -119,8 +60,8 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
     if (!personSortConfig) return persons;
 
     return [...persons].sort((a, b) => {
-      let valA = a[personSortConfig.key];
-      let valB = b[personSortConfig.key];
+      let valA = getValue(a, personSortConfig.key);
+      let valB = getValue(b, personSortConfig.key);
 
       if (valA === undefined && valB === undefined) return 0;
       if (valA === undefined) return personSortConfig.direction === 'ascending' ? 1 : -1;
@@ -148,8 +89,8 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
     if (!familySortConfig) return families;
 
     return [...families].sort((a, b) => {
-      let valA = a[familySortConfig.key];
-      let valB = b[familySortConfig.key];
+      let valA = getValue(a, familySortConfig.key);
+      let valB = getValue(b, familySortConfig.key);
 
       if (valA === undefined && valB === undefined) return 0;
       if (valA === undefined) return familySortConfig.direction === 'ascending' ? 1 : -1;
@@ -183,8 +124,8 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
         valA = a.personIds && a.personIds.length > 0 ? a.personIds[0] : undefined;
         valB = b.personIds && b.personIds.length > 0 ? b.personIds[0] : undefined;
       } else {
-        valA = a[eventSortConfig.key];
-        valB = b[eventSortConfig.key];
+        valA = getValue(a, eventSortConfig.key);
+        valB = getValue(b, eventSortConfig.key);
       }
 
       if (valA === undefined && valB === undefined) return 0;
@@ -207,8 +148,8 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
     if (!placeSortConfig) return places;
 
     return [...places].sort((a, b) => {
-      let valA = a[placeSortConfig.key];
-      let valB = b[placeSortConfig.key];
+      const valA = getValue(a, placeSortConfig.key);
+      const valB = getValue(b, placeSortConfig.key);
 
       if (valA === undefined && valB === undefined) return 0;
       if (valA === undefined) return placeSortConfig.direction === 'ascending' ? 1 : -1;

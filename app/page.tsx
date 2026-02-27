@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
-import DataTable from '@/components/DataTable';
 import ScrollableDataTable from '@/components/ScrollableDataTable';
 import Modal from '@/components/Modal';
-import { ParsedAtdb } from '@/lib/sqlProcessor'; // Updated import
+import type { ParsedAtdb } from '@/lib/types';
 import Image from 'next/image';
 
 export default function Home() {
@@ -77,8 +76,6 @@ export default function Home() {
 
         // Show modal with instructions after download
         if (originalFilename) {
-          // Extract filename without extension
-          const filenameWithoutExt = originalFilename.replace('.atdb', '');
           // Set modal content and show it
           setShowModal(true);
         }

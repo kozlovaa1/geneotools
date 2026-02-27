@@ -1,4 +1,4 @@
-import { ParsedAtdb } from './parseAtdb';
+import type { ParsedAtdb } from './types';
 
 /**
  * Validates the structure of ParsedAtdb before building an .atdb file
