@@ -1,115 +1,68 @@
-# 🧬 GeneoTools
+# GeneoTools
 
-**GeneoTools** — это веб-сервис для работы с генеалогическими базами программы **«Древо Жизни 6» (Agelong Tree 6)** (
-`.atdb`) прямо в браузере.
-Сервис позволяет загружать, просматривать, фильтровать и редактировать данные, а затем выгружать обновлённую версию
-базы.
+> Локальный браузерный инструмент для чтения и пересборки `.atdb` баз из «Древо Жизни 6».
 
-**Важно:** Файлы `.atdb` являются SQLite базами данных. Приложение использует sql.js для обработки этих файлов в
-браузере.
+GeneoTools открывает `.atdb` файл прямо в браузере, разбирает SQLite-данные через `sql.js`, показывает извлечённые сущности в таблицах и позволяет скачать обновлённый `.atdb`. Приложение не требует внешнего backend для основной работы с файлами.
 
----
-
-## 🚀 Текущий статус
-
-**Этап:** MVP
-**Хостинг:** [Vercel](https://vercel.com/)
-**Авторизация:** отсутствует (всё выполняется в рамках сессии, файлы не сохраняются на сервере)
-
----
-
-## 🏗️ Архитектура
-
-### Фронтенд
-
-- **Next.js 16** (App Router)
-- **React 19**
-- **Tailwind CSS**
-- **TypeScript**
-- **sql.js** - для обработки SQLite баз данных (`.atdb` файлы)
-
-### Бэкенд
-
-- API routes / Edge functions Next.js
-- Парсер `.atdb` (SQLite) → JSON
-- Генератор JSON → `.atdb` (SQLite)
-- Все данные обрабатываются локально в браузере
-
----
-
-## ⚙️ Основной функционал (MVP)
-
-| Функция              | Описание                                                                     |
-|----------------------|------------------------------------------------------------------------------|
-| **Загрузка `.atdb`** | Drag-and-drop или выбор файла с компьютера                                   |
-| **Парсинг**          | Преобразование в JSON-структуру с таблицами (персоны, роды, события и т. д.) |
-| **Просмотр**         | Отображение данных в таблицах (Persons, Families, Events, Places, Sources)   |
-| **Редактирование**   | Ручная корректировка полей данных в таблицах                                 |
-| **Сохранение**       | Выгрузка изменённого `.atdb` файла обратно на компьютер                      |
-| **Ошибки**           | Отображаются через toast-уведомления                                         |
-
----
-
-## 📁 Структура проекта
-
-```
-geneotools/
-├── app/
-│   ├── layout.tsx           # Базовый макет приложения
-│   └── page.tsx             # Главная страница (загрузка и таблицы)
-├── components/
-│   ├── FileUploader.tsx     # drag&drop загрузка
-│   └── DataTable.tsx        # таблица с данными
-├── lib/
-│   ├─ parseAtdb.ts          # парсер .atdb формата (SQLite)
-│   └─ buildAtdb.ts          # генератор .atdb формата (SQLite)
-├── docs/
-│   └─ atdb-structure.md     # документация по формату .atdb
-├── public/                  # Static assets
-├── .gitignore
-├── next.config.ts           # Next.js configuration
-├── package.json             # Dependencies and scripts
-├── tsconfig.json            # TypeScript configuration
-├── eslint.config.mjs        # ESLint configuration
-├── postcss.config.mjs       # PostCSS configuration
-└── README.md
-```
-
----
-
-
-## 📚 Аналитика и план развития
-
-- Подробный анализ текущего состояния: `docs/codebase-analysis.md`
-- Пошаговый план рефакторинга: `docs/refactoring-plan.md`
-- Формат базы `.atdb`: `docs/atdb_format.md`
-
----
-
-## 🧩 Установка и запуск
+## Quick Start
 
 ```bash
-# Установка зависимостей
 npm install
-
-# Запуск dev-сервера
-next dev --webpack
-
-# Открыть в браузере
-http://localhost:3000
+npm run dev
 ```
+
+Открой `http://localhost:3000`, загрузите локальный `.atdb` файл и дождитесь завершения парсинга.
+
+## Key Features
+
+- **Локальная обработка** — файл разбирается в браузере без внешней БД
+- **Typed domain model** — сущности приложения описаны в `lib/types.ts`
+- **Табличный просмотр** — персоны, роды, события и места отображаются по вкладкам
+- **Экспорт обратно в `.atdb`** — текущее in-memory состояние можно пересобрать в файл
+- **Прозрачный refactoring path** — текущее состояние и целевая декомпозиция зафиксированы в `docs/`
+
+## Example
+
+```text
+1. Загрузить файл .atdb
+2. Дождаться парсинга SQLite базы
+3. Переключаться между вкладками Persons / Families / Events / Places
+4. Скачать пересобранный .atdb
+```
+
+## Current Status
+
+- MVP в активном рефакторинге
+- `npm run lint` проходит
+- `npx tsc --noEmit` проходит
+- Парсер и табличный UI ещё не декомпозированы до целевой архитектуры
 
 ---
 
-## 🧪 Тестирование
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](docs/getting-started.md) | Установка, запуск и пользовательский сценарий |
+| [Architecture](docs/architecture.md) | Актуальная структура и архитектурные ограничения |
+| [ATDB Format](docs/atdb_format.md) | Наблюдения по структуре `.atdb` |
+| [Codebase Analysis](docs/codebase-analysis.md) | Технический долг и найденные проблемы |
+| [Refactoring Plan](docs/refactoring-plan.md) | Этапы и критерии рефакторинга |
+
+## Development
 
 ```bash
-# Линтер
 npm run lint
+npx tsc --noEmit
+npm run build
 ```
 
----
+## Notes
 
-## 🪶 Лицензия
+- Основная логика парсинга и сборки сейчас сосредоточена в `lib/sqlProcessor.ts`
+- Табличный UI сейчас сосредоточен в `components/DataTable.tsx`
+- Автотесты для parsing-flow ещё не настроены
 
-MIT License © 2025 GeneoTools
+## License
+
+MIT

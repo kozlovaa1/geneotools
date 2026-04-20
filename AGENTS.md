@@ -4,122 +4,118 @@
 
 ## Project Overview
 
-**GeneoTools** — браузерный инструмент для работы с генеалогическими базами данных программы «Древо Жизни 6» (`.atdb`). Все операции происходят локально в браузере с использованием sql.js.
+**GeneoTools** is a browser-based tool for working with genealogy databases from "Древо Жизни 6" (`.atdb`). The app parses local SQLite-based `.atdb` files in the browser with `sql.js`, shows extracted entities in tables, and exports an updated `.atdb` file.
 
 ## Tech Stack
 
 - **Language:** TypeScript 5
 - **Framework:** Next.js 16 (App Router)
-- **Database:** SQLite (файлы .atdb, обрабатываются через sql.js)
-- **UI:** Tailwind CSS 4, shadcn/ui, Lucide React
 - **Runtime:** React 19, Node.js 20
+- **Database:** SQLite (`.atdb` files via `sql.js`)
+- **UI:** Tailwind CSS 4, Lucide React
 
 ## Project Structure
 
-```
+```text
 geneotools/
-├── app/                        # Next.js App Router страницы
-│   ├── layout.tsx              # Базовый макет приложения
-│   ├── page.tsx                # Главная страница (загрузка и таблицы)
-│   └── globals.css             # Глобальные стили
-├── components/                 # React компоненты
-│   ├── FileUploader.tsx        # Drag-and-drop загрузка файлов
-│   ├── DataTable.tsx           # Таблицы с данными (Persons, Families, Events)
-│   ├── Filters.tsx             # Фильтры для таблиц
-│   ├── Toolbar.tsx             # Панель инструментов
-│   └── ui/                     # shadcn/ui компоненты
-├── lib/                        # Бизнес-логика и утилиты
-│   ├── parseAtdb.ts            # Парсер .atdb в JSON
-│   ├── buildAtdb.ts            # Генератор .atdb из JSON
-│   ├── initSqlJs.ts            # Инициализация sql.js
-│   ├── sqlProcessor.ts         # Основной процессор SQLite
-│   └── utils.ts                # Вспомогательные функции
-├── docs/                       # Документация проекта
-│   └── atdb-structure.md       # Структура базы данных .atdb
-├── public/                     # Статические файлы
-├── .ai-factory/                # AI Factory конфигурация
-│   ├── DESCRIPTION.md          # Спецификация проекта
-│   └── ARCHITECTURE.md         # Архитектурные решения
-├── .qwen/                      # Qwen конфигурация
-│   └── skills/                 # Установленные навыки AI
-└── package.json                # Зависимости и скрипты
+├── app/                        # App Router entrypoints and global styles
+│   ├── globals.css             # Global CSS
+│   ├── layout.tsx              # Root layout
+│   └── page.tsx                # Main upload/parse/download page
+├── components/                 # UI components
+│   ├── DataTable.tsx           # Entity table rendering and sorting
+│   ├── DebugAnalyzer.tsx       # Debug helper for inspecting files
+│   ├── FileUploader.tsx        # Drag-and-drop and file picker upload UI
+│   ├── Modal.tsx               # Reusable modal
+│   └── ScrollableDataTable.tsx # Tab navigation and scroll container
+├── docs/                       # User-facing and internal project docs
+│   ├── architecture.md         # Current architecture overview
+│   ├── atdb_format.md          # Notes on the .atdb database format
+│   ├── codebase-analysis.md    # Codebase analysis and debt notes
+│   ├── getting-started.md      # Installation and first-run guide
+│   └── refactoring-plan.md     # Refactoring plan and target state
+├── lib/                        # Domain logic and sql.js integration
+│   ├── buildAtdb.ts            # Validation helper for export input
+│   ├── initSqlJs.ts            # sql.js initialization helpers
+│   ├── parseAtdb.ts            # Compatibility type re-export
+│   ├── sqlProcessor.ts         # Current parse/build facade and implementation
+│   ├── types.ts                # Shared domain interfaces
+│   └── utils.ts                # Shared utility helpers
+├── public/                     # Static assets
+├── .ai-factory/                # AI Factory project context
+│   ├── ARCHITECTURE.md         # Current architecture description
+│   └── DESCRIPTION.md          # Project specification and constraints
+├── test-parsing.js             # Legacy ad-hoc parsing script
+├── test-parsing.ts             # TypeScript ad-hoc parsing script
+├── DOCS.md                     # Project documentation
+├── README.md                   # Project landing page
+└── package.json                # Dependencies and scripts
 ```
 
 ## Key Entry Points
 
 | File | Purpose |
 |------|---------|
-| `app/page.tsx` | Главная страница — загрузка файлов и отображение таблиц |
-| `app/layout.tsx` | Корневой макет с провайдерами |
-| `lib/sqlProcessor.ts` | Основной модуль обработки SQLite данных |
-| `lib/parseAtdb.ts` | Парсинг .atdb файла в JSON-структуру |
-| `lib/buildAtdb.ts` | Сборка .atdb файла из JSON-данных |
-| `components/DataTable.tsx` | Компонент таблиц с сортировкой и фильтрацией |
-| `components/FileUploader.tsx` | Компонент загрузки файлов |
+| `app/page.tsx` | Main client page for upload, parse, display, and download flow |
+| `components/FileUploader.tsx` | Handles drag-and-drop and file input validation |
+| `components/ScrollableDataTable.tsx` | Switches between entity tabs and hosts the active table |
+| `components/DataTable.tsx` | Renders table headers/rows and sorting for parsed entities |
+| `lib/sqlProcessor.ts` | Current main parser/builder implementation for `.atdb` |
+| `lib/initSqlJs.ts` | Creates `sql.js` database instances from uploaded buffers |
+| `lib/types.ts` | Shared domain contracts for parser and UI |
 
 ## Documentation
 
 | Document | Path | Description |
 |----------|------|-------------|
-| README | README.md | Основная информация о проекте |
-| DOCS | DOCS.md | Детальная документация проекта |
-| Architecture | .ai-factory/ARCHITECTURE.md | Архитектурные решения |
-| Description | .ai-factory/DESCRIPTION.md | Спецификация проекта |
+| README | `README.md` | Landing page проекта |
+| Getting Started | `docs/getting-started.md` | Установка, запуск, first steps |
+| Architecture | `docs/architecture.md` | Текущая структура и ограничения |
+| ATDB Format | `docs/atdb_format.md` | Наблюдения по структуре `.atdb` |
+| Codebase Analysis | `docs/codebase-analysis.md` | Техдолг и проблемные места |
+| Refactoring Plan | `docs/refactoring-plan.md` | Этапы и критерии рефакторинга |
+| Description | `.ai-factory/DESCRIPTION.md` | Спецификация проекта |
+| Architecture Context | `.ai-factory/ARCHITECTURE.md` | AI-архитектурный контекст |
 
 ## AI Context Files
 
 | File | Purpose |
 |------|---------|
-| AGENTS.md | Этот файл — карта проекта |
-| .ai-factory/DESCRIPTION.md | Спецификация проекта и стек технологий |
-| .ai-factory/ARCHITECTURE.md | Архитектурные решения и паттерны |
-| QWEN.md | Правила и стиль разработки для Qwen Code |
+| `AGENTS.md` | This file: project map for agents |
+| `.ai-factory/DESCRIPTION.md` | Project specification, stack, and constraints |
+| `.ai-factory/ARCHITECTURE.md` | Current architecture and refactoring direction |
+| `QWEN.md` | Additional local coding instructions |
 
-## Database Structure (.atdb)
+## Domain Notes
 
-Файлы `.atdb` являются SQLite базами данных с основными таблицами:
+`.atdb` files are SQLite databases. Important entities currently extracted by the app:
 
-| Table | Description |
-|-------|-------------|
-| `Persons` | Информация о персонах |
-| `Families` | Информация о родах |
-| `Events` | События |
-| `EventDetails` | Детали событий (связывает персон с событиями) |
-| `ValuesStr` | Строковые значения для полей |
-| `ValuesNum` | Числовые значения |
-| `ValuesDates` | Даты |
-| `ValuesLinks` | Связи между сущностями |
+- `Persons`
+- `Families`
+- `Events`
+- `EventDetails`
+- `ValuesStr`
+- `ValuesNum`
+- `ValuesDates`
+- `ValuesLinks`
 
-### EventDetails Roles (er_id)
+Known mapping notes currently used in the project:
 
-- `1` — родился (для персоны)
-- `2` — отец (для события рождения)
-- `3` — мать (для события рождения)
+- Birth event role ids in `EventDetails`:
+  - `1` = born person
+  - `2` = father
+  - `3` = mother
+- Family string fields in `ValuesStr` with `rec_table = 9`:
+  - `48` = husband surname
+  - `49` = wife surname
+  - `50` = family name
+  - `52` = family comment
 
-### ValuesStr Fields for Families (rec_table = 9)
+## Current State
 
-- `f_id = 48` — мужская фамилия
-- `f_id = 49` — женская фамилия
-- `f_id = 50` — название рода
-- `f_id = 52` — комментарий
-
-## Development Workflow
-
-1. **Планирование:** `/skills aif-plan <задача>` — создание плана реализации
-2. **Реализация:** `/skills aif-implement` — выполнение плана
-3. **Ревью:** `/skills aif-review` — проверка кода
-4. **Коммит:** `/skills aif-commit` — создание commit message
-5. **Документация:** `/skills aif-docs` — генерация документации
-
-## Available Skills
-
-- `/skills aif-plan` — Планирование реализации
-- `/skills aif-implement` — Выполнение плана
-- `/skills aif-review` — Code review
-- `/skills aif-commit` — Создание commit message
-- `/skills aif-docs` — Генерация документации
-- `/skills aif-roadmap` — Создание roadmap проекта
-- `/skills aif-rules` — Добавление правил проекта
-- `/skills aif-build-automation` — Настройка автоматизации
-- `/skills aif-ci` — CI/CD пайплайны
-- `/skills aif-security-checklist` — Проверка безопасности
+- `npm run lint` currently passes
+- `npx tsc --noEmit` currently passes
+- Domain types are centralized in `lib/types.ts`
+- Parser/build logic is still monolithic in `lib/sqlProcessor.ts`
+- Table rendering is still monolithic in `components/DataTable.tsx`
+- Automated parser tests are not configured yet

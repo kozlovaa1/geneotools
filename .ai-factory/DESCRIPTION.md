@@ -2,83 +2,100 @@
 
 ## Overview
 
-**GeneoTools** — браузерный инструмент для работы с генеалогическими базами данных программы «Древо Жизни 6» (`.atdb`).
+GeneoTools is a browser-based utility for working with genealogy databases from "Древо Жизни 6" (`.atdb`).
 
-Сервис позволяет загружать, просматривать, фильтровать и редактировать данные, а затем выгружать обновлённую версию базы. Все операции происходят локально в браузере с использованием sql.js для обработки SQLite баз данных.
+The application opens a local `.atdb` file in the browser, parses the SQLite data with `sql.js`, shows the extracted entities in tabular form, and builds an updated `.atdb` file for download. All processing happens locally in the browser session.
 
 ## Core Features
 
-- Загрузка локального файла `.atdb` через drag-and-drop
-- Парсинг SQLite базы в JSON-структуру (Persons, Families, Events, EventDetails, ValuesStr)
-- Отображение данных в таблицах с сортировкой и фильтрацией
-- Inline-редактирование полей данных
-- Извлечение родительских связей из событий рождения (fatherId, motherId)
-- Извлечение данных о родах из таблицы ValuesStr (название рода, фамилии, комментарий)
-- Экспорт изменённых данных обратно в `.atdb`
-- Полная автономность — файлы не сохраняются на сервере
+- Upload a local `.atdb` file with drag-and-drop or file picker
+- Validate that the uploaded file is a valid SQLite database
+- Parse core genealogy entities into a typed in-memory model:
+  - persons
+  - families
+  - events
+  - places
+  - metadata
+- Display parsed entities in tabbed tables with client-side sorting
+- Export the current in-memory data back into an `.atdb` file
+- Show runtime errors and success state in the page UI
 
 ## Tech Stack
 
 - **Language:** TypeScript 5
 - **Framework:** Next.js 16 (App Router)
-- **Database:** SQLite (файлы .atdb обрабатываются через sql.js в браузере)
-- **ORM:** Отсутствует (прямые SQL запросы через sql.js)
-- **UI:** Tailwind CSS 4, shadcn/ui, Lucide React
 - **Runtime:** React 19, Node.js 20
+- **Database:** SQLite `.atdb` files processed with `sql.js`
+- **ORM / Query Layer:** None; direct SQL over `sql.js`
+- **UI:** Tailwind CSS 4, Lucide React
 
-## Architecture
+## Current Architecture
 
 ### Frontend
-- Next.js 16 App Router
-- React 19 с функциональными компонентами и хуками
-- Tailwind CSS для стилизации
-- sql.js для обработки SQLite в браузере
 
-### Backend
-- API routes Next.js (Node.js runtime)
-- Обработка файлов во временном хранилище (/tmp)
-- Парсинг и генерация .atdb через sql.js
+- Single-page App Router UI in `app/page.tsx`
+- Client-side file upload, parse, and download flow
+- Tab-based table browsing via `ScrollableDataTable`
+- Entity rendering and sorting via `DataTable`
 
-### Data Flow
-1. Пользователь загружает .atdb файл
-2. Файл обрабатывается через sql.js в браузере
-3. Данные извлекаются в JSON-структуру
-4. Отображаются в таблицах с возможностью редактирования
-5. При экспорте данные собираются обратно в SQLite .atdb
+### Data Layer
 
-## Project Structure
+- `lib/initSqlJs.ts` initializes `sql.js`
+- `lib/sqlProcessor.ts` is the current facade and implementation for parsing/building `.atdb`
+- `lib/types.ts` is the single source of truth for domain types
+- `lib/parseAtdb.ts` currently acts as a compatibility re-export for domain types
+- `lib/buildAtdb.ts` contains validation helpers used before rebuilding output
 
-```
+## Current Project Structure
+
+```text
 geneotools/
-├── app/                    # Next.js App Router pages
-├── components/             # React компоненты UI
-│   └── ui/                 # shadcn/ui компоненты
-├── lib/                    # Утилиты и бизнес-логика
-├── public/                 # Статические файлы
-├── .ai-factory/            # AI Factory конфигурация
-└── docs/                   # Документация проекта
+├── app/
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── DataTable.tsx
+│   ├── DebugAnalyzer.tsx
+│   ├── FileUploader.tsx
+│   ├── Modal.tsx
+│   └── ScrollableDataTable.tsx
+├── docs/
+│   ├── codebase-analysis.md
+│   └── refactoring-plan.md
+├── lib/
+│   ├── buildAtdb.ts
+│   ├── initSqlJs.ts
+│   ├── parseAtdb.ts
+│   ├── sqlProcessor.ts
+│   ├── types.ts
+│   └── utils.ts
+├── public/
+├── .ai-factory/
+└── AGENTS.md
 ```
+
+## Current Refactoring Status
+
+- Lint currently passes (`npm run lint`)
+- TypeScript compilation currently passes (`npx tsc --noEmit`)
+- Domain types are centralized in `lib/types.ts`
+- The parser/builder logic is still concentrated in `lib/sqlProcessor.ts`
+- The tabular UI is still concentrated in `components/DataTable.tsx`
+- Automated parser tests are not set up yet
+- Documentation has been partially refreshed but still requires alignment with the codebase over time
 
 ## Non-Functional Requirements
 
-- **Производительность:** Обработка 5–10k записей без подвисаний
-- **Безопасность:** Файлы не сохраняются на сервере, только сессионная обработка
-- **Типобезопасность:** Строгий TypeScript (strict: true)
-- **Автономность:** Работа без внешних API и баз данных
-- **Хостинг:** Vercel (serverless-compatible)
-
-## Development Priorities
-
-1. Стабильный парсинг — корректно читать и собирать .atdb
-2. Рабочий UI — таблицы и фильтры без ошибок
-3. Inline-редактирование — обновление данных в state
-4. Безопасность сессии — файлы не сохраняются
-5. Производительность — обрабатывать 5–10k записей без подвисаний
+- **Privacy:** No external API calls are required for file processing
+- **Local-first behavior:** User data stays in the browser session
+- **Type safety:** Shared domain types are defined in `lib/types.ts`
+- **Maintainability:** Ongoing refactoring should reduce coupling in parsing and table rendering
+- **Compatibility:** The app targets the `.atdb` format used by the current MVP scope
 
 ## Constraints
 
-- Никаких сетевых запросов к внешним API
-- Не использовать базы данных или внешние хранилища
-- Не хранить персональные данные на сервере
-- Все операции должны быть обратимы в рамках одной сессии
-- Готовность к деплою на Vercel без дополнительной конфигурации
+- No server-side persistence for uploaded genealogy data
+- No external database or backend service is required for core functionality
+- The parser must tolerate schema variance across `.atdb` files where possible
+- Refactoring should avoid accidental behavior changes without verification

@@ -1,314 +1,474 @@
-# .atdb File Format Documentation
+[← Architecture](architecture.md) · [Back to README](../README.md) · [Codebase Analysis →](codebase-analysis.md)
 
-## Overview
-The `.atdb` format is used by the "Древо Жизни 6" (Agelong Tree 6) genealogy software. Despite appearances of being a proprietary binary format, `.atdb` files are actually uncompressed SQLite databases with a specific structure and schema.
+# Документация по формату `.atdb`
 
-## Database Structure
+## Обзор
+Формат `.atdb`, используемый в программе «Древо Жизни 6», представляет собой обычную базу данных SQLite.
 
-### Primary Tables
-- **Persons**: Contains information about individuals
-- **Families**: Contains information about family units
-- **Events**: Contains information about various life events
+Этот документ уточнён по реальному тестовому файлу `yaman-test.atdb`, а не только по коду приложения. Поэтому в нём отдельно различаются:
 
-### Metadata Tables
-- **Global**: Contains database metadata and version information
-- **Fields**: Contains field definitions that map field IDs to their meanings
+- **подтверждённые** факты, наблюдаемые в тестовой базе;
+- **наблюдаемые / вероятные** соответствия, которые хорошо подтверждаются данными, но не описаны явно в самой схеме.
 
-### Data Storage Tables
-- **ValuesStr**: Stores string values (names, places, notes)
-- **ValuesNum**: Stores numeric values
-- **ValuesDates**: Stores date values
-- **ValuesLinks**: Stores relationships between records
-- **EventDetails**: Links persons to events and event roles
-- **EventRoles**: Defines types of events
-- **Places**: Stores location information
+## Снимок тестовой базы (`yaman-test.atdb`)
 
-## Table Details
+Наблюдаемые метаданные:
 
-### Persons Table
-Contains the main information about individuals in the genealogy tree.
+- `Global.version = 8`
+- `Global.mainlang = 'ru'`
+- `Persons`: 294
+- `Families`: 11
+- `Events`: 665
+- `EventDetails`: 1059
+- `Places`: 23
+- `Documents`: 4
+- `Sources`: 12
 
-**Fields:**
-- `id`: Unique identifier for the person
-- `sex`: Gender of the person (0=Unknown, 1=M, 2=F)
-- Additional fields like first name, last name, and patronymic may be stored in ValuesStr table
+## Полный список таблиц
 
-### Families Table
-Contains family unit information.
+В тестовой базе присутствуют следующие таблицы:
 
-**Fields:**
-- `id`: Unique identifier for the family
-- `color`: Color code for visual representation in the software
+- `DocumentDetails` — связи документов с конкретными записями базы
+- `Documents` — документы и пути к ним
+- `EventDetails` — участники событий и их роли
+- `EventRoles` — роли участников внутри типов событий
+- `EventTypes` — типы событий и их порядок
+- `Events` — сами события
+- `Families` — семейные/родовые записи
+- `Fields` — определения пользовательских и системных полей
+- `Global` — метаданные базы
+- `Log` — журнал изменений записей
+- `Persons` — персоны
+- `Places` — места и их иерархия
+- `Recs` — общий реестр записей всех типов
+- `SourceDetails` — связи источников с конкретными записями
+- `Sources` — источники
+- `TaskDetails` — связи задач с конкретными записями
+- `Tasks` — задачи
+- `ValuesDates` — значения полей типа дата
+- `ValuesLinks` — значения полей типа ссылка
+- `ValuesNum` — значения полей типа число
+- `ValuesStr` — значения полей типа строка
 
-### Events Table
-Contains historical events related to persons or families.
+То есть формат шире, чем просто `Persons` / `Families` / `Events`. В нём также есть общий реестр записей (`Recs`), таблицы значений и служебные таблицы для источников, документов, задач и журнала изменений.
 
-**Fields:**
-- `id`: Unique identifier for the event
-- `et_id`: Event type identifier
+## Основные таблицы
 
-### EventDetails Table
-Links persons to events and defines the role of each person in the event.
+### `Persons`
 
-**Fields:**
-- `p_id`: Person ID (links to a person)
-- `e_id`: Event ID (links to an event)
-- `er_id`: Event Role ID (links to an event type in EventRoles table)
-- `p_ord`: Order of person in the event (determines primary person for date/place associations)
+Содержит базовые записи персон.
 
-### Global Table (Metadata)
-Contains database metadata information.
+Подтверждённые столбцы:
 
-**Fields:**
-- `version`: Database schema version
-- `guid`: Global unique identifier for the database
-- `srcguid`: Source GUID (if database was imported/derived from another)
-- `mainlang`: Main language of the database
-- `params`: Additional parameters
+- `id INTEGER PRIMARY KEY`
+- `sex INTEGER`
 
-### Fields Table
-Contains field definitions that map field IDs to their meanings and which table they belong to.
+Наблюдаемые значения:
 
-**Fields:**
-- `id`: Field identifier
-- `tablecode`: Code indicating which table the field belongs to
-- `area`: Name of the field
+- `sex = 1` -> мужчина
+- `sex = 2` -> женщина
 
-### Values Tables
-The database uses four tables to store values: ValuesStr, ValuesNum, ValuesDates, and ValuesLinks.
+Большая часть человекочитаемых данных о персоне хранится не в самой таблице `Persons`, а в `ValuesStr`, `ValuesLinks` и иногда в `ValuesNum`.
 
-**ValuesStr** (String Values)
-- `f_id`: Field identifier
-- `rec_table`: Code of the table the record belongs to
-- `rec_id`: Record identifier 
-- `vstr`: String value
+### `Families`
 
-**ValuesNum** (Numeric Values)
-- `f_id`: Field identifier
-- `rec_id`: Record identifier
-- `vnum`: Numeric value
+Содержит базовые записи семей, родов и связанных групп.
 
-**ValuesDates** (Date Values)
-- `f_id`: Field identifier
-- `rec_table`: Code of the table the record belongs to
-- `rec_id`: Record identifier
-- `y`: Year
-- `m`: Month
-- `d`: Day
+Подтверждённые столбцы:
 
-**ValuesLinks** (Relationships)
-- `f_id`: Field identifier
-- `rec_table`: Code of the table the source record belongs to
-- `rec_id`: Source record identifier
-- `vlink_table`: Code of the table the linked record belongs to
-- `vlink_id`: Linked record identifier
+- `id INTEGER PRIMARY KEY`
+- `color INTEGER`
 
-## Field ID Mappings
-Based on analysis of the implementation and debug logs, common field IDs have the following meanings:
+Человекочитаемые названия семей хранятся в `ValuesStr` при `rec_table = 9`.
 
-### Person-related Fields (table code 13)
-- `1`: First name (fname)
-- `2`: Last name (lname)
-- `3`: Patronymic
-- `4`: Birth place
-- `5`: Death place
-- `6`: Notes
+### `Events`
 
-### Family-related Fields (table code 9 for Families, according to requirements)
-- `48`: Husband last name
-- `49`: Wife last name
-- `50`: Family name
-- `52`: Comment
+Содержит базовые записи событий.
 
-### Event-related Fields (table code 11)
-- `1`: Person ID associated with the event
-- `2`: Family ID associated with the event
-- `3`: Event date
-- `4`: Event place
-- `5`: Event description
+Подтверждённые столбцы:
 
-### EventDetails-related Fields (table code 7)
-- `p_id`: Person ID (links to a person)
-- `e_id`: Event ID (links to an event)
-- `er_id`: Event Role ID (1 = person being born, 2 = father, 3 = mother)
+- `id INTEGER PRIMARY KEY`
+- `et_id INTEGER NOT NULL REFERENCES EventTypes(id)`
 
-## Table Code Mappings
-- `7`: EventDetails table (for date values in the EventDetails context)
-- `9`: Families table
-- `11`: Events table
-- `13`: Persons table
-- `14`: Places table
+Важное исправление:
 
-## Data Parsing Considerations
+- В `yaman-test.atdb` полезная нагрузка событий в `ValuesDates`, `ValuesLinks`, `ValuesStr` и `ValuesNum` привязана к **`Events.id`**, а не к `EventDetails.id`.
+- То есть `rec_table = 7` в таблицах значений соответствует именно **записи события**, а `rec_id = Events.id`.
 
-### String Values
-Names and other text values can be stored in multiple ways:
-1. In the Persons table columns (for basic info)
-2. In the ValuesStr table using field definitions in the Fields table
-3. In the ValuesStr table using standard field IDs (commonly with tableCode 13)
+### `EventDetails`
 
-### Place Information
-Location information is stored in the Places table and connected to persons through the Events system:
-- Places are stored in the **Places** table (table code 14)
-- Place details are stored in ValuesStr with rec_table = 14
-  - Field ID 93: Place name
-  - Field ID 94: Short name
-  - Field ID 104: Comment
-- Places are linked to persons through events (birth/death) via:
-  - EventDetails.e_id connects to ValuesLinks.rec_id
-  - ValuesLinks.rec_table = 7 (EventDetails)
-  - ValuesLinks.vlink_table = 14 (Places) to indicate it's a place link
-  - ValuesLinks.vlink_id = Places.id to specify which place
-- Event type is determined by EventDetails.er_id → EventRoles.id → EventRoles.et_id (1 for birth, 2 for death)
+Содержит связи «персона <-> событие» и роль персоны в событии.
 
-### Date Values
-Dates are stored in the ValuesDates table with separate year, month, and day columns. The field IDs determine what the date represents (birth, death, marriage, etc.).
+Подтверждённые столбцы:
 
-### Relationships
-Family relationships are stored in the ValuesLinks table and are critical to understanding the genealogical structure:
+- `id INTEGER PRIMARY KEY`
+- `p_id INTEGER NOT NULL REFERENCES Persons(id)`
+- `e_id INTEGER NOT NULL REFERENCES Events(id)`
+- `er_id INTEGER NOT NULL REFERENCES EventRoles(id)`
+- `e_ord INTEGER`
+- `p_ord INTEGER`
 
-#### Person Relationships
-Person relationships are stored with `rec_table` = 9 (Persons) and use the following field IDs:
-- `9`: Father ID (links to another person)
-- `10`: Mother ID (links to another person)
-- `153`: Alternative Father ID (links to another person)
-- `154`: Alternative Mother ID (links to another person)
+Назначение:
 
-#### Family Relationships
-Family relationships are stored with `rec_table` = 13 (Families) and use the following field IDs:
-- `1`: Husband ID (links to a person)
-- `2`: Wife ID (links to a person)
-- `3`: Child ID (links to a person - can have multiple records)
+- связывает людей с событием;
+- хранит роли участников внутри события;
+- задаёт порядок участников.
 
-#### Event Relationships
-Event relationships are stored with `rec_table` = 11 (Events) and use the following field IDs:
-- `1`: Person ID associated with the event (links to a person) - this is an older method, use EventDetails for comprehensive data
-- `2`: Family ID associated with the event (links to a family) - this is an older method, not used in new implementation
+### `EventRoles`
 
-#### Event Details
-Event details are stored in a separate table that links persons to events and event roles:
-- **EventDetails Table**: Links persons to events and event roles
-  - `p_id`: Person ID (links to a person)
-  - `e_id`: Event ID (links to an event)
-  - `er_id`: Event Role ID (links to an event type in EventRoles table)
+Содержит справочник ролей участников событий.
 
-- **EventRoles Table**: Defines types of events
-  - `id`: Event Role ID (links to EventDetails.er_id)
-  - `et_id`: Event Type ID (common values)
-    - 1 = Рождение (Birth)
-    - 2 = Смерть (Death)
-    - 3 = Свадьба (Marriage)
-    - 4 = Развод (Divorce)
-    - 5 = Венчание (Wedding ceremony)
-    - 34 = Захоронение (Burial)
-    - 35 = Крестильни (Baptism)
-    - 40 = Переезд (Moving)
-    - 41 = Именины (Name Day)
-    - 42 = Коммунальный праздник (Communal Holiday)
-    - 43 = День рождения (Birthday)
-    - 44 = Юбилей (Anniversary)
-    - 50 = Обручение (Engagement)
-    - 51 = Союз (Union)
-    - 52 = Расставание (Separation)
-    - 53 = Помолвка (Betrothal)
-    - 54 = Усыновление (Adoption)
-    - 55 = Развод (Divorce)
-    - 56 = Вдовство (Widowhood)
-    - 60 = Образование (Education)
-    - 61 = Начало обучения (Start of Education)
-    - 62 = Окончание обучения (End of Education)
-    - 63 = Диплом (Diploma)
-    - 64 = Ученая степень (Academic Degree)
-    - 65 = Ученое звание (Academic Title)
-    - 70 = Профессия (Profession)
-    - 71 = Работа (Work)
-    - 72 = Должность (Position)
-    - 73 = Увольнение (Dismissal)
-    - 74 = Переезд на работу (Job-related move)
-    - 75 = Отставка (Resignation)
-    - 80 = Военная служба (Military Service)
-    - 81 = Звание (Rank)
-    - 82 = Увольнение с военной службы (Discharge from Military)
-    - 83 = Награда (Award)
-    - 84 = Участие в конфликте (Conflict Participation)
-    - 90 = Религиозные события (Religious Events)
-    - 91 = Крещение (Baptism)
-    - 92 = Исповедь (Confession)
-    - 93 = Причастие (Communion)
-    - 94 = Миропомазание (Anointing)
-    - 95 = Катехизация (Catechism)
-    - 96 = Конфирмация (Confirmation)
-    - 97 = Сан (Holy Order)
-    - 98 = Посвящение (Ordination)
-    - 99 = Распоповление (Defrocking)
-    - 100 = Медицинские события (Medical Events)
-    - 101 = Беременность (Pregnancy)
-    - 102 = Аборт (Abortion)
-    - 103 = Усыновление (Adoption)
-    - 104 = Роды (Childbirth)
-    - 105 = Патентование (Patenting)
-    - 106 = Лечение (Treatment)
-    - 107 = Заболевание (Disease)
-    - 108 = Инвалидность (Disability)
-    - 109 = Донорство (Donation)
-    - 110 = Операция (Surgery)
-    - 111 = Авария (Accident)
-    - 112 = Отравление (Poisoning)
-    - 113 = Попытка суицида (Suicide Attempt)
-    - 114 = Суицид (Suicide)
-    - 115 = Убийство (Murder)
-    - 116 = Насилие (Violence)
-    - 117 = Нападение (Assault)
-    - 118 = Несчастный случай (Accident)
-    - 119 = Катастрофа (Disaster)
-    - 120 = Заключение (Imprisonment)
-    - 121 = Покушение (Attempt)
-    - 122 = Кража (Theft)
-    - 123 = Разбой (Robbery)
-    - 124 = Мошенничество (Fraud)
-    - 125 = Нарушение (Violation)
-    - 126 = Преступление (Crime)
-    - 127 = Судимость (Criminal Record)
-    - 128 = Арест (Arrest)
-    - 129 = Содержание под стражей (Detention)
-    - 130 = Уголовное преследование (Prosecution)
-    - 131 = Вызов в суд (Court Summons)
-    - 132 = Свидетельство (Testimony)
-    - 133 = Обвинение (Accusation)
-    - 134 = Обвинительный акт (Indictment)
-    - 135 = Оправдательный приговор (Acquittal)
-    - 136 = Обвинительный приговор (Conviction)
-    - 137 = Наказание (Punishment)
-    - 138 = Исполнение приговора (Execution of Sentence)
-    - 139 = Помилование (Pardon)
-    - 140 = Амнистия (Amnesty)
-    - 141 = Прекращение преследования (Termination of Prosecution)
-    - 142 = Переезд (Moving)
-    - 143 = Иммиграция (Immigration)
-    - 144 = Эмиграция (Emigration)
-    - 145 = Репатриация (Repatriation)
-    - 146 = Натурализация (Naturalization)
-    - 147 = Гражданство (Citizenship)
-    - 148 = Паспорт (Passport)
-    - 149 = Виза (Visa)
-    - 150 = Документы (Documents)
-    - (Additional event types may exist in different databases)
+Подтверждённые столбцы:
 
-Event data (dates and places) retrieval pathway:
-- Events.id connects to EventDetails.e_id
-- EventDetails.id (for the first person by p_ord) connects to ValuesDates.rec_id where rec_table = 7 (EventDetails table code)
-- EventDetails.id (for the first person by p_ord) connects to ValuesLinks.rec_id where rec_table = 7 (EventDetails table code) and vlink_table = 14 (Places table) to get place information
-- `ValuesDates.rec_table` = 7 (EventDetails table code)
-- `ValuesLinks.rec_table` = 7 (EventDetails table code), `vlink_table` = 14 (Places table)
+- `id INTEGER PRIMARY KEY`
+- `et_id INTEGER REFERENCES EventTypes(id)`
+- `maxcount INTEGER`
+- `ord INTEGER`
+- `roletype INTEGER`
+- `ismain INTEGER`
 
-#### Extracting Parent Information from Birth Events
-To extract father and mother IDs from birth events:
-- Find the birth event for a person in `EventDetails` where `p_id` = person ID and `er_id` = 1 (meaning the person was born)
-- Get the `e_id` (event ID) from that record
-- Find all `EventDetails` records with that `e_id` where `er_id` = 2 (father) or `er_id` = 3 (mother)
-- Use the `p_id` values from those records as `fatherId` and `motherId`
+`EventRoles` — это реальный мост между ролью участника и типом события.
 
-## Implementation Notes
-The implementation uses sql.js to process .atdb files in the browser by treating them as SQLite databases. When parsing, the system reads all tables and maps the data using field definitions and standard field ID mappings to reconstruct Person, Family, and Event objects.
+### `EventTypes`
 
-When building .atdb files, the system updates the appropriate values in these tables based on the input data, following the same field ID mappings.
+Содержит справочник типов событий.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `ord INTEGER NOT NULL`
+
+Важное замечание:
+
+- `EventTypes` в тестовой базе хранит только идентификаторы и порядок сортировки.
+- Человекочитаемые названия типов событий напрямую в этой таблице не хранятся.
+
+### `Places`
+
+Содержит места и связи между ними.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `parent_id INTEGER REFERENCES Places(id)`
+- `group_id INTEGER`
+- `maskfull INTEGER`
+- `maskshort INTEGER`
+- `global_id BLOB`
+
+Места образуют иерархию через `parent_id`.
+
+### `Global`
+
+Содержит общие метаданные базы.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `version INTEGER`
+- `guid TEXT`
+- `srcguid TEXT`
+- `mainlang TEXT`
+- `params TEXT`
+
+## Общий слой записей
+
+### `Recs`
+
+Содержит общий реестр записей всех типов.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `rec_table INTEGER NOT NULL`
+- `rec_id INTEGER NOT NULL`
+- `guid BLOB NOT NULL`
+- `di DATETIME NOT NULL`
+- `de DATETIME`
+- `lconf INTEGER`
+- `ltrust INTEGER`
+- `fav INTEGER`
+
+Эта таблица важна, потому что внешние ключи в `Values*`, `DocumentDetails`, `SourceDetails` и `TaskDetails` ссылаются на пару `(rec_table, rec_id)` через `Recs`.
+
+Иными словами, формат содержит общий слой идентификации записей поверх предметных таблиц.
+
+## Таблицы значений
+
+### `ValuesStr`
+
+Содержит строковые значения полей.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `f_id INTEGER NOT NULL REFERENCES Fields(id)`
+- `rec_table INTEGER NOT NULL`
+- `rec_id INTEGER NOT NULL`
+- `lang TEXT`
+- `vstr TEXT`
+- `lconf INTEGER`
+- `ltrust INTEGER`
+
+### `ValuesNum`
+
+Содержит числовые значения полей.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `f_id INTEGER NOT NULL REFERENCES Fields(id)`
+- `rec_table INTEGER NOT NULL`
+- `rec_id INTEGER NOT NULL`
+- `vnum REAL`
+- `vnum2 REAL`
+- `lconf INTEGER`
+- `ltrust INTEGER`
+
+Исправление относительно предыдущей версии документа:
+
+- `ValuesNum` тоже содержит `rec_table`, а не только `rec_id`.
+
+### `ValuesDates`
+
+Содержит значения полей типа дата и диапазоны дат.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `f_id INTEGER NOT NULL REFERENCES Fields(id)`
+- `rec_table INTEGER NOT NULL`
+- `rec_id INTEGER NOT NULL`
+- `d`, `m`, `y`
+- `d2`, `m2`, `y2`
+- `calendar`, `calendar2`
+- `type`
+- `sort`, `sort2`, `sort3`, `sort4`
+- `lconf`, `ltrust`
+
+Важное исправление:
+
+- даты в формате богаче, чем просто `год/месяц/день`;
+- поддерживаются диапазоны дат и дополнительные служебные поля для точности и сортировки.
+
+### `ValuesLinks`
+
+Содержит ссылочные значения полей, связывающие записи между собой.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `f_id INTEGER NOT NULL REFERENCES Fields(id)`
+- `rec_table INTEGER NOT NULL`
+- `rec_id INTEGER NOT NULL`
+- `vlink_table INTEGER NOT NULL`
+- `vlink_id INTEGER NOT NULL`
+- `lconf INTEGER`
+- `ltrust INTEGER`
+
+Это основной механизм типизированных связей между записями.
+
+## Таблица `Fields`
+
+Содержит определения полей и их привязку к типам записей.
+
+Подтверждённые столбцы:
+
+- `id INTEGER PRIMARY KEY`
+- `tablecode INTEGER NOT NULL`
+- `datatype INTEGER`
+- `area TEXT`
+- `defval INTEGER`
+- `noautofill INTEGER`
+- `icon BLOB`
+- `et_id INTEGER REFERENCES EventTypes(id)`
+- `et_ord INTEGER`
+
+Важное исправление:
+
+- `Fields.area` в `yaman-test.atdb` **не является надёжным человекочитаемым именем поля**.
+- В тестовой базе `area` часто равно `NULL`, а иногда содержит короткие маркеры вроде `MF`, `mf`, `mF`.
+- Поэтому `Fields` нужно рассматривать как реестр определений полей, а не как готовый словарь семантики.
+
+## Подтверждённые соответствия `rec_table`
+
+Следующие значения подтверждены реальным использованием в `yaman-test.atdb`:
+
+- `7` -> `Events`
+- `9` -> `Families`
+- `13` -> `Persons`
+- `14` -> `Places`
+
+Это подтверждается тем, что соответствующие строки в `Values*` ссылаются на реальные идентификаторы записей из этих таблиц.
+
+Другие коды `rec_table` тоже присутствуют в `Recs`, но эта тестовая база не даёт достаточно прямых доказательств, чтобы безопасно документировать их все.
+
+## Подтверждённые и наблюдаемые соответствия `f_id`
+
+### Персоны (`rec_table = 13`)
+
+Подтверждено по примерам из `ValuesStr`:
+
+- `64` -> фамилия / базовая форма фамилии
+- `65` -> альтернативная женская форма фамилии
+- `66` -> имя
+- `67` -> отчество
+- `73` -> социальный статус / занятие
+- `89` -> произвольная заметка
+
+Наблюдаемое / вероятное:
+
+- `63` в `ValuesLinks` -> ссылка от персоны к `Places` (`vlink_table = 14`)
+- `83` в `ValuesLinks` -> ссылка от персоны к `Families` (`vlink_table = 9`)
+- `155` в `ValuesStr` -> конфессия / религиозная принадлежность
+- `202` в `ValuesNum` -> числовой флаг булевого типа (`1.0` во всех наблюдаемых строках)
+
+Примеры значений:
+
+- `66 = "Алексей"`, `"Александр"`
+- `64 = "Никишин"`, `"Солдатов"`
+- `67 = "Ильич"`, `"Александрович"`
+- `73 = "Казак"`, `"Урядник"`
+
+### Семьи (`rec_table = 9`)
+
+Подтверждено по примерам из `ValuesStr`:
+
+- `48` -> мужская форма фамилии семьи
+- `49` -> женская форма фамилии семьи
+- `50` -> отображаемое имя семьи / фамилия во множественном числе
+- `52` -> комментарий
+
+Примеры значений:
+
+- `48 = "Солдатов"`
+- `49 = "Солдатова"`
+- `50 = "Солдатовы"`
+
+### Места (`rec_table = 14`)
+
+Подтверждено по примерам из `ValuesStr`:
+
+- `93` -> полное название места
+- `94` -> краткое название места
+- `104` -> комментарий
+
+Наблюдаемое / вероятное:
+
+- `95` в `ValuesDates` -> дата или датировочная метка, связанная с местом
+- `97` в `ValuesNum` -> числовой параметр, связанный с местом
+
+### События (`rec_table = 7`)
+
+Подтверждено по примерам из `Values*`:
+
+- `29` в `ValuesDates` -> дата события
+- `28` в `ValuesLinks` -> ссылка события на `Places` (`vlink_table = 14`)
+- `37` в `ValuesStr` -> заметка / описание события
+- `38` в `ValuesStr` -> причина смерти или дополнительная текстовая заметка
+
+Наблюдаемое / вероятное:
+
+- `204` в `ValuesNum` -> числовой флаг на уровне события для типа события `34`
+
+Примеры данных в `ValuesStr`:
+
+- `37`: длинные брачные записи, текст о свидетелях и священниках, повествовательные комментарии
+- `38`: причины смерти, например `"От старости"` или `"От холеры"`
+
+## Модель событий
+
+В тестовой базе модель событий устроена так:
+
+1. `Events` хранит само событие.
+2. `EventDetails` хранит участников этого события.
+3. `EventRoles` определяет смысл каждой роли участника.
+4. `ValuesDates` / `ValuesLinks` / `ValuesStr` / `ValuesNum` при `rec_table = 7` хранят полезную нагрузку события.
+
+### Типы событий, реально используемые в `yaman-test.atdb`
+
+Наблюдаемые значения `Events.et_id`:
+
+- `1` -> рождение
+- `2` -> смерть
+- `3` -> брак
+- `34` -> захоронение
+
+Эти значения выведены по структуре ролей и текстовому содержимому и согласуются с данными тестовой базы.
+
+### Наблюдаемые шаблоны ролей
+
+Для событий рождения (`et_id = 1`) в базе присутствуют роли:
+
+- `EventRoles.id = 1` -> основная персона (ребёнок)
+- `EventRoles.id = 2` -> отец
+- `EventRoles.id = 3` -> мать
+
+Для событий смерти (`et_id = 2`):
+
+- `EventRoles.id = 4` -> основная персона
+
+Для брака (`et_id = 3`):
+
+- `EventRoles.id = 5` -> супруг 1
+- `EventRoles.id = 6` -> супруг 2
+
+Важная оговорка:
+
+- идентификаторы ролей `1`, `2`, `3`, `4`, `5`, `6` подтверждены именно в этой тестовой базе;
+- их нельзя автоматически считать универсальными для всех `.atdb` без проверки таблицы `EventRoles`.
+
+## Корректный путь получения даты и места события
+
+Надёжный путь в `yaman-test.atdb` такой:
+
+1. Начать с `Events.id`.
+2. Прочитать `ValuesDates`, где `rec_table = 7 AND rec_id = Events.id`, чтобы получить дату события.
+3. Прочитать `ValuesLinks`, где `rec_table = 7 AND rec_id = Events.id AND vlink_table = 14`, чтобы получить связанное место.
+4. Использовать `EventDetails`, чтобы перечислить участников события.
+
+Это исправляет прежнюю версию документа, где полезная нагрузка события ошибочно описывалась как привязанная к `EventDetails.id`.
+
+## Извлечение родителей из событий рождения
+
+Для `yaman-test.atdb` родителей можно извлекать так:
+
+1. Найти событие персоны через `EventDetails`.
+2. Присоединить `EventRoles` и оставить строки, где `EventRoles.et_id = 1`, чтобы выделить события рождения.
+3. Внутри одного и того же `e_id` найти:
+   - роль `1` -> ребёнок
+   - роль `2` -> отец
+   - роль `3` -> мать
+
+Практическая рекомендация:
+
+- лучше присоединять `EventRoles`, а не полагаться только на жёстко зашитый `er_id`;
+- использовать жёстко заданные ID ролей стоит только тогда, когда вы точно работаете с файлами того же шаблона, что и `yaman-test.atdb`.
+
+## Практические замечания по парсингу
+
+- Не стоит предполагать, что важные текстовые поля находятся в базовых таблицах сущностей: большая часть семантики живёт в `Values*`.
+- Не стоит предполагать, что `Fields.area` содержит читаемые имена полей.
+- Не стоит предполагать, что `rec_table = 7` означает `EventDetails`; в тестовой базе это `Events`.
+- Не стоит переносить в код огромные списки типов событий из вторичных источников без проверки конкретного файла; лучше смотреть `Events`, `EventTypes` и `EventRoles`.
+- Для проверки ссылочной целостности полезно использовать `Recs` как канонический реестр записей.
+
+## Рекомендуемые SQL-проверки
+
+Полезные запросы при анализе другого `.atdb`-файла:
+
+```sql
+SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;
+SELECT * FROM Global;
+SELECT rec_table, COUNT(*) FROM Recs GROUP BY rec_table ORDER BY rec_table;
+SELECT f_id, COUNT(*) FROM ValuesStr WHERE rec_table = 13 GROUP BY f_id ORDER BY f_id;
+SELECT f_id, COUNT(*) FROM ValuesDates WHERE rec_table = 7 GROUP BY f_id ORDER BY f_id;
+SELECT e.et_id, COUNT(*) FROM Events e GROUP BY e.et_id ORDER BY COUNT(*) DESC;
+SELECT er.et_id, er.id, er.ord, er.roletype, er.ismain FROM EventRoles er ORDER BY er.et_id, er.ord;
+```
+
+## See Also
+
+- [Architecture](architecture.md) — где эти таблицы используются в приложении
+- [Codebase Analysis](codebase-analysis.md) — ограничения текущего parser flow
+- [Refactoring Plan](refactoring-plan.md) — как будет меняться parser layer

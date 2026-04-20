@@ -1,3 +1,5 @@
+[← ATDB Format](atdb_format.md) · [Back to README](../README.md) · [Refactoring Plan →](refactoring-plan.md)
+
 # Анализ кодовой базы GeneoTools (2026-02)
 
 ## Методика анализа
@@ -85,3 +87,9 @@
 3. Довести `npm run lint` до green-статуса.
 4. Удалить debug-логи из прод-рендера.
 5. Обновить документацию по фактической архитектуре и ограничениям.
+
+## See Also
+
+- [Architecture](architecture.md) — текущее устройство проекта
+- [Refactoring Plan](refactoring-plan.md) — этапы исправления найденных проблем
+- [Getting Started](getting-started.md) — как воспроизводить ручные проверки

@@ -1,3 +1,5 @@
+[← Codebase Analysis](codebase-analysis.md) · [Back to README](../README.md)
+
 # План рефакторинга GeneoTools
 
 ## Цели
@@ -133,3 +135,9 @@ lib/
 - Парсер разделён на небольшие модули с понятной ответственностью.
 - Есть минимальный набор автотестов на критичный parsing-flow.
 - README/DOCS соответствуют реальной архитектуре.
+
+## See Also
+
+- [Codebase Analysis](codebase-analysis.md) — почему именно эти этапы нужны
+- [Architecture](architecture.md) — текущее состояние до завершения рефакторинга
+- [Getting Started](getting-started.md) — базовые команды и smoke-проверки

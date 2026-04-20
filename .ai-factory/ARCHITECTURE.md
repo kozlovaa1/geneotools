@@ -1,289 +1,150 @@
-# Architecture: Modular Monolith
+# Architecture: Client-First Modular Monolith
 
 ## Overview
 
-**GeneoTools** использует архитектуру **Modular Monolith** с элементами **Layered Architecture**. Это оптимальный выбор для проекта с следующими характеристиками:
-- Команда: 1-2 разработчика
-- Домен: средняя сложность (генеалогические данные, SQLite)
-- Развёртывание: Vercel (serverless)
-- Требование: быстрая итерация и простота поддержки
+GeneoTools currently uses a client-first modular monolith architecture inside a single Next.js application.
 
-Архитектура обеспечивает чёткое разделение ответственности между модулями при сохранении простоты развёртывания в виде единого приложения Next.js.
+The project is small enough to stay in one deployable unit, but it already benefits from separating:
 
-## Decision Rationale
+- presentation logic
+- upload/download orchestration
+- domain types
+- SQLite parsing/building logic
 
-- **Project type:** Browser-based SQLite editor для генеалогических данных
-- **Tech stack:** Next.js 16 (App Router), React 19, TypeScript 5, sql.js
-- **Key factor:** Простота разработки при сохранении модульности для будущего расширения
+This document describes the actual current architecture, not the target architecture from the refactoring plan.
 
-## Folder Structure
+## Current Structure
 
-```
+```text
 geneotools/
-├── app/                          # Next.js App Router (Presentation Layer)
-│   ├── layout.tsx                # Корневой макет с провайдерами
-│   ├── page.tsx                  # Главная страница
-│   ├── globals.css               # Глобальные стили
-│   └── api/                      # API routes (Edge functions)
-│       └── process/              # Обработка файлов
-│           └── route.ts          # POST /api/process
-├── components/                   # UI компоненты (Presentation Layer)
-│   ├── FileUploader.tsx          # Загрузка файлов
-│   ├── DataTable.tsx             # Таблицы с данными
-│   ├── Filters.tsx               # Фильтры
-│   ├── Toolbar.tsx               # Панель инструментов
-│   └── ui/                       # shadcn/ui компоненты (Button, Table, etc.)
-├── lib/                          # Business Logic & Data Access Layers
-│   ├── sqlProcessor.ts           # Основной процессор SQLite (Domain Logic)
-│   ├── parseAtdb.ts              # Парсинг .atdb → JSON (Data Access)
-│   ├── buildAtdb.ts              # Сборка .atdb из JSON (Data Access)
-│   ├── initSqlJs.ts              # Инициализация sql.js (Infrastructure)
-│   └── utils.ts                  # Вспомогательные функции (Shared)
-├── docs/                         # Документация
-│   └── atdb-structure.md         # Структура базы данных .atdb
-├── public/                       # Статические файлы
-└── .ai-factory/                  # AI Factory конфигурация
-    ├── DESCRIPTION.md            # Спецификация проекта
-    └── ARCHITECTURE.md           # Архитектурные решения
+├── app/                          # App Router entrypoints and global styles
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx                  # Main upload/parse/download screen
+├── components/                   # UI components
+│   ├── FileUploader.tsx          # File input and drag-and-drop flow
+│   ├── ScrollableDataTable.tsx   # Tabs and scroll container
+│   ├── DataTable.tsx             # Entity table rendering and sorting
+│   ├── Modal.tsx                 # Generic modal
+│   └── DebugAnalyzer.tsx         # Debug-only inspection helper
+├── lib/                          # Domain and data-processing code
+│   ├── types.ts                  # Shared domain model
+│   ├── initSqlJs.ts              # sql.js bootstrap
+│   ├── sqlProcessor.ts           # Current parse/build implementation
+│   ├── buildAtdb.ts              # Validation helper for export
+│   ├── parseAtdb.ts              # Compatibility type re-export
+│   └── utils.ts                  # Shared utility functions
+├── docs/
+│   ├── codebase-analysis.md
+│   └── refactoring-plan.md
+└── public/
 ```
+
+## Architectural Characteristics
+
+### 1. Client-first processing
+
+The main user flow is entirely client-side:
+
+1. User uploads a local `.atdb` file
+2. `app/page.tsx` dynamically imports parsing logic
+3. `lib/sqlProcessor.ts` opens the SQLite database through `sql.js`
+4. Parsed entities are stored in React state
+5. Components render the extracted entities
+6. Export rebuilds a new `.atdb` file from the in-memory model
+
+### 2. Single domain model
+
+`lib/types.ts` is the single source of truth for the core entities:
+
+- `Person`
+- `Family`
+- `Event`
+- `Place`
+- `ParsedAtdb`
+
+UI and parsing code should depend on these shared contracts rather than redefining interfaces locally.
+
+### 3. Monolithic parser/builder
+
+The current main architectural weakness is that `lib/sqlProcessor.ts` combines:
+
+- SQLite validation
+- metadata parsing
+- person parsing
+- family parsing
+- event parsing
+- place parsing
+- rebuild/export logic
+
+This file is the main refactoring target and should eventually become a facade over smaller modules.
+
+### 4. Monolithic table rendering
+
+`components/DataTable.tsx` currently combines:
+
+- sorting state for multiple entity types
+- sorting algorithms
+- table headers and rows for multiple entity types
+- conditional rendering for tab content
+
+This works for the current MVP, but it increases cognitive load and slows safe iteration.
 
 ## Dependency Rules
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    app/ (Presentation)                   │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │              components/ (UI Layer)              │    │
-│  │  ┌─────────────────────────────────────────┐    │    │
-│  │  │           lib/ (Business Logic)          │    │    │
-│  │  │  ┌─────────────────────────────────┐    │    │    │
-│  │  │  │   Domain Logic (sqlProcessor)   │    │    │    │
-│  │  │  └─────────────────────────────────┘    │    │    │
-│  │  └─────────────────────────────────────────┘    │    │
-│  └─────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
-```
+- `app/` may import from `components/` and `lib/`
+- `components/` may import from `lib/`
+- `lib/` must not import from `app/` or `components/`
+- Domain types must come from `lib/types.ts`
+- Direct `sql.js` usage should stay in `lib/`
+- UI components should not issue raw SQL queries
 
-**Правила зависимостей:**
+## Current Flow
 
-- ✅ `components/` → `lib/` (UI вызывает бизнес-логику)
-- ✅ `app/` → `components/` + `lib/` (Страницы используют компоненты и утилиты)
-- ✅ `lib/sqlProcessor.ts` → `lib/parseAtdb.ts`, `lib/buildAtdb.ts` (Домен использует Data Access)
-- ❌ `lib/` → `components/` (Бизнес-логика не зависит от UI)
-- ❌ `lib/` → `app/` (Бизнес-логика не зависит от Presentation)
-- ❌ Прямые SQL запросы в компонентах (только через `lib/`)
+### Upload and parse
 
-## Layer/Module Communication
-
-### Data Flow (Загрузка файла)
-
-```
-User → FileUploader.tsx → sqlProcessor.ts → parseAtdb.ts → sql.js → JSON → DataTable.tsx
+```text
+User
+  -> FileUploader
+  -> app/page.tsx
+  -> lib/sqlProcessor.parseAtdb
+  -> lib/initSqlJs
+  -> sql.js Database
+  -> ParsedAtdb
+  -> ScrollableDataTable / DataTable
 ```
 
-### Data Flow (Экспорт файла)
+### Export
 
-```
-User → Toolbar.tsx → sqlProcessor.ts → buildAtdb.ts → sql.js → .atdb файл
-```
-
-### State Management
-
-- **Локальное состояние React:** `useState`, `useReducer` для UI состояния
-- **Глобальное состояние:** Отсутствует (данные передаются через props)
-- **Кэширование:** `useMemo`, `useCallback` для оптимизации пересчётов
-
-## Key Principles
-
-1. **Чистые функции в lib/** — Все функции в `lib/` должны быть чистыми, без побочных эффектов
-2. **Типобезопасность** — Строгая типизация TypeScript (`strict: true`), никаких `any`
-3. **Изоляция домена** — `sqlProcessor.ts` инкапсулирует всю логику работы с SQLite
-4. **UI без логики** — Компоненты только отображают данные и вызывают функции из `lib/`
-5. **Сессионность** — Данные не сохраняются на сервере, только в памяти браузера
-6. **Производительность** — Обработка 5–10k записей без блокировки UI (использовать Web Workers при необходимости)
-
-## Code Examples
-
-### Domain Logic (sqlProcessor.ts)
-
-```typescript
-// 🔹 Пример: Извлечение данных о родителях из событий рождения
-export async function extractParentRelationships(
-  db: SqlJs.Database,
-  persons: Person[]
-): Promise<Person[]> {
-  const birthEvents = db.exec(`
-    SELECT ed.p_id, ed.e_id
-    FROM EventDetails ed
-    WHERE ed.er_id = 1  -- 1 = родился
-  `);
-
-  const parentMap = new Map<number, { fatherId?: number; motherId?: number }>();
-
-  for (const event of birthEvents[0]?.values || []) {
-    const personId = event[0] as number;
-    const eventId = event[1] as number;
-
-    const parents = db.exec(`
-      SELECT ed.er_id, ed.p_id
-      FROM EventDetails ed
-      WHERE ed.e_id = ${eventId} AND ed.er_id IN (2, 3)  -- 2 = отец, 3 = мать
-    `);
-
-    const fatherId = parents[0]?.values.find(v => v[0] === 2)?.[1] as number | undefined;
-    const motherId = parents[0]?.values.find(v => v[0] === 3)?.[1] as number | undefined;
-
-    parentMap.set(personId, { fatherId, motherId });
-  }
-
-  return persons.map(person => ({
-    ...person,
-    ...(parentMap.get(person.id) || {}),
-  }));
-}
+```text
+User
+  -> app/page.tsx
+  -> lib/sqlProcessor.buildAtdb
+  -> Blob
+  -> browser download
 ```
 
-### Data Access (parseAtdb.ts)
+## Design Constraints
 
-```typescript
-// 🔹 Пример: Парсинг таблицы Families с ValuesStr
-export async function parseFamilies(db: SqlJs.Database): Promise<Family[]> {
-  const families = db.exec('SELECT * FROM Families');
-  const valuesStr = db.exec('SELECT * FROM ValuesStr WHERE rec_table = 9');
+- The app must remain usable without a backend
+- Uploaded genealogy data must not be persisted remotely
+- Parser changes should preserve behavior unless explicitly intended
+- Refactoring should prioritize smaller modules and measurable verification
 
-  const valuesMap = new Map<number, Map<number, string>>();
-  for (const row of valuesStr[0]?.values || []) {
-    const recId = row[0] as number;
-    const fieldId = row[1] as number;
-    const value = row[2] as string;
+## Known Architectural Debt
 
-    if (!valuesMap.has(recId)) {
-      valuesMap.set(recId, new Map());
-    }
-    valuesMap.get(recId)!.set(fieldId, value);
-  }
+- `lib/sqlProcessor.ts` is too large and mixes responsibilities
+- `components/DataTable.tsx` is too large and mixes multiple entity views
+- `README.md`, `DOCS.md`, and AI context files can drift from real structure if not refreshed
+- There is no automated parsing test harness yet
 
-  return families[0]?.values.map(row => {
-    const id = row[0] as number;
-    const familyValues = valuesMap.get(id) || new Map();
+## Target Direction
 
-    return {
-      id,
-      familyName: familyValues.get(50),      // Название рода
-      husbandLastName: familyValues.get(48), // Мужская фамилия
-      wifeLastName: familyValues.get(49),    // Женская фамилия
-      comment: familyValues.get(52),         // Комментарий
-    } as Family;
-  }) || [];
-}
-```
+The current refactoring plan in `docs/refactoring-plan.md` points toward:
 
-### Presentation (DataTable.tsx)
+- modular parsing/building under `lib/sql/`
+- centralized table-sorting helpers
+- smaller entity-specific table components
+- automated tests for critical parsing branches
 
-```typescript
-// 🔹 Пример: Отображение таблицы Persons с сортировкой
-interface DataTableProps {
-  persons: Person[];
-  onEdit: (person: Person) => void;
-}
-
-export function DataTable({ persons, onEdit }: DataTableProps) {
-  const [sortField, setSortField] = useState<keyof Person>('lastName');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-  const sortedPersons = useMemo(() => {
-    return [...persons].sort((a, b) => {
-      const aVal = a[sortField];
-      const bVal = b[sortField];
-      const direction = sortDirection === 'asc' ? 1 : -1;
-      return (aVal! < bVal! ? -1 : aVal! > bVal! ? 1 : 0) * direction;
-    });
-  }, [persons, sortField, sortDirection]);
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead onClick={() => handleSort('lastName')}>Фамилия</TableHead>
-          <TableHead onClick={() => handleSort('firstName')}>Имя</TableHead>
-          <TableHead>Отчество</TableHead>
-          <TableHead>Дата рождения</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sortedPersons.map(person => (
-          <TableRow key={person.id}>
-            <TableCell>{person.lastName}</TableCell>
-            <TableCell>{person.firstName}</TableCell>
-            <TableCell>{person.patronymic}</TableCell>
-            <TableCell>{person.birthDate}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-```
-
-### Infrastructure (initSqlJs.ts)
-
-```typescript
-// 🔹 Пример: Инициализация sql.js в браузере
-import initSqlJs, { SqlJsStatic } from 'sql.js';
-
-let sqlJsInstance: SqlJsStatic | null = null;
-
-export async function getSqlJs(): Promise<SqlJsStatic> {
-  if (!sqlJsInstance) {
-    sqlJsInstance = await initSqlJs({
-      locateFile: file => `https://sql.js.org/dist/${file}`,
-    });
-  }
-  return sqlJsInstance;
-}
-
-export async function loadDatabase(file: File): Promise<SqlJs.Database> {
-  const sqlJs = await getSqlJs();
-  const arrayBuffer = await file.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-  return new sqlJs.Database(uint8Array);
-}
-```
-
-## Anti-Patterns
-
-- ❌ **Прямые SQL запросы в компонентах** — Вся работа с БД только через `lib/sqlProcessor.ts`
-- ❌ **Хранение файлов на сервере** — Файлы обрабатываются только в памяти браузера
-- ❌ **Использование `any` в TypeScript** — Строгая типизация для всех данных
-- ❌ **Побочные эффекты в чистых функциях** — Функции `lib/` не должны мутировать состояние
-- ❌ **Пропуск слоёв** — `app/` не должен напрямую вызывать `parseAtdb.ts`, только через `sqlProcessor.ts`
-- ❌ **Глобальное состояние для данных** — Данные передаются через props, не через Context/Redux
-
-## Performance Guidelines
-
-### Обработка больших объёмов данных (5–10k записей)
-
-```typescript
-// ✅ Использовать виртуализацию для больших таблиц
-import { useVirtualizer } from '@tanstack/react-virtual';
-
-// ✅ Мемоизация тяжёлых вычислений
-const processedData = useMemo(() => heavyProcessing(data), [data]);
-
-// ✅ Web Workers для фоновой обработки
-const worker = new Worker(new URL('./sqlWorker.ts', import.meta.url));
-```
-
-### Оптимизация sql.js
-
-```typescript
-// ✅ Кэширование экземпляра sql.js
-let cachedDb: SqlJs.Database | null = null;
-
-// ✅ Пакетная обработка запросов
-const queries = [
-  'SELECT * FROM Persons',
-  'SELECT * FROM Families',
-  'SELECT * FROM Events',
-].map(q => db.exec(q));
-```
+That target architecture is not implemented yet and should be treated as planned work, not current state.
