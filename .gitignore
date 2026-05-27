@@ -59,7 +59,7 @@ CURSOR.md
 /.github-copilot/
 /.qwen/
 /.gemini/
-#/.codex
+/.codex
 #/.ai-factory/
-#.ai-factory.json
+.ai-factory.json
 #.mcp.json
