@@ -30,8 +30,9 @@ geneotools/
 │   └── ScrollableDataTable.tsx # Таблица с прокруткой
 ├── lib/                        # Работа с .atdb, sql.js, типы и утилиты
 │   ├── buildAtdb.ts            # Сборка .atdb из данных
+│   ├── emptyNodeModule.ts      # Заглушка для браузерной сборки
 │   ├── initSqlJs.ts            # Инициализация sql.js
-│   ├── parseAtdb.ts            # Парсинг .atdb
+│   ├── parseAtdb.ts            # Совместимый re-export парсера
 │   ├── sqlProcessor.ts         # Основной SQLite-процессор
 │   ├── types.ts                # Типы доменных данных
 │   └── utils.ts                # Общие утилиты
@@ -39,7 +40,10 @@ geneotools/
 ├── public/                     # Статические изображения и логотипы
 ├── scripts/                    # Скрипты сборки/обслуживания
 ├── .ai-factory/                # AI Factory контекст проекта
-├── .codex/                     # Локальная конфигурация Codex
+├── .agents/                    # Локальные skills для агентов
+├── .codex/                     # Локальная конфигурация Codex и MCP
+├── Dockerfile                  # Контейнерная сборка приложения
+├── docker-compose.yml          # Compose-конфигурация для запуска
 └── package.json                # npm-скрипты и зависимости
 ```
 
@@ -49,19 +53,21 @@ geneotools/
 |------|------------|
 | `app/page.tsx` | Главный пользовательский сценарий: загрузка, отображение, ошибки, экспорт |
 | `app/layout.tsx` | Корневой layout приложения |
-| `lib/sqlProcessor.ts` | Основная логика чтения и сборки SQLite/.atdb |
-| `lib/parseAtdb.ts` | Парсинг `.atdb` в JSON-структуру |
+| `lib/sqlProcessor.ts` | Основная логика чтения, нормализации и сборки SQLite/.atdb |
+| `lib/parseAtdb.ts` | Совместимый экспорт парсинга `.atdb` |
 | `lib/buildAtdb.ts` | Сборка `.atdb` из измененных данных |
 | `lib/types.ts` | Типы `Person`, `Family`, `Event`, `Place`, `ParsedAtdb` |
 | `components/FileUploader.tsx` | Загрузка файлов в браузере |
 | `components/ScrollableDataTable.tsx` | Основное табличное представление данных |
+| `scripts/smoke-atdb.mjs` | Smoke-проверка парсинга тестовой `.atdb` базы |
 
 ## Документация
 
 | Документ | Путь | Описание |
 |----------|------|----------|
 | README | `README.md` | Основная информация о проекте |
-| DOCS | `DOCS.md` | Детальная документация проекта |
+| Getting Started | `docs/getting-started.md` | Инструкции по запуску и проверке |
+| Architecture | `docs/architecture.md` | Архитектурный обзор приложения |
 | ATDB format | `docs/atdb_format.md` | Описание формата и структуры `.atdb` |
 | Codebase analysis | `docs/codebase-analysis.md` | Анализ текущей кодовой базы |
 | Refactoring plan | `docs/refactoring-plan.md` | План рефакторинга |
@@ -74,6 +80,8 @@ geneotools/
 | `.ai-factory/config.yaml` | Настройки AI Factory |
 | `.ai-factory/DESCRIPTION.md` | Спецификация проекта и стек технологий |
 | `.ai-factory/ARCHITECTURE.md` | Архитектурные решения и правила зависимостей |
+| `.ai-factory/ROADMAP.md` | Дорожная карта проекта |
+| `.ai-factory/PLAN.md` | Текущий быстрый план AI Factory |
 | `.ai-factory/rules/base.md` | Автоматически выявленные базовые правила проекта |
 | `.codex/config.toml` | Локальная конфигурация Codex и MCP |
 
