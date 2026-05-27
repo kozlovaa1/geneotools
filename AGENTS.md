@@ -29,6 +29,7 @@ geneotools/
 │   ├── Modal.tsx               # Модальное окно
 │   └── ScrollableDataTable.tsx # Таблица с прокруткой
 ├── lib/                        # Работа с .atdb, sql.js, типы и утилиты
+│   ├── atdb/                   # Внутренние readers/writers/helpers .atdb-процессора
 │   ├── buildAtdb.ts            # Сборка .atdb из данных
 │   ├── emptyNodeModule.ts      # Заглушка для браузерной сборки
 │   ├── initSqlJs.ts            # Инициализация sql.js
@@ -53,7 +54,9 @@ geneotools/
 |------|------------|
 | `app/page.tsx` | Главный пользовательский сценарий: загрузка, отображение, ошибки, экспорт |
 | `app/layout.tsx` | Корневой layout приложения |
-| `lib/sqlProcessor.ts` | Основная логика чтения, нормализации и сборки SQLite/.atdb |
+| `lib/sqlProcessor.ts` | Публичный фасад чтения и сборки SQLite/.atdb |
+| `lib/atdb/readers/*` | Внутренние модули чтения metadata, персон, родов, событий и мест |
+| `lib/atdb/writers/*` | Внутренние модули записи metadata, персон, родов, событий, мест и life-event связей |
 | `lib/parseAtdb.ts` | Совместимый экспорт парсинга `.atdb` |
 | `lib/buildAtdb.ts` | Сборка `.atdb` из измененных данных |
 | `lib/types.ts` | Типы `Person`, `Family`, `Event`, `Place`, `ParsedAtdb` |

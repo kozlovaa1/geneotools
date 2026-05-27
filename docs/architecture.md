@@ -4,7 +4,7 @@
 
 ## Overview
 
-GeneoTools сейчас устроен как client-first modular monolith внутри одного Next.js приложения. Это описание текущего состояния, а не целевой архитектуры после рефакторинга.
+GeneoTools сейчас устроен как client-first modular monolith внутри одного Next.js приложения. Основная обработка `.atdb` вынесена во внутренний модульный слой `lib/atdb/`, скрытый за публичным фасадом `lib/sqlProcessor.ts`.
 
 ## Актуальная структура
 
@@ -26,6 +26,14 @@ geneotools/
 │   ├── getting-started.md
 │   └── refactoring-plan.md
 ├── lib/
+│   ├── atdb/
+│   │   ├── constants.ts
+│   │   ├── dates.ts
+│   │   ├── dbTypes.ts
+│   │   ├── fieldDefinitions.ts
+│   │   ├── sqlHelpers.ts
+│   │   ├── readers/
+│   │   └── writers/
 │   ├── buildAtdb.ts
 │   ├── initSqlJs.ts
 │   ├── parseAtdb.ts
@@ -47,7 +55,10 @@ geneotools/
 ### Domain / Processing
 
 - `lib/types.ts` — единая доменная модель
-- `lib/sqlProcessor.ts` — текущая реализация parse/build flow
+- `lib/sqlProcessor.ts` — публичный фасад parse/build flow
+- `lib/atdb/readers/*` — чтение metadata, персон, родов, событий и мест из SQLite
+- `lib/atdb/writers/*` — запись metadata, персон, родов, событий, мест и life-event связей
+- `lib/atdb/sqlHelpers.ts`, `dates.ts`, `fieldDefinitions.ts` — внутренние helper/mapping модули
 - `lib/buildAtdb.ts` — validation helper перед сборкой
 - `lib/initSqlJs.ts` — bootstrap `sql.js`
 
@@ -75,7 +86,6 @@ User
 
 ## Текущие архитектурные ограничения
 
-- `lib/sqlProcessor.ts` совмещает слишком много ответственности
 - `components/DataTable.tsx` совмещает rendering и sorting для нескольких сущностей
 - `parseAtdb.ts` пока используется как compatibility layer, а не как отдельный parser module
 - Автоматические тесты критичных parsing-ветвей ещё не созданы
@@ -87,6 +97,8 @@ User
 - `lib/` не должен зависеть от `app/` и `components/`
 - Доменные типы должны импортироваться из `lib/types.ts`
 - SQL-запросы должны оставаться в `lib/`, а не в UI
+- `lib/atdb/` считается внутренней реализацией: UI и скрипты должны обращаться к `lib/sqlProcessor.ts`, а не к reader/writer-модулям напрямую
+- `.atdb` остается локальным файлом браузерной сессии; документация и логи не должны содержать персональные строки из пользовательской базы
 
 ## See Also
 

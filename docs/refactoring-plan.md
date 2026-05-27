@@ -43,32 +43,38 @@
 
 ---
 
-### Этап 2 — Декомпозиция `sqlProcessor` (2–3 дня)
+### Этап 2 — Декомпозиция `sqlProcessor` (выполнено)
 
-**Предлагаемая целевая структура:**
+**Фактическая структура:**
 
 ```text
-lib/
-  sql/
-    parse/
-      index.ts
-      parseMetadata.ts
-      parsePersons.ts
-      parseFamilies.ts
-      parseEvents.ts
-      parsePlaces.ts
-    build/
-      index.ts
-    mapping/
-      fieldDefinitions.ts
-      eventRoleMapping.ts
-    db.ts
+lib/atdb/
+  constants.ts
+  dbTypes.ts
+  sqlHelpers.ts
+  dates.ts
+  fieldDefinitions.ts
+  readers/
+    metadataReader.ts
+    personsReader.ts
+    familiesReader.ts
+    eventsReader.ts
+    placesReader.ts
+    relationships.ts
+  writers/
+    metadataWriter.ts
+    personsWriter.ts
+    familiesWriter.ts
+    eventsWriter.ts
+    placesWriter.ts
+    lifeEventWriter.ts
 ```
 
-**Задачи:**
-- Выделить повторно используемые SQL-хелперы (safe query, stmt lifecycle).
-- Вынести parsing-пайплайн по сущностям в отдельные файлы.
-- Минимизировать side-effects и вложенные условные блоки.
+**Сделано:**
+- `lib/sqlProcessor.ts` оставлен публичным фасадом для `parseAtdb` и `buildAtdb`.
+- Read-side разделен по сущностям и post-read enrichment.
+- Write-side разделен по metadata/person/family/place/event writer-модулям.
+- `scripts/smoke-atdb.mjs` компилирует фасад вместе с `lib/atdb/**/*.ts` во временное дерево.
 
 **Критерий готовности:**
 - `sqlProcessor` становится фасадом/точкой входа, а не монолитом.
@@ -132,7 +138,7 @@ lib/
 
 - `npm run lint` проходит без ошибок.
 - Доменные типы не дублируются.
-- Парсер разделён на небольшие модули с понятной ответственностью.
+- Парсер и сборщик разделены на небольшие модули с понятной ответственностью.
 - Есть минимальный набор автотестов на критичный parsing-flow.
 - README/DOCS соответствуют реальной архитектуре.
 
