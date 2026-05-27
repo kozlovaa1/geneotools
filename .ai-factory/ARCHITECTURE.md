@@ -1,150 +1,107 @@
-# Architecture: Client-First Modular Monolith
+# Architecture: Layered Modular App
 
-## Overview
+## Обзор
 
-GeneoTools currently uses a client-first modular monolith architecture inside a single Next.js application.
+GeneoTools использует простую модульную архитектуру с разделением по слоям. Для текущего размера проекта это практичнее тяжелых Clean Architecture/DDD-подходов: приложение работает как единый Next.js frontend, а основная сложность сосредоточена в обработке SQLite/.atdb.
 
-The project is small enough to stay in one deployable unit, but it already benefits from separating:
+Главное архитектурное правило: UI управляет пользовательским сценарием, а вся логика чтения, нормализации и сборки `.atdb` живет в `lib/`. Это сохраняет компоненты предсказуемыми и позволяет развивать парсер без переписывания интерфейса.
 
-- presentation logic
-- upload/download orchestration
-- domain types
-- SQLite parsing/building logic
+## Обоснование выбора
 
-This document describes the actual current architecture, not the target architecture from the refactoring plan.
+- **Тип проекта:** браузерный редактор и анализатор SQLite `.atdb` файлов.
+- **Tech stack:** TypeScript 5, Next.js 16 App Router, React 19, `sql.js`.
+- **Ключевой фактор:** нужна простая структура для небольшой команды и локальной обработки данных без серверного хранилища.
 
-## Current Structure
+## Структура папок
 
-```text
+```
 geneotools/
-├── app/                          # App Router entrypoints and global styles
-│   ├── globals.css
+├── app/                         # Presentation: страницы и layout Next.js
 │   ├── layout.tsx
-│   └── page.tsx                  # Main upload/parse/download screen
-├── components/                   # UI components
-│   ├── FileUploader.tsx          # File input and drag-and-drop flow
-│   ├── ScrollableDataTable.tsx   # Tabs and scroll container
-│   ├── DataTable.tsx             # Entity table rendering and sorting
-│   ├── Modal.tsx                 # Generic modal
-│   └── DebugAnalyzer.tsx         # Debug-only inspection helper
-├── lib/                          # Domain and data-processing code
-│   ├── types.ts                  # Shared domain model
-│   ├── initSqlJs.ts              # sql.js bootstrap
-│   ├── sqlProcessor.ts           # Current parse/build implementation
-│   ├── buildAtdb.ts              # Validation helper for export
-│   ├── parseAtdb.ts              # Compatibility type re-export
-│   └── utils.ts                  # Shared utility functions
-├── docs/
-│   ├── codebase-analysis.md
-│   └── refactoring-plan.md
-└── public/
+│   ├── page.tsx                 # Главный пользовательский сценарий
+│   └── globals.css
+├── components/                  # Presentation: переиспользуемые React-компоненты
+│   ├── FileUploader.tsx
+│   ├── ScrollableDataTable.tsx
+│   ├── DataTable.tsx
+│   └── Modal.tsx
+├── lib/                         # Domain/Data: обработка .atdb и общие типы
+│   ├── sqlProcessor.ts          # Главный фасад для parse/build
+│   ├── parseAtdb.ts             # Парсинг .atdb
+│   ├── buildAtdb.ts             # Сборка .atdb
+│   ├── initSqlJs.ts             # Инфраструктура sql.js
+│   ├── types.ts                 # Доменные типы
+│   └── utils.ts                 # Общие утилиты
+├── docs/                        # Документация формата и проектные заметки
+├── public/                      # Статические ассеты
+└── scripts/                     # Вспомогательные скрипты
 ```
 
-## Architectural Characteristics
+## Правила зависимостей
 
-### 1. Client-first processing
+- Разрешено: `app/` импортирует `components/` и типы/фасады из `lib/`.
+- Разрешено: `components/` импортируют типы и чистые утилиты из `lib/`.
+- Разрешено: `lib/sqlProcessor.ts` координирует `initSqlJs`, парсинг и сборку.
+- Запрещено: `lib/` импортирует `app/` или `components/`.
+- Запрещено: компоненты выполняют SQL-запросы напрямую.
+- Запрещено: данные пользовательской базы отправляются во внешние API без явного требования.
 
-The main user flow is entirely client-side:
+## Взаимодействие слоев
 
-1. User uploads a local `.atdb` file
-2. `app/page.tsx` dynamically imports parsing logic
-3. `lib/sqlProcessor.ts` opens the SQLite database through `sql.js`
-4. Parsed entities are stored in React state
-5. Components render the extracted entities
-6. Export rebuilds a new `.atdb` file from the in-memory model
+- Загрузка: `FileUploader` передает `File` и `ArrayBuffer` в `app/page.tsx`.
+- Обработка: `app/page.tsx` динамически импортирует `lib/sqlProcessor.ts`, чтобы избежать SSR-проблем с `sql.js`.
+- Данные: `lib/` возвращает типизированный `ParsedAtdb`.
+- Отображение: таблицы получают готовые массивы сущностей через props.
+- Экспорт: UI вызывает фасад сборки, получает `Uint8Array`, создает `Blob` и скачивает файл.
 
-### 2. Single domain model
+## Ключевые принципы
 
-`lib/types.ts` is the single source of truth for the core entities:
+1. **Локальная обработка данных.** `.atdb` файлы остаются в браузерной сессии.
+2. **SQL вне UI.** Компоненты отвечают за отображение и события, а не за структуру SQLite.
+3. **Фасад для сложной логики.** Новые сценарии работы с `.atdb` добавлять через `lib/sqlProcessor.ts` или специализированные модули `lib/`.
+4. **Схема `.atdb` вариативна.** Код должен терпимо относиться к отсутствующим таблицам и полям, если они не обязательны для текущего сценария.
+5. **Типы рядом с доменом.** Общие модели хранить в `lib/types.ts`.
 
-- `Person`
-- `Family`
-- `Event`
-- `Place`
-- `ParsedAtdb`
+## Примеры кода
 
-UI and parsing code should depend on these shared contracts rather than redefining interfaces locally.
+### Динамический импорт процессора в UI
 
-### 3. Monolithic parser/builder
+```typescript
+const handleFileUpload = async (file: File, buffer: ArrayBuffer) => {
+  setIsLoading(true);
+  setError(null);
 
-The current main architectural weakness is that `lib/sqlProcessor.ts` combines:
-
-- SQLite validation
-- metadata parsing
-- person parsing
-- family parsing
-- event parsing
-- place parsing
-- rebuild/export logic
-
-This file is the main refactoring target and should eventually become a facade over smaller modules.
-
-### 4. Monolithic table rendering
-
-`components/DataTable.tsx` currently combines:
-
-- sorting state for multiple entity types
-- sorting algorithms
-- table headers and rows for multiple entity types
-- conditional rendering for tab content
-
-This works for the current MVP, but it increases cognitive load and slows safe iteration.
-
-## Dependency Rules
-
-- `app/` may import from `components/` and `lib/`
-- `components/` may import from `lib/`
-- `lib/` must not import from `app/` or `components/`
-- Domain types must come from `lib/types.ts`
-- Direct `sql.js` usage should stay in `lib/`
-- UI components should not issue raw SQL queries
-
-## Current Flow
-
-### Upload and parse
-
-```text
-User
-  -> FileUploader
-  -> app/page.tsx
-  -> lib/sqlProcessor.parseAtdb
-  -> lib/initSqlJs
-  -> sql.js Database
-  -> ParsedAtdb
-  -> ScrollableDataTable / DataTable
+  try {
+    const { parseAtdb } = await import('@/lib/sqlProcessor');
+    const parsedResult = await parseAtdb(new Uint8Array(buffer));
+    setParsedData(parsedResult);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : String(err));
+  } finally {
+    setIsLoading(false);
+  }
+};
 ```
 
-### Export
+### Фасадная функция в `lib/`
 
-```text
-User
-  -> app/page.tsx
-  -> lib/sqlProcessor.buildAtdb
-  -> Blob
-  -> browser download
+```typescript
+export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb> {
+  const { createDbFromBuffer } = await import('./initSqlJs');
+  const db = await createDbFromBuffer(buffer instanceof Buffer ? new Uint8Array(buffer) : buffer);
+
+  if (buffer.length < 16) {
+    throw new Error('Invalid .atdb file: too small to be valid SQLite database');
+  }
+
+  // Дальше: чтение таблиц, нормализация и сборка ParsedAtdb.
+}
 ```
 
-## Design Constraints
+## Антипаттерны
 
-- The app must remain usable without a backend
-- Uploaded genealogy data must not be persisted remotely
-- Parser changes should preserve behavior unless explicitly intended
-- Refactoring should prioritize smaller modules and measurable verification
-
-## Known Architectural Debt
-
-- `lib/sqlProcessor.ts` is too large and mixes responsibilities
-- `components/DataTable.tsx` is too large and mixes multiple entity views
-- `README.md`, `DOCS.md`, and AI context files can drift from real structure if not refreshed
-- There is no automated parsing test harness yet
-
-## Target Direction
-
-The current refactoring plan in `docs/refactoring-plan.md` points toward:
-
-- modular parsing/building under `lib/sql/`
-- centralized table-sorting helpers
-- smaller entity-specific table components
-- automated tests for critical parsing branches
-
-That target architecture is not implemented yet and should be treated as planned work, not current state.
+- Не добавлять SQL-запросы в `components/` или JSX-обработчики.
+- Не хранить пользовательские базы или персональные данные на сервере.
+- Не разносить одну доменную операцию по множеству UI-компонентов.
+- Не предполагать, что все версии `.atdb` имеют одинаковый набор колонок.
+- Не логировать содержимое пользовательских записей из базы.

@@ -1,121 +1,123 @@
 # AGENTS.md
 
-> Project map for AI agents. Keep this file up-to-date as the project evolves.
+> Карта проекта для AI-агентов. Обновляйте файл, когда структура проекта заметно меняется.
 
-## Project Overview
+## Обзор проекта
 
-**GeneoTools** is a browser-based tool for working with genealogy databases from "Древо Жизни 6" (`.atdb`). The app parses local SQLite-based `.atdb` files in the browser with `sql.js`, shows extracted entities in tables, and exports an updated `.atdb` file.
+**GeneoTools** — браузерный инструмент для работы с генеалогическими базами «Древо Жизни 6» (`.atdb`). Приложение открывает SQLite-файлы локально через `sql.js`, показывает данные в таблицах и собирает обновленный `.atdb` для скачивания.
 
 ## Tech Stack
 
-- **Language:** TypeScript 5
+- **Язык:** TypeScript 5
 - **Framework:** Next.js 16 (App Router)
-- **Runtime:** React 19, Node.js 20
-- **Database:** SQLite (`.atdb` files via `sql.js`)
-- **UI:** Tailwind CSS 4, Lucide React
+- **UI:** React 19, Tailwind CSS 4, Lucide React
+- **SQLite:** `sql.js`
+- **ORM:** отсутствует
+- **Runtime:** Node.js 20
 
-## Project Structure
+## Структура проекта
 
-```text
+```
 geneotools/
-├── app/                        # App Router entrypoints and global styles
-│   ├── globals.css             # Global CSS
-│   ├── layout.tsx              # Root layout
-│   └── page.tsx                # Main upload/parse/download page
-├── components/                 # UI components
-│   ├── DataTable.tsx           # Entity table rendering and sorting
-│   ├── DebugAnalyzer.tsx       # Debug helper for inspecting files
-│   ├── FileUploader.tsx        # Drag-and-drop and file picker upload UI
-│   ├── Modal.tsx               # Reusable modal
-│   └── ScrollableDataTable.tsx # Tab navigation and scroll container
-├── docs/                       # User-facing and internal project docs
-│   ├── architecture.md         # Current architecture overview
-│   ├── atdb_format.md          # Notes on the .atdb database format
-│   ├── codebase-analysis.md    # Codebase analysis and debt notes
-│   ├── getting-started.md      # Installation and first-run guide
-│   └── refactoring-plan.md     # Refactoring plan and target state
-├── lib/                        # Domain logic and sql.js integration
-│   ├── buildAtdb.ts            # Validation helper for export input
-│   ├── initSqlJs.ts            # sql.js initialization helpers
-│   ├── parseAtdb.ts            # Compatibility type re-export
-│   ├── sqlProcessor.ts         # Current parse/build facade and implementation
-│   ├── types.ts                # Shared domain interfaces
-│   └── utils.ts                # Shared utility helpers
-├── public/                     # Static assets
-├── .ai-factory/                # AI Factory project context
-│   ├── ARCHITECTURE.md         # Current architecture description
-│   └── DESCRIPTION.md          # Project specification and constraints
-├── test-parsing.js             # Legacy ad-hoc parsing script
-├── test-parsing.ts             # TypeScript ad-hoc parsing script
-├── DOCS.md                     # Project documentation
-├── README.md                   # Project landing page
-└── package.json                # Dependencies and scripts
+├── app/                        # Next.js App Router
+│   ├── layout.tsx              # Корневой layout
+│   ├── page.tsx                # Главный экран загрузки, просмотра и экспорта .atdb
+│   └── globals.css             # Глобальные стили Tailwind
+├── components/                 # React-компоненты интерфейса
+│   ├── DataTable.tsx           # Табличное отображение данных
+│   ├── FileUploader.tsx        # Drag-and-drop загрузка файлов
+│   ├── Modal.tsx               # Модальное окно
+│   └── ScrollableDataTable.tsx # Таблица с прокруткой
+├── lib/                        # Работа с .atdb, sql.js, типы и утилиты
+│   ├── buildAtdb.ts            # Сборка .atdb из данных
+│   ├── initSqlJs.ts            # Инициализация sql.js
+│   ├── parseAtdb.ts            # Парсинг .atdb
+│   ├── sqlProcessor.ts         # Основной SQLite-процессор
+│   ├── types.ts                # Типы доменных данных
+│   └── utils.ts                # Общие утилиты
+├── docs/                       # Документация и анализ формата
+├── public/                     # Статические изображения и логотипы
+├── scripts/                    # Скрипты сборки/обслуживания
+├── .ai-factory/                # AI Factory контекст проекта
+├── .codex/                     # Локальная конфигурация Codex
+└── package.json                # npm-скрипты и зависимости
 ```
 
-## Key Entry Points
+## Ключевые точки входа
 
-| File | Purpose |
-|------|---------|
-| `app/page.tsx` | Main client page for upload, parse, display, and download flow |
-| `components/FileUploader.tsx` | Handles drag-and-drop and file input validation |
-| `components/ScrollableDataTable.tsx` | Switches between entity tabs and hosts the active table |
-| `components/DataTable.tsx` | Renders table headers/rows and sorting for parsed entities |
-| `lib/sqlProcessor.ts` | Current main parser/builder implementation for `.atdb` |
-| `lib/initSqlJs.ts` | Creates `sql.js` database instances from uploaded buffers |
-| `lib/types.ts` | Shared domain contracts for parser and UI |
+| Файл | Назначение |
+|------|------------|
+| `app/page.tsx` | Главный пользовательский сценарий: загрузка, отображение, ошибки, экспорт |
+| `app/layout.tsx` | Корневой layout приложения |
+| `lib/sqlProcessor.ts` | Основная логика чтения и сборки SQLite/.atdb |
+| `lib/parseAtdb.ts` | Парсинг `.atdb` в JSON-структуру |
+| `lib/buildAtdb.ts` | Сборка `.atdb` из измененных данных |
+| `lib/types.ts` | Типы `Person`, `Family`, `Event`, `Place`, `ParsedAtdb` |
+| `components/FileUploader.tsx` | Загрузка файлов в браузере |
+| `components/ScrollableDataTable.tsx` | Основное табличное представление данных |
 
-## Documentation
+## Документация
 
-| Document | Path | Description |
-|----------|------|-------------|
-| README | `README.md` | Landing page проекта |
-| Getting Started | `docs/getting-started.md` | Установка, запуск, first steps |
-| Architecture | `docs/architecture.md` | Текущая структура и ограничения |
-| ATDB Format | `docs/atdb_format.md` | Наблюдения по структуре `.atdb` |
-| Codebase Analysis | `docs/codebase-analysis.md` | Техдолг и проблемные места |
-| Refactoring Plan | `docs/refactoring-plan.md` | Этапы и критерии рефакторинга |
-| Description | `.ai-factory/DESCRIPTION.md` | Спецификация проекта |
-| Architecture Context | `.ai-factory/ARCHITECTURE.md` | AI-архитектурный контекст |
+| Документ | Путь | Описание |
+|----------|------|----------|
+| README | `README.md` | Основная информация о проекте |
+| DOCS | `DOCS.md` | Детальная документация проекта |
+| ATDB format | `docs/atdb_format.md` | Описание формата и структуры `.atdb` |
+| Codebase analysis | `docs/codebase-analysis.md` | Анализ текущей кодовой базы |
+| Refactoring plan | `docs/refactoring-plan.md` | План рефакторинга |
 
 ## AI Context Files
 
-| File | Purpose |
-|------|---------|
-| `AGENTS.md` | This file: project map for agents |
-| `.ai-factory/DESCRIPTION.md` | Project specification, stack, and constraints |
-| `.ai-factory/ARCHITECTURE.md` | Current architecture and refactoring direction |
-| `QWEN.md` | Additional local coding instructions |
+| Файл | Назначение |
+|------|------------|
+| `AGENTS.md` | Карта проекта и правила для AI-агентов |
+| `.ai-factory/config.yaml` | Настройки AI Factory |
+| `.ai-factory/DESCRIPTION.md` | Спецификация проекта и стек технологий |
+| `.ai-factory/ARCHITECTURE.md` | Архитектурные решения и правила зависимостей |
+| `.ai-factory/rules/base.md` | Автоматически выявленные базовые правила проекта |
+| `.codex/config.toml` | Локальная конфигурация Codex и MCP |
 
-## Domain Notes
+## Установленные внешние skills
 
-`.atdb` files are SQLite databases. Important entities currently extracted by the app:
+| Skill | Путь | Когда использовать |
+|-------|------|--------------------|
+| `nextjs-app-router-patterns` | `.agents/skills/nextjs-app-router-patterns` | Работа с Next.js App Router, Server/Client Components, streaming и routing |
+| `typescript-react-reviewer` | `.agents/skills/typescript-react-reviewer` | Ревью TypeScript/React 19 кода, поиск anti-patterns и проблем типизации |
+| `sqlite-database-expert` | `.agents/skills/sqlite-database-expert` | Проверка SQL/SQLite паттернов, параметризованных запросов, транзакций и безопасности данных |
 
-- `Persons`
-- `Families`
-- `Events`
-- `EventDetails`
-- `ValuesStr`
-- `ValuesNum`
-- `ValuesDates`
-- `ValuesLinks`
+## Структура базы данных (.atdb)
 
-Known mapping notes currently used in the project:
+Файлы `.atdb` являются SQLite-базами данных. Основные таблицы, с которыми работает проект:
 
-- Birth event role ids in `EventDetails`:
-  - `1` = born person
-  - `2` = father
-  - `3` = mother
-- Family string fields in `ValuesStr` with `rec_table = 9`:
-  - `48` = husband surname
-  - `49` = wife surname
-  - `50` = family name
-  - `52` = family comment
+| Таблица | Назначение |
+|---------|------------|
+| `Persons` | Информация о персонах |
+| `Families` | Информация о родах |
+| `Events` | События |
+| `EventDetails` | Связь персон с событиями и ролями |
+| `Places` | Места |
+| `ValuesStr` | Строковые значения дополнительных полей |
+| `ValuesNum` | Числовые значения |
+| `ValuesDates` | Даты |
+| `ValuesLinks` | Связи между сущностями |
 
-## Current State
+### Роли EventDetails (`er_id`)
 
-- `npm run lint` currently passes
-- `npx tsc --noEmit` currently passes
-- Domain types are centralized in `lib/types.ts`
-- Parser/build logic is still monolithic in `lib/sqlProcessor.ts`
-- Table rendering is still monolithic in `components/DataTable.tsx`
-- Automated parser tests are not configured yet
+- `1` — родился (для персоны)
+- `2` — отец (для события рождения)
+- `3` — мать (для события рождения)
+
+### Поля ValuesStr для родов
+
+- `f_id = 48` — мужская фамилия
+- `f_id = 49` — женская фамилия
+- `f_id = 50` — название рода
+- `f_id = 52` — комментарий
+
+## Правила для агентов
+
+- Перед редактированием проверяйте `git status` и учитывайте существующие пользовательские изменения.
+- Не печатайте содержимое пользовательских `.atdb` файлов, `.env` и других чувствительных файлов.
+- Команды с несколькими шагами выполняйте по отдельности: сначала `git checkout master`, затем `git pull origin master`.
+- SQL-логику держите в `lib/`, UI-компоненты не должны напрямую выполнять запросы к базе.
+- После изменений запускайте минимальную релевантную проверку, обычно `npm run lint`.
