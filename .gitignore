@@ -11,6 +11,10 @@
 # testing
 /coverage
 
+# local genealogical databases
+*.atdb
+scripts/fixtures/
+
 # next.js
 /.next/
 /out/

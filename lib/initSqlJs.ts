@@ -9,7 +9,13 @@ let sqlModule: SqlModule | null = null;
 export const getSqlModule = async (): Promise<SqlModule> => {
   if (!sqlModule) {
     sqlModule = await initSqlJs({
-      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/${file}`
+      locateFile: file => {
+        if (typeof window === 'undefined') {
+          return `${process.cwd()}/node_modules/sql.js/dist/${file}`;
+        }
+
+        return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/${file}`;
+      }
     });
   }
   return sqlModule;

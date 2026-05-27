@@ -55,7 +55,15 @@ npm run dev
 npm run lint
 npx tsc --noEmit
 npm run build
+npm run smoke:atdb
 ```
+
+`npm run smoke:atdb` по умолчанию ищет локальную fixture в `scripts/fixtures/local-smoke.atdb`.
+Если файла нет, проверка завершается со статусом `skipped` без ошибки. Для разовой проверки можно передать путь через
+`ATDB_SMOKE_FIXTURE=/path/to/local.atdb npm run smoke:atdb`.
+
+Не коммитьте пользовательские `.atdb` с реальными данными без осознанного решения и разрешения владельца данных.
+Smoke-check должен выводить только размеры, счетчики сущностей и статусы parse/build/re-parse.
 
 ## Notes
 
