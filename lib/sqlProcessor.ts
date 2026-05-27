@@ -218,17 +218,16 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
               }
             } else {
               // If name is null but tableCode is 9, try to use field ID
-              if (!person.lastName && id === 64) { // Last name (based on observed data: "Никишин", "Солдатов", etc.)
+              if (!person.lastName && id === 64) { // Last name fallback
                 person.lastName = valueStr;
-              } else if (!person.firstName && id === 66) { // First name (based on observed data: "Алексей", "Александр", etc.)
+              } else if (!person.firstName && id === 66) { // First name fallback
                 person.firstName = valueStr;
-              } else if (!person.patronymic && id === 67) { // Patronymic (based on observed data)
+              } else if (!person.patronymic && id === 67) { // Patronymic fallback
                 person.patronymic = valueStr;
               }
             }
           } else if (fieldDef && fieldDef.tableCode === 13) {
-            // According to our debug logs, person data in table 13 often has names like "MF", "mF", etc.
-            // The field IDs 64, 65, 66, 67 are commonly used for names:
+            // Table 13 can carry person-related fields in some .atdb variants.
             // Field 64 - often contains last name
             // Field 65 - often contains maiden name or mother's name
             // Field 66 - often contains first name
@@ -236,7 +235,7 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
             // Field 89 - often contains notes
             // Field 73 - often contains occupation or status
             switch (id) {
-              case 64: // Observed to be last name in debug logs (e.g. "Никишин", "Солдатов", "Горбачёв")
+              case 64: // Last name
                 if (!person.lastName) person.lastName = valueStr;
                 break;
               case 65: // Observed to be maiden name or mother's name
@@ -247,10 +246,10 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
                   person.motherLastName = valueStr;
                 }
                 break;
-              case 66: // Observed to be first name in debug logs (e.g. "Алексей", "Александр", "Матрёна")
+              case 66: // First name
                 if (!person.firstName) person.firstName = valueStr;
                 break;
-              case 67: // Observed to be patronymic in debug logs (e.g. "Ильич", "Александрович")
+              case 67: // Patronymic
                 if (!person.patronymic) person.patronymic = valueStr;
                 break;
               case 89: // Observed to be notes/comments
@@ -264,12 +263,11 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
             }
           } else {
             // Use default field mapping if no field definition available
-            // Based on the actual values observed in the database
-            if (!person.lastName && id === 64) { // Last name (based on observed data: "Никишин", "Солдатов", etc.)
+            if (!person.lastName && id === 64) { // Last name fallback
               person.lastName = valueStr;
-            } else if (!person.firstName && id === 66) { // First name (based on observed data: "Алексей", "Александр", etc.)
+            } else if (!person.firstName && id === 66) { // First name fallback
               person.firstName = valueStr;
-            } else if (!person.patronymic && id === 67) { // Patronymic (based on observed data)
+            } else if (!person.patronymic && id === 67) { // Patronymic fallback
               person.patronymic = valueStr;
             } else if (!person.firstName && id === 1) { // First name (fallback)
               person.firstName = valueStr;
@@ -593,10 +591,9 @@ export async function parseAtdb(buffer: Uint8Array | Buffer): Promise<ParsedAtdb
             }
           } else {
             // Use default field mapping if no field definition available
-            // Using observed field IDs from debug logs
-            if (!person.fatherId && id === 9) { // Father ID - observed in debug
+            if (!person.fatherId && id === 9) { // Father ID fallback
               person.fatherId = linkedId;
-            } else if (!person.motherId && id === 10) { // Mother ID - observed in debug
+            } else if (!person.motherId && id === 10) { // Mother ID fallback
               person.motherId = linkedId;
             } else if (!person.fatherId && id === 153) { // Alternative field IDs for father/mother relationships
               person.fatherId = linkedId;
