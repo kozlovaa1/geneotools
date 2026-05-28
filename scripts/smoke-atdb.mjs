@@ -44,11 +44,33 @@ function compileTypeScriptModule(sourceFile, outputFile) {
   fs.writeFileSync(outputFile, compiled.outputText, 'utf8');
 }
 
+function compileTypeScriptTree(sourceDir, outputDir) {
+  if (!fs.existsSync(sourceDir)) {
+    return;
+  }
+
+  for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const outputPath = path.join(outputDir, entry.name);
+
+    if (entry.isDirectory()) {
+      compileTypeScriptTree(sourcePath, outputPath);
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.endsWith('.ts')) {
+      compileTypeScriptModule(sourcePath, outputPath.replace(/\.ts$/, '.js'));
+    }
+  }
+}
+
 async function loadSqlProcessor() {
   fs.rmSync(tempDir, { force: true, recursive: true });
   fs.mkdirSync(tempDir, { recursive: true });
   fs.symlinkSync(path.join(projectRoot, 'node_modules'), path.join(tempDir, 'node_modules'), 'dir');
+  compileTypeScriptModule(path.join(projectRoot, 'lib/types.ts'), path.join(tempDir, 'lib/types.js'));
   compileTypeScriptModule(path.join(projectRoot, 'lib/initSqlJs.ts'), path.join(tempDir, 'lib/initSqlJs.js'));
+  compileTypeScriptTree(path.join(projectRoot, 'lib/atdb'), path.join(tempDir, 'lib/atdb'));
   compileTypeScriptModule(path.join(projectRoot, 'lib/sqlProcessor.ts'), path.join(tempDir, 'lib/sqlProcessor.js'));
 
   return requireFromSmoke(path.join(tempDir, 'lib/sqlProcessor.js'));
