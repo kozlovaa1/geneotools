@@ -13,7 +13,12 @@
 
 # local genealogical databases
 *.atdb
+*.atdb.~lock
 scripts/fixtures/
+
+# local validation artifacts with private ATDB values
+docs/*.local.md
+docs/*.private.md
 
 # next.js
 /.next/
