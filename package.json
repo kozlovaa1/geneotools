@@ -10,7 +10,10 @@
     "smoke:atdb": "node scripts/smoke-atdb.mjs",
     "schema:atdb": "node scripts/inspect-atdb-schema.mjs",
     "schema:atdb:check": "node scripts/inspect-atdb-schema.mjs --check",
-    "schema:atdb:check:yaman": "node scripts/inspect-atdb-schema.mjs --check-yaman --check"
+    "schema:atdb:check:yaman": "node scripts/inspect-atdb-schema.mjs --check-yaman --check",
+    "schema:atdb:snapshot:check": "node scripts/inspect-atdb-schema.mjs --snapshot-check",
+    "schema:atdb:diff": "node scripts/diff-atdb-schema.mjs",
+    "schema:atdb:diff:check": "node scripts/inspect-atdb-schema.mjs --snapshot-check && node scripts/diff-atdb-schema.mjs --check"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

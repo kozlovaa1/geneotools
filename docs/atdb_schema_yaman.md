@@ -43,6 +43,7 @@
 - Confidence: `observed`
 - Related tables: `EventTypes`, `EventDetails`
 - Columns: `id INTEGER PK`, `et_id INTEGER`, `maxcount INTEGER`, `ord INTEGER`, `roletype INTEGER`, `ismain INTEGER`
+- Confirmed flags: `maxcount=1` means "Не более одного участника с этой ролью"; `maxcount=NULL` means unlimited participants for the role. `ismain=1` means main role; `ismain=NULL` means secondary role / "Второстепенная роль".
 
 ### EventTypes
 
@@ -189,17 +190,19 @@
 | `3` | `4` | `Documents` | `4` | none in `Values*` snapshot | `observed` | Count matches `Documents`; direct detail links use `DocumentDetails.d_id`. |
 | `4` | `4` | `Documents` | `4` | `ValuesStr f_id=9`, `ValuesNum f_id=128`, `ValuesDates f_id=10` | `confirmed` | User-confirmed UI meaning: documents. Count also matches `DocumentDetails`, so structural storage remains ambiguous, but value fields are document fields. |
 | `5` | `1059` | `EventDetails` | `1059` | none in `Values*` snapshot | `observed` | Count matches `EventDetails`; current app mostly treats event payload through `Events`. |
-| `6` | `3` | `EventRoles` custom role values | n/a | `ValuesStr f_id=132` | `observed` | User hypothesis from UI: participant role fields under group "Участники"; sample values correspond to custom roles `210` and `211` for one event. Needs more samples from other event types. |
+| `6` | `3` | `EventRoles` custom role values | n/a | `ValuesStr f_id=132/133` | `confirmed` | Controlled diff confirmed that custom role records use `Recs.rec_table=6`, `Recs.rec_id=EventRoles.id`; `f_id=132` is the male role name and `f_id=133` is the female role name. |
 | `7` | `665` | `Events` | `665` | `ValuesDates f_id=29`, `ValuesLinks f_id=28`, `ValuesStr f_id=37/38`, `ValuesNum f_id=204` | `confirmed` | Direct count match with `Events`; event payload values attach to `Events.id`, not `EventDetails.id`. |
 | `8` | `1` | unknown / database-level record | n/a | none in `Values*` snapshot | `unknown` | Single registry row; no same-count domain table except `Global`, but no direct evidence yet. |
 | `9` | `11` | `Families` | `11` | `ValuesStr f_id=48/49/50/52` | `confirmed` | Direct count match and known family fields. |
-| `10` | `14` | data fields metadata / "Поля данных" | n/a | `ValuesStr f_id=135` | `observed` | User hypothesis: records represent data fields. `f_id=135` contains custom values attached to different entities; examples include field IDs `202` for a person extra field and `204` for one event type. Needs targeted creation tests. |
+| `10` | `14` | data fields metadata / "Поля данных" | n/a | `ValuesStr f_id=135` | `confirmed` | Controlled diff confirmed that data field records use `Recs.rec_table=10`, `Recs.rec_id=Fields.id`; `f_id=135` stores the field name. |
 | `13` | `294` | `Persons` | `294` | `ValuesStr f_id=64/65/66/67/73/89/155`, `ValuesNum f_id=202`, `ValuesLinks f_id=63/83` | `confirmed` | Direct count match with `Persons`; `EventDetails.p_id` also targets `Persons.id`. |
 | `14` | `23` | `Places` | `23` | `ValuesStr f_id=93/94/104`, `ValuesNum f_id=97`, `ValuesDates f_id=95` | `confirmed` | Direct count match with `Places`; also target of `ValuesLinks.vlink_table=14`. |
 | `15` | `298` | `SourceDetails` | `298` | `ValuesStr f_id=105` | `confirmed` | User-confirmed UI meaning: "Ссылки на источники"; direct links use `SourceDetails.s_id`. |
 | `16` | `12` | `Sources` | `12` | `ValuesStr f_id=110/115/142` | `observed` | Count matches `Sources`. |
+| `18` | `0` -> `1` in controlled diff | `Tasks` | `0` -> `1` | `ValuesStr f_id=54` | `confirmed` | Controlled diff creating one task confirmed `Recs.rec_table=18`, `Recs.rec_id=Tasks.id`; `f_id=54` stores the task title/name. |
+| `21` | `0` -> `1` in controlled diff | `TaskDetails` | `0` -> `1` | none in `Values*` snapshot | `confirmed` | Controlled diff linking one task to one person confirmed `Recs.rec_table=21`, `Recs.rec_id=TaskDetails.id`; link payload stored in `TaskDetails(t_id, rec_table, rec_id, t_ord, rec_ord)`. |
 
-Codes mentioned in older notes but not observed in this snapshot, such as `18` and `21`, remain out of scope for this fixture until another database provides evidence.
+Code `8` remains out of scope for this fixture until another database or controlled UI action provides evidence.
 
 ## Relationship graph
 
@@ -217,7 +220,7 @@ Codes mentioned in older notes but not observed in this snapshot, such as `18` a
 | `Fields(tablecode, et_id, et_ord)` -> table/event field metadata | `observed` | `Fields.area` is sparse and not a reliable semantic source in this fixture. |
 | `DocumentDetails(d_id, rec_table, rec_id)` -> `Documents.id` + record | `observed` | Document detail rows use generic record references. |
 | `SourceDetails(s_id, rec_table, rec_id)` -> `Sources.id` + record | `observed` | Source detail rows use generic record references. |
-| `TaskDetails(t_id, rec_table, rec_id)` -> `Tasks.id` + record | `observed` | Tables exist but are empty in this fixture. |
+| `TaskDetails(t_id, rec_table, rec_id)` -> `Tasks.id` + record | `confirmed` | Controlled diff with one task link produced `TaskDetails.id=1`, `t_id=1`, target `rec_table=13`, `rec_id=Persons.id`; `Recs` gained `rec_table=21`, `rec_id=TaskDetails.id`. |
 | `Places.parent_id` -> `Places.id` | `observed` | Self-reference column exists; hierarchy values are not printed. |
 
 ### Data flow diagram
@@ -293,15 +296,15 @@ flowchart LR
 | `5` | `3` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `6` | `4` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `7` | `4` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `8` | `4` | `-` | no | `-` | `3` | - | unknown | unknown |
+| `8` | `4` | `-` | no | `-` | `3` | ValuesLinks:4(1) | document place link / "Место" (link to place) | confirmed |
 | `9` | `4` | `-` | no | `-` | `1` | ValuesStr:4(4) | document description | confirmed |
 | `10` | `4` | `-` | no | `-` | `2` | ValuesDates:4(2) | document date | confirmed |
-| `11` | `4` | `-` | no | `-` | `5` | - | unknown | unknown |
+| `11` | `4` | `-` | no | `-` | `5` | ValuesStr:4(5) | document type / "Тип" | confirmed |
 | `12` | `4` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `13` | `4` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `14` | `4` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `15` | `4` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `16` | `4` | `-` | no | `-` | `-` | - | unknown | unknown |
+| `16` | `4` | `-` | no | `-` | `-` | ValuesStr:4(40) | document comment / "Комментарий" | confirmed |
 | `17` | `5` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `18` | `5` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `19` | `5` | `-` | no | `-` | `-` | - | unknown | unknown |
@@ -312,7 +315,7 @@ flowchart LR
 | `24` | `7` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `25` | `7` | `-` | no | `19` | `1` | - | unknown | unknown |
 | `26` | `7` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `27` | `7` | `-` | no | `-` | `-` | - | unknown | unknown |
+| `27` | `7` | `-` | no | `-` | `-` | ValuesStr:7(53) | event text field; duplicates `f_id=38` with field-name prefix (needs exact semantic wording) | observed |
 | `28` | `7` | `-` | no | `-` | `2` | ValuesLinks:7(28) | event linked place | observed |
 | `29` | `7` | `-` | no | `-` | `1` | ValuesDates:7(334) | event date | confirmed |
 | `30` | `7` | `-` | no | `-` | `-` | - | unknown | unknown |
@@ -324,10 +327,10 @@ flowchart LR
 | `36` | `7` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `37` | `7` | `-` | no | `-` | `-` | ValuesStr:7(12) | event comment / "Комментарий" | confirmed |
 | `38` | `7` | `-` | no | `2` | `1` | ValuesStr:7(11) | death cause / "Причина смерти" for event type `2` | confirmed |
-| `39` | `7` | `-` | no | `33` | `1` | - | unknown | unknown |
-| `40` | `7` | `-` | no | `33` | `2` | - | unknown | unknown |
-| `41` | `7` | `-` | no | `6` | `1` | - | unknown | unknown |
-| `42` | `7` | `-` | no | `6` | `2` | - | unknown | unknown |
+| `39` | `7` | `-` | no | `33` | `1` | ValuesStr:7(129) | "Род войск" for event type "Служба в армии" | confirmed |
+| `40` | `7` | `-` | no | `33` | `2` | ValuesStr:7(156) | "Воинское звание" for event type "Служба в армии" | confirmed |
+| `41` | `7` | `-` | no | `6` | `1` | ValuesStr:7(9) | "Место работы" for event type "Устройство на работу" | confirmed |
+| `42` | `7` | `-` | no | `6` | `2` | ValuesStr:7(9) | "Должность" for event type "Устройство на работу" | confirmed |
 | `43` | `7` | `-` | no | `22` | `1` | - | unknown | unknown |
 | `44` | `7` | `-` | no | `22` | `2` | - | unknown | unknown |
 | `45` | `7` | `-` | no | `22` | `3` | - | unknown | unknown |
@@ -338,10 +341,10 @@ flowchart LR
 | `50` | `9` | `-` | no | `-` | `1` | ValuesStr:9(11) | family name | confirmed |
 | `51` | `9` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `52` | `9` | `-` | no | `-` | `-` | ValuesStr:9(4) | family comment | confirmed |
-| `54` | `18` | `-` | no | `-` | `1` | - | unknown | unknown |
+| `54` | `18` | `-` | no | `-` | `1` | ValuesStr:18(1 in controlled diff) | task title/name | confirmed by controlled diff |
 | `55` | `18` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `56` | `18` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `57` | `18` | `-` | no | `-` | `-` | - | unknown | unknown |
+| `57` | `18` | `-` | no | `-` | `-` | ValuesStr:18(1) | task comment / "Комментарий" | confirmed |
 | `58` | `13` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `59` | `13` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `60` | `13` | `-` | no | `-` | `-` | - | unknown | unknown |
@@ -383,7 +386,7 @@ flowchart LR
 | `96` | `14` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `97` | `14` | `-` | no | `-` | `4` | ValuesNum:14(9) | place coordinates / "Координаты" | confirmed |
 | `98` | `14` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `99` | `14` | `-` | no | `-` | `6` | - | unknown | unknown |
+| `99` | `14` | `-` | no | `-` | `6` | ValuesStr:14(6) | place URL / "Ссылка (URL)" | confirmed |
 | `100` | `14` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `101` | `14` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `102` | `14` | `-` | no | `-` | `-` | - | unknown | unknown |
@@ -392,7 +395,7 @@ flowchart LR
 | `105` | `15` | `-` | no | `-` | `-` | ValuesStr:15(49) | source position / "Позиция в источнике" | confirmed |
 | `106` | `15` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `107` | `15` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `108` | `15` | `-` | no | `-` | `-` | - | unknown | unknown |
+| `108` | `15` | `-` | no | `-` | `-` | ValuesStr:15(90) | source-detail quote / "Цитата" | confirmed |
 | `109` | `16` | `-` | no | `-` | `3` | - | unknown | unknown |
 | `110` | `16` | `-` | no | `-` | `1` | ValuesStr:16(12) | source title / "Название источника" | confirmed |
 | `111` | `16` | `-` | no | `-` | `-` | - | unknown | unknown |
@@ -401,7 +404,7 @@ flowchart LR
 | `114` | `16` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `115` | `16` | `-` | no | `-` | `-` | ValuesStr:16(12) | source comment / "Комментарий" | confirmed |
 | `116` | `16` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `117` | `7` | `-` | no | `32` | `1` | - | unknown | unknown |
+| `117` | `7` | `-` | no | `32` | `1` | ValuesStr:7(7) | "Образовательное учреждение" for event type "Обучение" | confirmed |
 | `118` | `7` | `-` | no | `32` | `2` | - | unknown | unknown |
 | `119` | `7` | `-` | no | `32` | `3` | - | unknown | unknown |
 | `120` | `7` | `-` | no | `-` | `3` | - | unknown | unknown |
@@ -412,10 +415,10 @@ flowchart LR
 | `129` | `4` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `130` | `9` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `131` | `16` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `132` | `6` | `-` | no | `-` | `-` | ValuesStr:6(2) | custom event participant role value/name | observed; needs more samples |
-| `133` | `6` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `134` | `8` | `-` | no | `-` | `-` | - | unknown | unknown |
-| `135` | `10` | `-` | no | `-` | `-` | ValuesStr:10(2) | custom value label for data fields | observed; needs more samples |
+| `132` | `6` | `-` | no | `-` | `-` | ValuesStr:6(2) | custom event participant male role name / "Название мужской роли" | confirmed by controlled diff |
+| `133` | `6` | `-` | no | `-` | `-` | controlled diff | custom event participant female role name / "Название женской роли" | confirmed by controlled diff |
+| `134` | `8` | `-` | no | `-` | `-` | ValuesStr:8(2) | custom event type title / "Название типа события" | confirmed |
+| `135` | `10` | `-` | no | `-` | `-` | ValuesStr:10(7) | custom data-field title / "Название поля" | confirmed |
 | `136` | `13` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `137` | `18` | `-` | no | `-` | `-` | - | unknown | unknown |
 | `138` | `16` | `-` | no | `-` | `5` | - | unknown | unknown |
@@ -435,8 +438,36 @@ flowchart LR
 | `154` | `13` | `-` | yes | `-` | `6` | - | unknown | unknown |
 | `155` | `13` | `-` | yes | `-` | `7` | ValuesStr:13(8) | person religion / "Вероисповедание" | confirmed |
 | `200` | `0` | `-` | no | `-` | `-` | - | unknown | unknown |
+| `201` | `13` | `5` | yes | `-` | `-` | ValuesNum:13(183) | custom checkbox field for persons | confirmed |
 | `202` | `13` | `5` | yes | `-` | `10` | ValuesNum:13(12) | custom checkbox field for persons | confirmed |
+| `203` | `13` | `5` | yes | `-` | `-` | ValuesNum:13(72) | custom checkbox field for persons | confirmed |
 | `204` | `7` | `5` | no | `34` | `1` | ValuesNum:7(3) | custom checkbox field for event type `34` "Захоронение" | confirmed |
+| `205` | `13` | `12` | yes | `-` | `10` | controlled diff | custom text field for persons; `datatype=12` means "Текст" | confirmed by controlled diff |
+| `206` | `13` | `2` | yes | `-` | `11` | controlled diff | custom integer field for persons; `datatype=2` means "Целое число" | confirmed by controlled diff |
+| `207` | `7` | `12` | no | `-` | `4` | controlled diff | custom text field for events; `tablecode=7` means "События" | confirmed by controlled diff |
+| `208` | `4` | `12` | no | `-` | `6` | controlled diff | custom text field for documents; `tablecode=4` means "Документы" | confirmed by controlled diff |
+| `209` | `14` | `5` | no | `-` | `7` | controlled diff | custom logical field for places; `tablecode=14` means "Места", `datatype=5` means "Логическое значение" | confirmed by controlled diff |
+| `210` | `16` | `7` | no | `-` | `6` | controlled diff | custom URL field for sources; `tablecode=16` means "Источники", `datatype=7` means "URL" | confirmed by controlled diff |
+| `211` | `9` | `8` | no | `-` | `4` | controlled diff | custom email field for families; `tablecode=9` means "Роды", `datatype=8` means "Email" | confirmed by controlled diff |
+| `212` | `18` | `6` | no | `-` | `5` | controlled diff | custom place-link field for tasks; `tablecode=18` means "Задачи", `datatype=6` means "Место" | confirmed by controlled diff |
+
+Observed UI scopes for custom data fields: "Персоны", "События", "Документы", "Места", "Источники", "Роды", "Задачи". Confirmed: `Fields.tablecode=13` -> "Персоны", `7` -> "События", `4` -> "Документы", `14` -> "Места", `16` -> "Источники", `9` -> "Роды", `18` -> "Задачи".
+
+Observed UI types for custom data fields: "Текст", "Логическое значение", "Целое число", "Место", "URL", "Email". Confirmed: `datatype=12` -> "Текст", `2` -> "Целое число", `5` -> "Логическое значение", `6` -> "Место", `7` -> "URL", `8` -> "Email".
+
+When adding the task place field, ATDB also shifted `Fields.et_ord` for existing task fields `147` and `151`. User-confirmed meaning: `et_ord` is event type order.
+
+Controlled value entry for custom person text field `205` confirmed that user-entered field values are stored by the target entity table code, not by `rec_table=10`: `ValuesStr(rec_table=13, rec_id=Persons.id, f_id=205)` stores the text value for the person.
+
+Controlled value entry for custom person integer field `206` confirmed that integer values use `ValuesNum(rec_table=13, rec_id=Persons.id, f_id=206)`, with the number stored in `vnum` and `vnum2=NULL`.
+
+Controlled value entry for custom place logical field `209` confirmed that checked boolean values use `ValuesNum(rec_table=14, rec_id=Places.id, f_id=209)`, with `vnum=1` and `vnum2=NULL`.
+
+Controlled value entry for custom task place field `212` confirmed that place-link values use `ValuesLinks(rec_table=18, rec_id=Tasks.id, f_id=212)`, with `vlink_table=14` and `vlink_id=Places.id`.
+
+Controlled value entry for custom source URL field `210` confirmed that URL values use `ValuesStr(rec_table=16, rec_id=Sources.id, f_id=210)`.
+
+Controlled value entry for custom family email field `211` confirmed that email values use `ValuesStr(rec_table=9, rec_id=Families.id, f_id=211)`.
 
 ## Event types, roles, and details
 
@@ -446,7 +477,7 @@ flowchart LR
 |---:|---:|---|---|
 | `1` | `294` | `confirmed` | User-confirmed event type: "Рождение"; role set includes `1` "Родился", `2` "Отец", `3` "Мать". |
 | `2` | `294` | `confirmed` | User-confirmed event type: "Смерть"; role set includes `4` "Умер/умерла". |
-| `3` | `67` | `confirmed` | User-confirmed event type: "Свадьба"; role set includes `5` "Муж", `6` "Жена", and custom roles `210`/`211` stored via `rec_table=6`, `f_id=132`. |
+| `3` | `67` | `confirmed` | User-confirmed event type: "Свадьба"; role set includes `5` "Муж", `6` "Жена", and custom roles `210`/`211` stored via `rec_table=6`, `f_id=132/133`. |
 | `34` | `10` | `confirmed` | User-confirmed event type: "Захоронение"; role set includes `36` "Умер"; custom checkbox field `204` uses `datatype=5`. |
 
 `EventDetails` contains `1059` participation rows. The following role IDs are used by this fixture.
@@ -459,11 +490,13 @@ flowchart LR
 | `4` | `2` | `1` | `0` | `1` | `-` | `294` | death subject / "Умер/умерла" | confirmed |
 | `5` | `3` | `1` | `2` | `1` | `1` | `66` | husband / "Муж" | confirmed |
 | `6` | `3` | `2` | `2` | `1` | `1` | `59` | wife / "Жена" | confirmed |
-| `210` | `3` | `6` | `0` | `-` | `-` | `8` | custom wedding participant role stored via `rec_table=6`, `f_id=132` | confirmed in fixture; custom |
-| `211` | `3` | `7` | `0` | `-` | `-` | `6` | custom wedding participant role stored via `rec_table=6`, `f_id=132` | confirmed in fixture; custom |
+| `210` | `3` | `6` | `0` | `-` | `-` | `8` | custom wedding participant role stored via `rec_table=6`, role names in `f_id=132/133` | confirmed in fixture; custom |
+| `211` | `3` | `7` | `0` | `-` | `-` | `6` | custom wedding participant role stored via `rec_table=6`, role names in `f_id=132/133` | confirmed in fixture; custom |
 | `36` | `34` | `1` | `0` | `1` | `-` | `10` | burial-related deceased participant / "Умер" | confirmed |
 
 Role IDs are observations for this fixture only. They must not be treated as universal mappings across all ATDB databases without additional evidence.
+
+Controlled edit of custom role `212` confirmed that toggling "Не более одного участника с этой ролью" changes `EventRoles.maxcount` between `1` and `NULL`, while toggling "Второстепенная роль" changes `EventRoles.ismain` between `1` for main role and `NULL` for secondary role.
 
 ## Implementation gaps
 
