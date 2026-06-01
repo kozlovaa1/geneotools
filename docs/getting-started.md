@@ -43,7 +43,18 @@ npm run dev
 npm run lint
 npx tsc --noEmit
 npm run build
+npm run smoke:atdb
+npm run schema:atdb:check
+npm run schema:atdb:diff:check
 ```
+
+`schema:atdb:diff:check` проверяет tracked redacted snapshot и diff harness без доступа к локальной `.atdb` базе. Для локального сравнения двух экспериментальных баз или snapshot-файлов используйте:
+
+```bash
+npm run schema:atdb:diff -- docs/atdb_experiments/runs/baseline.local.snapshot.json docs/atdb_experiments/runs/after.local.snapshot.json
+```
+
+Локальные `.atdb`, before/after snapshots, verbose/debug logs и private summaries не коммитьте. Публичные artifacts должны содержать только redacted counts, `rec_table`, `f_id`, `datatype`, link targets и confidence labels.
 
 ## Что проверить после изменений
 
@@ -51,6 +62,7 @@ npm run build
 - Таблицы переключаются между вкладками
 - Экспорт формирует скачиваемый `.atdb`
 - `npm run lint` остаётся зелёным
+- `npm run schema:atdb:diff:check` проходит без локальной fixture
 
 ## Известные ограничения
 
@@ -63,4 +75,3 @@ npm run build
 - [Architecture](architecture.md) — текущая структура проекта и ограничения
 - [Codebase Analysis](codebase-analysis.md) — что именно сейчас считается техдолгом
 - [Refactoring Plan](refactoring-plan.md) — куда должен прийти проект
-

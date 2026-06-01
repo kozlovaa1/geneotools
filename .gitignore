@@ -19,6 +19,16 @@ scripts/fixtures/
 # local validation artifacts with private ATDB values
 docs/*.local.md
 docs/*.private.md
+docs/atdb_experiments/runs/
+docs/atdb_experiments/local/
+docs/atdb_experiments/private/
+docs/atdb_experiments/**/*.local.*
+docs/atdb_experiments/**/*.private.*
+docs/atdb_experiments/**/*.debug.*
+docs/atdb_experiments/**/*.verbose.*
+docs/atdb_experiments/**/*.before.*
+docs/atdb_experiments/**/*.after.*
+docs/atdb_experiments/**/*.raw.*
 
 # next.js
 /.next/
