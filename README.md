@@ -47,6 +47,7 @@ npm run dev
 | [Getting Started](docs/getting-started.md) | Установка, запуск и пользовательский сценарий |
 | [Architecture](docs/architecture.md) | Актуальная структура и архитектурные ограничения |
 | [ATDB Format](docs/atdb_format.md) | Наблюдения по структуре `.atdb` |
+| [Yaman ATDB Schema](docs/atdb_schema_yaman.md) | Полный безопасный schema artifact по `yaman-test.atdb` |
 | [Codebase Analysis](docs/codebase-analysis.md) | Технический долг и найденные проблемы |
 | [Refactoring Plan](docs/refactoring-plan.md) | Этапы и критерии рефакторинга |
 
@@ -65,6 +66,13 @@ npm run smoke:atdb
 Smoke harness компилирует `lib/sqlProcessor.ts` вместе с внутренними `lib/atdb/**/*.ts` модулями, чтобы проверять тот же фасад, который использует UI.
 
 Не коммитьте пользовательские `.atdb` с реальными данными без осознанного решения и разрешения владельца данных.
+Репозиторий игнорирует новые `*.atdb` файлы и локальные `scripts/fixtures/`, чтобы случайно не добавить приватные базы.
+`yaman-test.atdb` является уже tracked research fixture для анализа схемы ATDB; для других локальных проверок используйте
+`ATDB_SMOKE_FIXTURE` или `ATDB_SCHEMA_FIXTURE`.
+`npm run schema:atdb:check` выполняет generic structural check для выбранной fixture, а
+`npm run schema:atdb:check:yaman` дополнительно проверяет golden counts и mapping для `yaman-test.atdb`.
+Команда `npm run schema:atdb` пишет tracked Yaman snapshot только для `yaman-test.atdb`; для другой fixture явно задавайте
+`ATDB_SCHEMA_OUTPUT` или `--output`, чтобы не перезаписать публичный snapshot локальными агрегатами.
 Smoke-check должен выводить только размеры, счетчики сущностей и статусы parse/build/re-parse.
 
 ## Notes
