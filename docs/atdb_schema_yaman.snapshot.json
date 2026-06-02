@@ -1,6 +1,11 @@
 {
   "artifactVersion": 1,
   "generatedBy": "scripts/inspect-atdb-schema.mjs",
+  "fixture": {
+    "label": "yaman",
+    "tracked": "tracked",
+    "snapshotMode": "tracked"
+  },
   "safety": {
     "redacted": true,
     "excludes": [
@@ -9,7 +14,11 @@
       "Global.guid",
       "Global.params",
       "document paths",
-      "source text"
+      "source text",
+      "names",
+      "places",
+      "notes",
+      "private/debug/raw artifacts"
     ]
   },
   "redactionPolicy": {

@@ -4,12 +4,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import initSqlJs from 'sql.js';
+import {
+  defaultFixtureLabel,
+  resolveFixtureByFileName,
+  resolveFixtureByLabel,
+  safeRelativePath,
+} from './atdb-fixtures.mjs';
 
 const projectRoot = process.cwd();
 const args = process.argv.slice(2);
 const outputFlagIndex = args.findIndex((arg) => arg === '--output');
 const outputFlagValue = outputFlagIndex >= 0 ? args[outputFlagIndex + 1] : undefined;
 const inlineOutputArg = args.find((arg) => arg.startsWith('--output='));
+const fixtureFlagIndex = args.findIndex((arg) => arg === '--fixture');
+const fixtureFlagValue = fixtureFlagIndex >= 0 ? args[fixtureFlagIndex + 1] : undefined;
+const inlineFixtureArg = args.find((arg) => arg.startsWith('--fixture='));
 const checkOnly = args.includes('--check');
 const checkYaman = args.includes('--check-yaman');
 const snapshotCheck = args.includes('--snapshot-check');
@@ -18,23 +27,36 @@ const positionalArgs = args.filter((arg, index) => {
   if (arg.startsWith('--')) {
     return false;
   }
-  return !(outputFlagIndex >= 0 && index === outputFlagIndex + 1);
+  return !(
+    (outputFlagIndex >= 0 && index === outputFlagIndex + 1) ||
+    (fixtureFlagIndex >= 0 && index === fixtureFlagIndex + 1)
+  );
 });
-const defaultFixturePath = path.join(projectRoot, 'yaman-test.atdb');
-const fixturePath = process.env.ATDB_SCHEMA_FIXTURE || positionalArgs[0] || defaultFixturePath;
+const fixtureLabel = process.env.ATDB_SCHEMA_FIXTURE_LABEL || fixtureFlagValue || inlineFixtureArg?.slice('--fixture='.length);
+const defaultFixture = resolveFixtureByLabel(projectRoot, defaultFixtureLabel);
+const manualFixturePath = process.env.ATDB_SCHEMA_FIXTURE || positionalArgs[0];
+const hasManualFixtureInput = Boolean(manualFixturePath);
+const hasExplicitFixtureLabel = Boolean(fixtureLabel);
+const hasExplicitOutput = Boolean(
+  process.env.ATDB_SCHEMA_OUTPUT || outputFlagValue || inlineOutputArg?.slice('--output='.length),
+);
+const registeredFixture = hasExplicitFixtureLabel
+  ? resolveFixtureByLabel(projectRoot, fixtureLabel)
+  : hasManualFixtureInput
+    ? resolveFixtureByFileName(projectRoot, manualFixturePath)
+    : defaultFixture;
+const fixturePath = manualFixturePath || registeredFixture?.absolutePath || defaultFixture.absolutePath;
 const normalizePathForCompare = (filePath) => {
   const resolvedPath = path.resolve(projectRoot, filePath);
   return process.platform === 'win32' ? resolvedPath.toLowerCase() : resolvedPath;
 };
-const usesDefaultFixture = normalizePathForCompare(fixturePath) === normalizePathForCompare(defaultFixturePath);
-const hasExplicitSnapshotOutput = Boolean(
-  process.env.ATDB_SCHEMA_OUTPUT || outputFlagValue || inlineOutputArg?.slice('--output='.length),
-);
+const usesDefaultFixture = normalizePathForCompare(fixturePath) === normalizePathForCompare(defaultFixture.absolutePath);
 const snapshotPath =
   process.env.ATDB_SCHEMA_OUTPUT ||
   outputFlagValue ||
   inlineOutputArg?.slice('--output='.length) ||
-  path.join(projectRoot, 'docs/atdb_schema_yaman.snapshot.json');
+  (!hasManualFixtureInput ? registeredFixture?.defaultSnapshotPath : undefined) ||
+  defaultFixture.defaultSnapshotPath;
 const artifactVersion = 1;
 const requiredSections = [
   'tables',
@@ -47,6 +69,18 @@ const requiredSections = [
   'eventUsage',
   'fieldCatalog',
   'orphanChecks',
+];
+const redactionExcludes = [
+  'ValuesStr.vstr',
+  'Recs.guid',
+  'Global.guid',
+  'Global.params',
+  'document paths',
+  'source text',
+  'names',
+  'places',
+  'notes',
+  'private/debug/raw artifacts',
 ];
 
 const safeLog = (message) => {
@@ -64,6 +98,27 @@ function safeErrorMessage(error) {
     return `${error.name}: ${error.message}`;
   }
   return String(error);
+}
+
+function assertSafeOutputSelection() {
+  if (snapshotCheck || checkOnly) {
+    return;
+  }
+
+  if (!hasManualFixtureInput) {
+    return;
+  }
+
+  if (usesDefaultFixture) {
+    return;
+  }
+
+  if (hasExplicitOutput) {
+    return;
+  }
+
+  safeLog('[FIX:atdb-schema-output] blocked manual fixture input without explicit output before reading fixture');
+  throw new Error('manual fixture input requires --output or ATDB_SCHEMA_OUTPUT');
 }
 
 function quoteIdentifier(identifier) {
@@ -443,7 +498,7 @@ function readSnapshot(inputPath) {
 
 function assertTrackedSnapshot(inputPath) {
   const snapshot = readSnapshot(inputPath);
-  debugLog(`snapshot-check path: ${path.relative(projectRoot, inputPath) || inputPath}`);
+  debugLog(`snapshot-check path: ${safeRelativePath(projectRoot, inputPath)}`);
   debugLog(`snapshot-check sections: ${(snapshot.sections || []).join(',')}`);
   assertGenericSnapshot(snapshot);
   safeLog(`artifact-version: ${snapshot.artifactVersion}`);
@@ -460,8 +515,15 @@ async function createDatabase(buffer) {
 
 async function main() {
   safeLog('status: start');
-  debugLog(`fixture-path: ${path.relative(projectRoot, fixturePath) || fixturePath}`);
-  debugLog(`snapshot-output-path: ${path.relative(projectRoot, snapshotPath) || snapshotPath}`);
+  const fixtureLabelForLog = registeredFixture?.label ?? 'manual';
+  const snapshotMode = registeredFixture?.snapshotMode ?? (usesDefaultFixture ? 'tracked' : 'manual');
+  const fixtureTrackedState =
+    registeredFixture == null ? 'manual' : registeredFixture.tracked ? 'tracked' : 'local-only';
+  debugLog(`fixture-label: ${fixtureLabelForLog}`);
+  debugLog(`fixture-path: ${safeRelativePath(projectRoot, fixturePath)}`);
+  debugLog(`fixture-status: ${fixtureTrackedState}`);
+  debugLog(`snapshot-mode: ${snapshotMode}`);
+  debugLog(`snapshot-output-path: ${safeRelativePath(projectRoot, snapshotPath)}`);
   debugLog('redaction-mode: structural-only');
   debugLog(`included-sections: ${requiredSections.join(',')}`);
 
@@ -477,23 +539,28 @@ async function main() {
     return;
   }
 
-  if (!fs.existsSync(fixturePath)) {
-    safeLog('status: skipped');
-    safeLog('fixture-bytes: 0');
-    safeLog('reason: fixture missing');
-    return;
-  }
-
-  if (!checkOnly && !usesDefaultFixture && !hasExplicitSnapshotOutput) {
+  try {
+    assertSafeOutputSelection();
+  } catch (error) {
     safeLog('status: failure');
-    safeLog('[FIX:atdb-schema-output] explicit output is required for non-default fixtures');
-    safeLog('reason: refusing to overwrite tracked yaman snapshot with alternate fixture data');
+    safeLog(`error: ${safeErrorMessage(error)}`);
     process.exitCode = 1;
     return;
   }
 
+  if (!fs.existsSync(fixturePath)) {
+    safeLog('status: skipped');
+    safeLog(`fixture-label: ${fixtureLabelForLog}`);
+    safeLog('fixture-bytes: 0');
+    safeLog(`artifact-version: ${artifactVersion}`);
+    safeLog('reason: fixture missing');
+    return;
+  }
+
   const buffer = fs.readFileSync(fixturePath);
+  safeLog(`fixture-label: ${fixtureLabelForLog}`);
   safeLog(`fixture-bytes: ${buffer.length}`);
+  safeLog(`artifact-version: ${artifactVersion}`);
 
   let db;
   try {
@@ -503,9 +570,14 @@ async function main() {
     const snapshot = {
       artifactVersion,
       generatedBy: 'scripts/inspect-atdb-schema.mjs',
+      fixture: {
+        label: fixtureLabelForLog,
+        tracked: fixtureTrackedState,
+        snapshotMode,
+      },
       safety: {
         redacted: true,
-        excludes: ['ValuesStr.vstr', 'Recs.guid', 'Global.guid', 'Global.params', 'document paths', 'source text'],
+        excludes: redactionExcludes,
       },
       redactionPolicy: {
         mode: 'structural-only',
@@ -546,7 +618,7 @@ async function main() {
     }
     if (!checkOnly) {
       writeSnapshot(snapshotPath, snapshot);
-      safeLog(`snapshot-output: ${path.relative(projectRoot, snapshotPath) || snapshotPath}`);
+      safeLog(`snapshot-output: ${safeRelativePath(projectRoot, snapshotPath)}`);
     } else {
       safeLog('snapshot-output: skipped in check mode');
     }

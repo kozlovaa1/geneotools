@@ -8,12 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "smoke:atdb": "node scripts/smoke-atdb.mjs",
+    "smoke:atdb:matrix": "node scripts/check-atdb-fixtures.mjs smoke",
     "schema:atdb": "node scripts/inspect-atdb-schema.mjs",
     "schema:atdb:check": "node scripts/inspect-atdb-schema.mjs --check",
     "schema:atdb:check:yaman": "node scripts/inspect-atdb-schema.mjs --check-yaman --check",
     "schema:atdb:snapshot:check": "node scripts/inspect-atdb-schema.mjs --snapshot-check",
     "schema:atdb:diff": "node scripts/diff-atdb-schema.mjs",
-    "schema:atdb:diff:check": "node scripts/inspect-atdb-schema.mjs --snapshot-check && node scripts/diff-atdb-schema.mjs --check"
+    "schema:atdb:diff:check": "node scripts/inspect-atdb-schema.mjs --snapshot-check && node scripts/diff-atdb-schema.mjs --check",
+    "schema:atdb:fixtures": "node scripts/check-atdb-fixtures.mjs schema",
+    "schema:atdb:fixtures:diff": "node scripts/check-atdb-fixtures.mjs diff",
+    "schema:atdb:fixtures:check": "node scripts/check-atdb-fixtures.mjs gate",
+    "test:atdb:fixtures:missing-local": "node scripts/check-atdb-fixtures-regression.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
