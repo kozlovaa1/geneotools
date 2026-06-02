@@ -14,10 +14,13 @@
 
 - [ATDB schema: yaman-test.atdb](atdb_schema_yaman.md)
 - [Machine-readable redacted snapshot](atdb_schema_yaman.snapshot.json)
+- [Multi-fixture schema comparison](atdb_multi_fixture_schema.md)
 - [Validation questions and answers](atdb_schema_yaman_validation.md)
 - [Controlled diff experiments](atdb_experiments/README.md)
 
-Этот документ остаётся обзорным индексом и кратким справочником; детальные таблицы и полный mapping следует смотреть в schema artifact.
+Этот документ остаётся обзорным индексом и кратким справочником, но целевым результатом milestone по универсальному mapping должен стать именно он: каноническое описание invariant-правил формата, допустимых variances и legacy fallback. Детальные таблицы и промежуточные evidence-артефакты следует смотреть в schema artifacts.
+
+`docs/atdb_multi_fixture_schema.md` при этом не является конкурирующим каноном формата. Его роль — compatibility evidence и regression-контур: показать, что канонические правила действительно выдерживают несколько проверенных fixtures и где еще остаются fixture-specific differences или `needs more samples`.
 
 ## Снимок тестовой базы (`yaman-test.atdb`)
 

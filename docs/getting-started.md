@@ -44,17 +44,23 @@ npm run lint
 npx tsc --noEmit
 npm run build
 npm run smoke:atdb
+npm run smoke:atdb:matrix
 npm run schema:atdb:check
 npm run schema:atdb:diff:check
+npm run schema:atdb:fixtures
+npm run schema:atdb:fixtures:diff
+npm run schema:atdb:fixtures:check
 ```
 
 `schema:atdb:diff:check` проверяет tracked redacted snapshot и diff harness без доступа к локальной `.atdb` базе. Для локального сравнения двух экспериментальных баз или snapshot-файлов используйте:
 
 ```bash
-npm run schema:atdb:diff -- docs/atdb_experiments/runs/baseline.local.snapshot.json docs/atdb_experiments/runs/after.local.snapshot.json
+npm run schema:atdb:diff -- <baseline.snapshot.json> <after.snapshot.json>
 ```
 
-Локальные `.atdb`, before/after snapshots, verbose/debug logs и private summaries не коммитьте. Публичные artifacts должны содержать только redacted counts, `rec_table`, `f_id`, `datatype`, link targets и confidence labels.
+`schema:atdb:fixtures` строит redacted snapshot matrix для allow-list fixtures: tracked `yaman` и local-only `yaman-full` / `family`. `schema:atdb:fixtures:diff` показывает structural deltas baseline-vs-fixture в warn-only режиме, а `schema:atdb:fixtures:check` объединяет schema, diff, smoke matrix и redaction checks.
+
+Локальные `.atdb`, before/after snapshots, verbose/debug logs и private summaries не коммитьте. Публичные artifacts должны содержать только redacted counts, `rec_table`, `f_id`, `datatype`, link targets и confidence labels. `yaman-test.atdb` остается tracked research fixture; любые дополнительные `.atdb` с реальными данными держите только как local-only файлы.
 
 ## Что проверить после изменений
 
@@ -63,6 +69,7 @@ npm run schema:atdb:diff -- docs/atdb_experiments/runs/baseline.local.snapshot.j
 - Экспорт формирует скачиваемый `.atdb`
 - `npm run lint` остаётся зелёным
 - `npm run schema:atdb:diff:check` проходит без локальной fixture
+- `npm run schema:atdb:fixtures:check` проходит на разрешенных fixtures без raw values в artifacts
 
 ## Известные ограничения
 

@@ -41,7 +41,7 @@ Ignored local files:
 Создать redacted snapshot:
 
 ```bash
-npm run schema:atdb -- yaman-test.atdb --output docs/atdb_experiments/runs/baseline.local.snapshot.json
+npm run schema:atdb -- yaman-test.atdb --output <ignored-snapshot-path>.json
 ```
 
 Проверить tracked snapshot без локальной `.atdb` fixture:
@@ -50,10 +50,17 @@ npm run schema:atdb -- yaman-test.atdb --output docs/atdb_experiments/runs/basel
 npm run schema:atdb:snapshot:check
 ```
 
+Построить allow-list matrix для `yaman`, `yaman-full`, `family`:
+
+```bash
+npm run schema:atdb:fixtures
+npm run schema:atdb:fixtures:diff
+```
+
 Сравнить два redacted snapshot-файла или две локальные `.atdb` базы:
 
 ```bash
-npm run schema:atdb:diff -- docs/atdb_experiments/runs/baseline.local.snapshot.json docs/atdb_experiments/runs/after.local.snapshot.json
+npm run schema:atdb:diff -- <baseline.snapshot.json> <after.snapshot.json>
 ```
 
 Ожидаемый safe output содержит только status, counts, affected sections, affected `rec_table` и sanitized field IDs. Если optional table или column отсутствует, CLI пишет `warning` и пропускает секцию без raw rows. При ошибке CLI должен выводить safe failure reason без дампа SQL rows.
@@ -61,7 +68,7 @@ npm run schema:atdb:diff -- docs/atdb_experiments/runs/baseline.local.snapshot.j
 ## Manual experiment protocol
 
 1. Создайте локальную копию исходной `.atdb` в ignored path.
-2. Discovery step: снимите baseline distribution через `npm run schema:atdb -- <before.atdb> --output docs/atdb_experiments/runs/<id>.before.local.snapshot.json --debug`.
+2. Discovery step: снимите baseline distribution через `npm run schema:atdb -- <before.atdb> --output <ignored-before-snapshot>.json --debug`.
 3. Проверьте low-count/unknown candidates в safe summary: `rec_table=6`, `8`, `10`, `18`, `21` и неизвестные `f_id`.
 4. В "Древо Жизни 6" выполните ровно одно UI-действие:
    - добавьте одну пользовательскую роль события;
@@ -69,7 +76,7 @@ npm run schema:atdb:diff -- docs/atdb_experiments/runs/baseline.local.snapshot.j
    - или добавьте/измените одно "Поле данных" для события;
    - или выполните одно действие-кандидат для `rec_table=8`, `18`, `21`.
 5. Сохраните modified `.atdb` как отдельный локальный файл в ignored path.
-6. Создайте after snapshot через `npm run schema:atdb -- <after.atdb> --output docs/atdb_experiments/runs/<id>.after.local.snapshot.json --debug`.
+6. Создайте after snapshot через `npm run schema:atdb -- <after.atdb> --output <ignored-after-snapshot>.json --debug`.
 7. Сравните artifacts: `npm run schema:atdb:diff -- <before.snapshot.json> <after.snapshot.json> --debug`.
 8. Перенесите в публичный Markdown только sanitized counts, affected tables, `rec_table`, `f_id`, link targets и confidence status.
 

@@ -9,6 +9,7 @@ const projectRoot = process.cwd();
 const args = process.argv.slice(2);
 const verbose = args.includes('--verbose') || args.includes('--debug') || process.env.LOG_LEVEL === 'debug';
 const checkMode = args.includes('--check');
+const warnOnDiff = args.includes('--warn-on-diff');
 const positionalArgs = args.filter((arg) => !arg.startsWith('--'));
 const defaultSnapshot = path.join(projectRoot, 'docs/atdb_schema_yaman.snapshot.json');
 const supportedArtifactVersion = 1;
@@ -221,15 +222,30 @@ function logSummary(changes, baseline, modified) {
   debugLog(`baseline tables: ${Object.keys(baseline.tables || {}).length}`);
   debugLog(`modified tables: ${Object.keys(modified.tables || {}).length}`);
   debugLog(`diff sections: ${[...new Set(changes.map((change) => change.section))].join(',') || 'none'}`);
+  const sectionCounts = new Map();
 
   const affectedRecTables = [
     ...new Set(changes.map(recTableFromChange).filter((recTable) => Number.isInteger(recTable))),
   ].sort((a, b) => a - b);
   const watchedHits = affectedRecTables.filter((recTable) => watchedRecTables.has(recTable));
 
+  for (const change of changes) {
+    sectionCounts.set(change.section, (sectionCounts.get(change.section) ?? 0) + 1);
+  }
+
   safeLog(`changes: ${changes.length}`);
   safeLog(`affected-rec-tables: ${affectedRecTables.length ? affectedRecTables.join(',') : 'none'}`);
   safeLog(`watched-rec-tables: ${watchedHits.length ? watchedHits.join(',') : 'none'}`);
+  safeLog(
+    `section-summary: ${
+      sectionCounts.size
+        ? [...sectionCounts.entries()]
+            .sort((left, right) => left[0].localeCompare(right[0]))
+            .map(([section, count]) => `${section}=${count}`)
+            .join(', ')
+        : 'none'
+    }`,
+  );
 
   for (const change of changes.slice(0, 50)) {
     const beforeCount = change.before?.count ?? change.before?.rowCount ?? 'missing';
@@ -275,8 +291,8 @@ function main() {
     logSummary(changes, baseline, modified);
 
     if (changes.length > 0) {
-      safeLog('status: diff-found');
-      process.exitCode = exitCodes.diffFound;
+      safeLog(warnOnDiff ? 'status: warning' : 'status: diff-found');
+      process.exitCode = warnOnDiff ? exitCodes.success : exitCodes.diffFound;
       return;
     }
 
