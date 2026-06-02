@@ -62,7 +62,9 @@ geneotools/
 | `lib/types.ts` | Типы `Person`, `Family`, `Event`, `Place`, `ParsedAtdb` |
 | `components/FileUploader.tsx` | Загрузка файлов в браузере |
 | `components/ScrollableDataTable.tsx` | Основное табличное представление данных |
-| `scripts/smoke-atdb.mjs` | Smoke-проверка парсинга тестовой `.atdb` базы |
+| `scripts/atdb-fixtures.mjs` | Registry разрешённых fixtures и safe output paths для schema/smoke контуров |
+| `scripts/check-atdb-fixtures.mjs` | Batch gate для schema, diff, smoke matrix и redaction-проверок |
+| `scripts/smoke-atdb.mjs` | Smoke-проверка parse/build/reparse для одиночной fixture или fixture label |
 
 ## Документация
 
@@ -72,6 +74,7 @@ geneotools/
 | Getting Started | `docs/getting-started.md` | Инструкции по запуску и проверке |
 | Architecture | `docs/architecture.md` | Архитектурный обзор приложения |
 | ATDB format | `docs/atdb_format.md` | Описание формата и структуры `.atdb` |
+| Multi-fixture schema | `docs/atdb_multi_fixture_schema.md` | Redacted comparison `yaman`, `yaman-test-full`, `family-test` |
 | Codebase analysis | `docs/codebase-analysis.md` | Анализ текущей кодовой базы |
 | Refactoring plan | `docs/refactoring-plan.md` | План рефакторинга |
 
@@ -128,6 +131,7 @@ geneotools/
 ## Правила для агентов
 
 - Перед редактированием проверяйте `git status` и учитывайте существующие пользовательские изменения.
+- Если пользователь пишет по-русски, отвечайте естественным русским языком и так же пишите русскоязычную документацию: переводите общеупотребимые технические слова и фразы, не смешивайте русский с английским без необходимости. Английские названия оставляйте только для имён API, команд, путей, библиотек, типов, таблиц и терминов без точного русского аналога.
 - Не печатайте содержимое пользовательских `.atdb` файлов, `.env` и других чувствительных файлов.
 - Команды с несколькими шагами выполняйте по отдельности: сначала `git checkout master`, затем `git pull origin master`.
 - SQL-логику держите в `lib/`, UI-компоненты не должны напрямую выполнять запросы к базе.

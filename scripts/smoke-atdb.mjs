@@ -5,9 +5,20 @@ import os from 'node:os';
 import path from 'node:path';
 import ts from 'typescript';
 import { createRequire } from 'node:module';
+import { resolveFixtureByLabel } from './atdb-fixtures.mjs';
 
 const projectRoot = process.cwd();
-const fixturePath = process.env.ATDB_SMOKE_FIXTURE || path.join(projectRoot, 'scripts/fixtures/local-smoke.atdb');
+const args = process.argv.slice(2);
+const fixtureFlagIndex = args.findIndex((arg) => arg === '--fixture');
+const fixtureFlagValue = fixtureFlagIndex >= 0 ? args[fixtureFlagIndex + 1] : undefined;
+const inlineFixtureArg = args.find((arg) => arg.startsWith('--fixture='));
+const explicitFixtureLabel = process.env.ATDB_SMOKE_FIXTURE_LABEL || fixtureFlagValue || inlineFixtureArg?.slice('--fixture='.length);
+const registeredFixture = explicitFixtureLabel ? resolveFixtureByLabel(projectRoot, explicitFixtureLabel) : null;
+const fixturePath =
+  process.env.ATDB_SMOKE_FIXTURE ||
+  registeredFixture?.absolutePath ||
+  path.join(projectRoot, 'scripts/fixtures/local-smoke.atdb');
+const fixtureLabel = registeredFixture?.label ?? 'local-smoke';
 const tempDir = path.join(os.tmpdir(), 'geneotools-atdb-smoke');
 const requireFromSmoke = createRequire(import.meta.url);
 
@@ -91,14 +102,15 @@ async function withQuietProjectLogs(callback) {
 
 async function main() {
   safeLog('status: start');
+  safeLog(`fixture-label: ${fixtureLabel}`);
 
   if (!fs.existsSync(fixturePath)) {
     safeLog('status: skipped');
     safeLog('fixture-bytes: 0');
-    safeLog('persons: 0');
-    safeLog('families: 0');
-    safeLog('events: 0');
-    safeLog('places: 0');
+    safeLog('parse-persons: 0');
+    safeLog('parse-families: 0');
+    safeLog('parse-events: 0');
+    safeLog('parse-places: 0');
     safeLog('reason: local fixture missing');
     return;
   }
@@ -112,10 +124,10 @@ async function main() {
     const parsed = await withQuietProjectLogs(() => parseAtdb(new Uint8Array(buffer)));
     status.parse = 'ok';
     safeLog(`parse: ${status.parse}`);
-    safeLog(`persons: ${parsed.persons.length}`);
-    safeLog(`families: ${parsed.families.length}`);
-    safeLog(`events: ${parsed.events.length}`);
-    safeLog(`places: ${parsed.places.length}`);
+    safeLog(`parse-persons: ${parsed.persons.length}`);
+    safeLog(`parse-families: ${parsed.families.length}`);
+    safeLog(`parse-events: ${parsed.events.length}`);
+    safeLog(`parse-places: ${parsed.places.length}`);
 
     const rebuilt = await withQuietProjectLogs(() => buildAtdb(parsed, new Uint8Array(buffer)));
     status.build = 'ok';
@@ -129,6 +141,20 @@ async function main() {
     safeLog(`reparse-families: ${reparsed.families.length}`);
     safeLog(`reparse-events: ${reparsed.events.length}`);
     safeLog(`reparse-places: ${reparsed.places.length}`);
+    const drift = {
+      persons: reparsed.persons.length - parsed.persons.length,
+      families: reparsed.families.length - parsed.families.length,
+      events: reparsed.events.length - parsed.events.length,
+      places: reparsed.places.length - parsed.places.length,
+    };
+    safeLog(`drift-persons: ${drift.persons}`);
+    safeLog(`drift-families: ${drift.families}`);
+    safeLog(`drift-events: ${drift.events}`);
+    safeLog(`drift-places: ${drift.places}`);
+    const hasDrift = Object.values(drift).some((value) => value !== 0);
+    if (hasDrift) {
+      safeLog('warning: known drift detected');
+    }
     safeLog('status: success');
   } catch (error) {
     safeLog(`parse: ${status.parse}`);
