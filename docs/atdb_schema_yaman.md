@@ -64,7 +64,8 @@
 ### Families
 
 - Row count: `11`
-- Role: роды/семьи.
+- Role: роды. Это сущность «Роды» в ATDB6, а не модель нуклеарной семьи.
+- Доменное замечание: к одному роду может быть привязано любое количество персон, обычно рождённых с одной фамилией. Не интерпретируйте строки `Families` как группы «муж/жена/дети».
 - Confidence: `confirmed`
 - Related tables: `Recs`, `ValuesStr`, `SourceDetails`, `DocumentDetails`
 - Columns: `id INTEGER PK`, `color INTEGER`
@@ -533,14 +534,12 @@ This section compares the confirmed `yaman-test.atdb` schema with the current pa
 
 ### Known smoke/build drift
 
-- `ATDB_SMOKE_FIXTURE=yaman-test.atdb npm run smoke:atdb` confirms a build drift from `665` source events to `678` events after parse/build/reparse.
-- Entity counts after reparse: persons `294`, families `11`, events `678`, places `23`.
-- This milestone records the drift as an implementation gap only. The next mapping milestone should verify whether drift is caused by legacy table codes, duplicate life-event synthesis, or writer behavior around `EventDetails` and `Events`.
+- Исторически smoke-проверка фиксировала drift с `665` исходных событий до `678` событий после parse/build/reparse.
+- После подключения write-safe mapping текущая проверка `npm run smoke:atdb:matrix` сохраняет `665` событий для fixture `yaman`.
+- Ненулевой drift остаётся warn-only диагностическим сигналом; отдельный milestone должен закрепить критерий, запрещающий его повторное появление.
 
 ### Mapping work for the next milestone
 
-- Split mappings into `confirmed`, `observed`, `custom`, and `legacy fallback` layers.
-- Treat `rec_table=7` as `Events` for ATDB6 fixture payload, while preserving a clearly named legacy fallback if needed.
-- Replace ambiguous constants with names that distinguish domain tables (`Persons`, `Families`, `Events`) from `Recs.rec_table` codes.
-- Use `Fields.id`, `Fields.tablecode`, `Fields.et_id`, and `EventRoles.et_id` together instead of assuming a single global field meaning.
+- Канонический mapping реализован в `lib/atdb/mapping.json` с уровнями `invariant`, `fixture-specific` и `legacy-fallback`.
+- Следующий этап должен закрепить отсутствие parse-build drift отдельной блокирующей regression-проверкой.
 - Add fixture-based checks before changing writers, because incorrect writer mappings can corrupt user data even when parsing appears successful.

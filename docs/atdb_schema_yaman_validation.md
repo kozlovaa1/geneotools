@@ -76,6 +76,7 @@
    - Context: `ValuesLinks rec_table=13`.
    - Fields: `f_id=63 -> vlink_table=14 count=226`, `f_id=83 -> vlink_table=9 count=150`.
    - Answered: `f_id=63` links to `vlink_table=14` (`Places`) and means person field "Место жительства"; `f_id=83` links to `vlink_table=9` (`Families`) and means person field "Род".
+   - Доменное замечание: `Families` означает «Роды»; эта ссылка является привязкой персоны к роду, а не браком, родительством, ребёнком или членством в нуклеарной семье.
 
 5. Place fields
    - Context: `rec_table=14`, source table `Places`.

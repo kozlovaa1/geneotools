@@ -71,6 +71,9 @@ function compileTypeScriptTree(sourceDir, outputDir) {
 
     if (entry.isFile() && entry.name.endsWith('.ts')) {
       compileTypeScriptModule(sourcePath, outputPath.replace(/\.ts$/, '.js'));
+    } else if (entry.isFile() && entry.name.endsWith('.json')) {
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.copyFileSync(sourcePath, outputPath);
     }
   }
 }

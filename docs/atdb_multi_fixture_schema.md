@@ -26,9 +26,13 @@ npm run schema:atdb:fixtures
 npm run schema:atdb:fixtures:diff
 npm run smoke:atdb:matrix
 npm run schema:atdb:fixtures:check
+npm run mapping:atdb:check
+npm run test:atdb:write-safety
 ```
 
 Ожидаемый safe output содержит только labels, statuses, counts, `rec_table`, section summaries и drift deltas.
+
+`mapping:atdb:check` использует канонический `lib/atdb/mapping.json` и проверяет invariant baseline на всех доступных snapshots. `test:atdb:write-safety` подтверждает сохранение неизвестных `Values*` и отсутствие новых `EventRoles` при build.
 
 ## Confirmed across fixtures
 
@@ -82,15 +86,15 @@ npm run schema:atdb:fixtures:check
 
 ## Known drift
 
-Parse/build/reparse пока не сохраняет event counts. На текущем milestone это warn-only diagnostic signal:
+Parse/build/reparse drift остаётся отдельным warn-only diagnostic signal: критерий gate не был повышен до hard-fail в рамках этого milestone. После подключения write-safe mapping текущий локальный запуск показал:
 
 | Fixture | Parse Events | Reparse Events | Drift |
 |---------|--------------|----------------|-------|
-| `yaman` | 665 | 678 | `+13` |
-| `yaman-full` | 7586 | 8116 | `+530` |
-| `family` | 18011 | 20886 | `+2875` |
+| `yaman` | 665 | 665 | `0` |
+| `yaman-full` | 7586 | 7586 | `0` |
+| `family` | 18011 | 18011 | `0` |
 
-Инвариант для текущего gate: parser/build flow должен успешно пройти все три фазы и вывести только safe counts. Исправление drift отложено в milestone `Устранение parse-build drift`.
+Инвариант текущего gate не менялся: parser/build flow должен успешно пройти все три фазы и вывести только safe counts, а ненулевой drift остаётся предупреждением для отдельного milestone `Устранение parse-build drift`.
 
 ## Gate semantics
 
