@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "tableCodes": {
+    "events": { "code": 7, "confidence": "invariant", "read": true, "write": true },
+    "families": { "code": 9, "confidence": "invariant", "read": true, "write": true },
+    "persons": { "code": 13, "confidence": "invariant", "read": true, "write": true },
+    "places": { "code": 14, "confidence": "invariant", "read": true, "write": true },
+    "legacyPersons": { "code": 9, "confidence": "legacy-fallback", "read": true, "write": false },
+    "legacyEvents": { "code": 11, "confidence": "legacy-fallback", "read": true, "write": false },
+    "legacyFamilies": { "code": 13, "confidence": "legacy-fallback", "read": true, "write": false }
+  },
+  "eventTypes": {
+    "birth": { "id": 1, "confidence": "invariant", "read": true, "write": true },
+    "death": { "id": 2, "confidence": "invariant", "read": true, "write": true }
+  },
+  "eventRoles": {
+    "bornPerson": { "id": 1, "eventType": "birth", "roleType": 1, "order": 1, "confidence": "legacy-fallback", "read": true, "write": false },
+    "father": { "id": 2, "eventType": "birth", "roleType": 2, "order": 2, "confidence": "legacy-fallback", "read": true, "write": false },
+    "mother": { "id": 3, "eventType": "birth", "roleType": 2, "order": 3, "confidence": "legacy-fallback", "read": true, "write": false }
+  },
+  "fields": {
+    "personLastName": { "id": 64, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "personFirstName": { "id": 66, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "personPatronymic": { "id": 67, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "personOccupation": { "id": 73, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "fixture-specific", "read": true, "write": false },
+    "personNotes": { "id": 89, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "fixture-specific", "read": true, "write": false },
+    "personBirthDate": { "id": 29, "entity": "persons", "valueTable": "ValuesDates", "datatype": null, "confidence": "fixture-specific", "read": true, "write": false },
+    "familyHusbandLastName": { "id": 48, "entity": "families", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "familyWifeLastName": { "id": 49, "entity": "families", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "familyName": { "id": 50, "entity": "families", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "familyComment": { "id": 52, "entity": "families", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "placeName": { "id": 93, "entity": "places", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "placeShortName": { "id": 94, "entity": "places", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "placeComment": { "id": 104, "entity": "places", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "eventDate": { "id": 29, "entity": "events", "valueTable": "ValuesDates", "datatype": null, "confidence": "invariant", "read": true, "write": false },
+    "eventPlaceLink": { "id": 28, "entity": "events", "valueTable": "ValuesLinks", "datatype": null, "linkTarget": "places", "confidence": "invariant", "read": true, "write": true },
+    "eventPlaceLinkAlternate": { "id": 25, "entity": "events", "valueTable": "ValuesLinks", "datatype": null, "linkTarget": "places", "confidence": "fixture-specific", "read": true, "write": false }
+  }
+}

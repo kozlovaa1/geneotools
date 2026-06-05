@@ -236,6 +236,11 @@ function verifyArtifactRedaction() {
   safeLog('redaction-check: ok');
 }
 
+function runMappingGate() {
+  const result = runNodeScript('scripts/check-atdb-mapping.mjs', verbose ? ['--verbose'] : []);
+  if (result.status !== 0) throw new Error('mapping gate failed');
+}
+
 function main() {
   safeLog('status: start');
   debugLog(`fixtures: ${fixtures.map((fixture) => fixture.label).join(',')}`);
@@ -255,6 +260,7 @@ function main() {
     }
 
     if (mode === 'gate') {
+      runMappingGate();
       verifyArtifactRedaction();
     }
 

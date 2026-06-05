@@ -27,6 +27,9 @@ geneotools/
 │   └── Modal.tsx
 ├── lib/                         # Domain/Data: обработка .atdb и общие типы
 │   ├── atdb/                    # Внутренние readers/writers/helpers .atdb-процессора
+│   │   ├── mapping.json         # Канонический машиночитаемый реестр правил формата
+│   │   ├── mapping.ts           # Типизированный доступ к реестру
+│   │   ├── schemaContext.ts     # Разрешение каталогов Fields/EventTypes/EventRoles
 │   │   ├── readers/             # Чтение metadata, персон, родов, событий и мест
 │   │   └── writers/             # Запись metadata, сущностей и life-event связей
 │   ├── sqlProcessor.ts          # Публичный фасад для parse/build
@@ -48,6 +51,7 @@ geneotools/
 - Разрешено: `components/` импортируют типы и чистые утилиты из `lib/`.
 - Разрешено: `lib/sqlProcessor.ts` координирует `initSqlJs`, readers/writers из `lib/atdb/`, парсинг и сборку.
 - Разрешено: `lib/atdb/` импортирует только доменные типы и внутренние helpers из `lib/`.
+- Обязательно: readers/writers получают числовые коды и write-safe права через `mapping.json`/`AtdbSchemaContext`, а не через независимые литералы.
 - Запрещено: UI и скрипты обходят фасад `lib/sqlProcessor.ts` и импортируют `lib/atdb/*` напрямую для пользовательского parse/build flow.
 - Запрещено: `lib/` импортирует `app/` или `components/`.
 - Запрещено: компоненты выполняют SQL-запросы напрямую.

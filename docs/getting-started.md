@@ -50,6 +50,8 @@ npm run schema:atdb:diff:check
 npm run schema:atdb:fixtures
 npm run schema:atdb:fixtures:diff
 npm run schema:atdb:fixtures:check
+npm run mapping:atdb:check
+npm run test:atdb:write-safety
 ```
 
 `schema:atdb:diff:check` проверяет tracked redacted snapshot и diff harness без доступа к локальной `.atdb` базе. Для локального сравнения двух экспериментальных баз или snapshot-файлов используйте:
@@ -59,6 +61,8 @@ npm run schema:atdb:diff -- <baseline.snapshot.json> <after.snapshot.json>
 ```
 
 `schema:atdb:fixtures` строит redacted snapshot matrix для allow-list fixtures: tracked `yaman` и local-only `yaman-full` / `family`. `schema:atdb:fixtures:diff` показывает structural deltas baseline-vs-fixture в warn-only режиме, а `schema:atdb:fixtures:check` объединяет schema, diff, smoke matrix и redaction checks.
+
+`mapping:atdb:check` валидирует единый реестр правил `lib/atdb/mapping.json`, baseline трёх fixtures и отсутствие конфликтующих кодов в readers/writers. `test:atdb:write-safety` проверяет, что сборка не изменяет неизвестные `Values*` и не создаёт новые `EventRoles`.
 
 Локальные `.atdb`, before/after snapshots, verbose/debug logs и private summaries не коммитьте. Публичные artifacts должны содержать только redacted counts, `rec_table`, `f_id`, `datatype`, link targets и confidence labels. `yaman-test.atdb` остается tracked research fixture; любые дополнительные `.atdb` с реальными данными держите только как local-only файлы.
 
