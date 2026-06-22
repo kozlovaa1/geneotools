@@ -1,7 +1,18 @@
 import type { Place } from '../../types';
-import type { SqlJsDatabase } from '../dbTypes';
+import type { AtdbChangeSet, AtdbPlaceField } from '../rebuildContract';
+import type { SqlJsDatabase, SqlParameter } from '../dbTypes';
 import type { AtdbSchemaContext } from '../schemaContext';
 import { replaceOwnedValue } from './valueWriter';
+
+const PLACE_STRING_RULES: Partial<Record<AtdbPlaceField, string>> = {
+  name: 'placeName',
+  shortName: 'placeShortName',
+  comment: 'placeComment',
+};
+
+function stringValue(value: unknown): SqlParameter[] | null {
+  return typeof value === 'string' ? [value] : null;
+}
 
 export function writePlaces(db: SqlJsDatabase, places: Place[] | undefined, context: AtdbSchemaContext): void {
   const recTable = context.tableCode('places', 'write');
@@ -17,4 +28,24 @@ export function writePlaces(db: SqlJsDatabase, places: Place[] | undefined, cont
     }
   }
   context.logger({ level: 'DEBUG', code: 'places.write', details: { count: places?.length ?? 0 } });
+}
+
+export function writePlaceChanges(db: SqlJsDatabase, changeSet: AtdbChangeSet, context: AtdbSchemaContext): void {
+  const recTable = context.tableCode('places', 'write');
+  let applied = 0;
+
+  for (const entityChange of changeSet.changes) {
+    if (entityChange.entityType !== 'place') continue;
+
+    for (const fieldChange of entityChange.fields) {
+      const ruleName = PLACE_STRING_RULES[fieldChange.field as AtdbPlaceField];
+      const rule = ruleName ? context.resolveFieldRule(ruleName, 'write') : null;
+      if (rule) {
+        replaceOwnedValue(db, rule, recTable, entityChange.id, stringValue(fieldChange.value), context.logger);
+        applied++;
+      }
+    }
+  }
+
+  context.logger({ level: 'DEBUG', code: 'rebuild.places.applied', details: { changes: applied } });
 }

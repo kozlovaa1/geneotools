@@ -32,8 +32,12 @@ geneotools/
 │   ├── atdb/                   # Внутренние readers/writers/helpers .atdb-процессора
 │   │   ├── mapping.json        # Канонический машиночитаемый реестр правил формата
 │   │   ├── mapping.ts          # Типизированный доступ к mapping
+│   │   ├── rebuildContract.ts  # Типы change-set/report/error для strict rebuild
+│   │   ├── rebuildDiff.ts      # Compatibility diff ParsedAtdb -> AtdbChangeSet
+│   │   ├── rebuildValidation.ts # Preflight/post-build validation и fingerprints
 │   │   ├── schemaContext.ts    # Resolver каталогов Fields/EventTypes/EventRoles
-│   ├── buildAtdb.ts            # Сборка .atdb из данных
+│   │   ├── transaction.ts      # SAVEPOINT/rollback helper для write phase
+│   ├── buildAtdb.ts            # Совместимый re-export сборки .atdb
 │   ├── emptyNodeModule.ts      # Заглушка для браузерной сборки
 │   ├── initSqlJs.ts            # Инициализация sql.js
 │   ├── parseAtdb.ts            # Совместимый re-export парсера
@@ -59,17 +63,22 @@ geneotools/
 | `app/layout.tsx` | Корневой layout приложения |
 | `lib/sqlProcessor.ts` | Публичный фасад чтения и сборки SQLite/.atdb |
 | `lib/atdb/readers/*` | Внутренние модули чтения metadata, персон, родов, событий и мест |
-| `lib/atdb/writers/*` | Внутренние модули записи metadata, персон, родов, событий, мест и life-event связей |
+| `lib/atdb/writers/*` | Внутренние модули field-level записи разрешённых изменений |
 | `lib/atdb/mapping.json` | Единый канонический реестр `rec_table`, полей, типов и ролей событий |
 | `lib/atdb/schemaContext.ts` | Единый runtime resolver схемы для readers/writers |
+| `lib/atdb/rebuildContract.ts` | Контракт `AtdbChangeSet`, build report и safe error formatter |
+| `lib/atdb/rebuildDiff.ts` | Compatibility diff из `ParsedAtdb` в явный набор изменений |
+| `lib/atdb/rebuildValidation.ts` | Strict preflight, post-build validation и protected fingerprints |
+| `lib/atdb/transaction.ts` | Общий transaction helper для strict write phase |
 | `lib/parseAtdb.ts` | Совместимый экспорт парсинга `.atdb` |
-| `lib/buildAtdb.ts` | Сборка `.atdb` из измененных данных |
+| `lib/buildAtdb.ts` | Совместимый экспорт strict build API |
 | `lib/types.ts` | Типы `Person`, `Family`, `Event`, `Place`, `ParsedAtdb` |
 | `components/FileUploader.tsx` | Загрузка файлов в браузере |
 | `components/ScrollableDataTable.tsx` | Основное табличное представление данных |
 | `scripts/atdb-fixtures.mjs` | Registry разрешённых fixtures и safe output paths для schema/smoke контуров |
 | `scripts/check-atdb-fixtures.mjs` | Batch gate для schema, diff, smoke matrix и redaction-проверок |
 | `scripts/smoke-atdb.mjs` | Smoke-проверка parse/build/reparse для одиночной fixture или fixture label |
+| `scripts/check-atdb-rebuild-contract.mjs` | Regression gate для strict rebuild contract и failure paths |
 
 ## Документация
 

@@ -20,6 +20,7 @@
     "schema:atdb:fixtures:check": "node scripts/check-atdb-fixtures.mjs gate",
     "test:atdb:fixtures:missing-local": "node scripts/check-atdb-fixtures-regression.mjs",
     "test:atdb:write-safety": "node scripts/check-atdb-write-safety.mjs",
+    "test:atdb:rebuild-contract": "node scripts/check-atdb-rebuild-contract.mjs",
     "mapping:atdb:check": "node scripts/check-atdb-mapping.mjs"
   },
   "dependencies": {
