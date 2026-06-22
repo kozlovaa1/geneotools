@@ -51,6 +51,7 @@ npm run schema:atdb:fixtures
 npm run schema:atdb:fixtures:diff
 npm run schema:atdb:fixtures:check
 npm run mapping:atdb:check
+npm run test:atdb:fixtures:missing-local
 npm run test:atdb:write-safety
 ```
 
@@ -61,6 +62,8 @@ npm run schema:atdb:diff -- <baseline.snapshot.json> <after.snapshot.json>
 ```
 
 `schema:atdb:fixtures` строит redacted snapshot matrix для allow-list fixtures: tracked `yaman` и local-only `yaman-full` / `family`. `schema:atdb:fixtures:diff` показывает structural deltas baseline-vs-fixture в warn-only режиме, а `schema:atdb:fixtures:check` объединяет schema, diff, smoke matrix и redaction checks.
+
+`smoke:atdb:matrix` и `schema:atdb:fixtures:check` падают при любом ненулевом parse/build/reparse delta по `persons`, `families`, `events` или `places`. Отсутствующие local-only fixtures остаются safe skip и не считаются ошибкой. `test:atdb:fixtures:missing-local` проверяет этот skip path и synthetic drift failure без чтения пользовательских `.atdb`.
 
 `mapping:atdb:check` валидирует единый реестр правил `lib/atdb/mapping.json`, baseline трёх fixtures и отсутствие конфликтующих кодов в readers/writers. `test:atdb:write-safety` проверяет, что сборка не изменяет неизвестные `Values*` и не создаёт новые `EventRoles`.
 
@@ -73,7 +76,7 @@ npm run schema:atdb:diff -- <baseline.snapshot.json> <after.snapshot.json>
 - Экспорт формирует скачиваемый `.atdb`
 - `npm run lint` остаётся зелёным
 - `npm run schema:atdb:diff:check` проходит без локальной fixture
-- `npm run schema:atdb:fixtures:check` проходит на разрешенных fixtures без raw values в artifacts
+- `npm run schema:atdb:fixtures:check` проходит на разрешенных fixtures без raw values в artifacts и падает при ненулевом parse/build drift
 
 ## Известные ограничения
 
