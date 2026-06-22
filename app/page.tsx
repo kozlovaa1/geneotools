@@ -1,25 +1,49 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import FileUploader from '@/components/FileUploader';
 import ScrollableDataTable from '@/components/ScrollableDataTable';
 import Modal from '@/components/Modal';
 import type { ParsedAtdb } from '@/lib/types';
+import {
+  clearDraft,
+  buildAtdbChangeSet,
+  countDraftChanges,
+  createEmptyAtdbEditDraft,
+  resetDraftEntity,
+  resetDraftField,
+  setDraftField,
+  type AtdbDraftFieldKey,
+  type AtdbEditDraftState,
+} from '@/lib/atdbEditDraft';
 import Image from 'next/image';
 
 export default function Home() {
   const [parsedData, setParsedData] = useState<ParsedAtdb | null>(null);
   const [originalBuffer, setOriginalBuffer] = useState<Uint8Array | null>(null);
   const [originalFilename, setOriginalFilename] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<AtdbEditDraftState>(() => createEmptyAtdbEditDraft());
   const [isLoading, setIsLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const draftChangeCount = useMemo(
+    () => (parsedData ? countDraftChanges(parsedData, editDraft) : { entities: 0, fields: 0 }),
+    [editDraft, parsedData],
+  );
+  const hasDraftChanges = draftChangeCount.fields > 0;
 
   const handleFileUpload = async (file: File, buffer: ArrayBuffer) => {
     setIsLoading(true);
+    setParsedData(null);
+    setOriginalBuffer(null);
+    setOriginalFilename(null);
+    setEditDraft(clearDraft());
     setError(null);
     setSuccess(null);
+    setShowModal(false);
+    setIsDownloading(false);
 
     try {
       // Dynamically import the sql processor functions
@@ -44,21 +68,70 @@ export default function Home() {
     }
   };
 
+  const handleDraftFieldChange = (key: AtdbDraftFieldKey, value: unknown) => {
+    if (!parsedData) {
+      return;
+    }
+
+    setEditDraft((currentDraft) => setDraftField(currentDraft, parsedData, key, value));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleDraftFieldReset = (key: AtdbDraftFieldKey) => {
+    setEditDraft((currentDraft) => resetDraftField(currentDraft, key));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleDraftEntityReset = (entityType: AtdbDraftFieldKey['entityType'], id: number) => {
+    setEditDraft((currentDraft) => resetDraftEntity(currentDraft, entityType, id));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleClearDraft = () => {
+    if (!hasDraftChanges) {
+      return;
+    }
+
+    if (!window.confirm('Сбросить все несохранённые изменения?')) {
+      return;
+    }
+
+    setEditDraft(clearDraft());
+    setError(null);
+    setSuccess('Все изменения сброшены. Исходный файл не изменён.');
+  };
+
   const handleDownload = async () => {
+    if (isDownloading) {
+      return;
+    }
+
     if (!parsedData) {
       setError('Нет данных для загрузки');
       return;
     }
 
+    if (!hasDraftChanges) {
+      setSuccess('Нет изменений для скачивания. Измените данные в таблице, затем скачайте обновленный файл.');
+      return;
+    }
+
+    let changes = draftChangeCount.fields;
+    setIsDownloading(true);
+    setError(null);
+
     try {
-      // Dynamically import the sql processor functions
-      const { buildAtdb } = await import('@/lib/sqlProcessor');
-      
-      // Build the .atdb file from current data and original buffer
       if (!originalBuffer) {
-        throw new Error('Original buffer not available');
+        throw new Error('Исходный буфер файла недоступен');
       }
-      const uint8Array = await buildAtdb(parsedData, originalBuffer);
+
+      const { applyAtdbChanges } = await import('@/lib/sqlProcessor');
+      const changeSet = buildAtdbChangeSet(parsedData, editDraft);
+      changes = changeSet.changes.reduce((total, change) => total + change.fields.length, 0);
+      const uint8Array = await applyAtdbChanges(originalBuffer, changeSet);
       
       // Convert Uint8Array to Blob - use type assertion to fix the type issue
       const blob = new Blob([uint8Array] as unknown as BlobPart[], { type: 'application/octet-stream' });
@@ -82,11 +155,20 @@ export default function Home() {
           setShowModal(true);
         }
       }, 100);
+      setSuccess(
+        `Обновленный .atdb подготовлен: применено ${changes} изменений в ${changeSet.changes.length} записях. Исходный файл не изменён.`,
+      );
     } catch (err) {
       const { formatAtdbBuildError } = await import('@/lib/sqlProcessor');
       const safeError = formatAtdbBuildError(err);
-      console.error('Ошибка при создании файла .atdb:', { code: safeError.code, issueCount: safeError.issueCount });
+      console.error('Ошибка при создании файла .atdb:', {
+        code: safeError.code,
+        issueCount: safeError.issueCount,
+        changes,
+      });
       setError(`Ошибка при создании файла .atdb: ${safeError.message}`);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -149,20 +231,46 @@ export default function Home() {
             
             {parsedData && (
               <div className="mt-8 -mx-6 flex-1 flex flex-col min-h-0">
-                <div className="sticky top-4 z-50 flex justify-center mb-4 px-6">
-                  <button
-                    onClick={handleDownload}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-lg"
-                  >
-                    Скачать обновленный .atdb
-                  </button>
+                <div className="sticky top-4 z-50 mb-4 flex flex-wrap items-center justify-center gap-3 px-6">
+                  <span className="rounded border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm">
+                    {hasDraftChanges
+                      ? `${draftChangeCount.fields} полей в ${draftChangeCount.entities} записях изменено`
+                      : 'Изменений нет'}
+                  </span>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      onClick={handleDownload}
+                      disabled={!hasDraftChanges || isDownloading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors shadow-lg"
+                    >
+                      {isDownloading ? 'Подготовка файла...' : 'Скачать обновленный .atdb'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearDraft}
+                      disabled={!hasDraftChanges || isDownloading}
+                      className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+                    >
+                      Сбросить все изменения
+                    </button>
+                  </div>
                 </div>
+                {!hasDraftChanges && (
+                  <p className="mb-4 px-6 text-center text-sm text-zinc-500">
+                    Нет изменений для скачивания.
+                  </p>
+                )}
                 <div className="flex-1 overflow-hidden min-h-0">
                   <ScrollableDataTable
                     persons={parsedData.persons}
                     families={parsedData.families}
                     events={parsedData.events}
                     places={parsedData.places || []}
+                    draft={editDraft}
+                    sourceData={parsedData}
+                    onDraftFieldChange={handleDraftFieldChange}
+                    onDraftFieldReset={handleDraftFieldReset}
+                    onDraftEntityReset={handleDraftEntityReset}
                   />
                 </div>
               </div>

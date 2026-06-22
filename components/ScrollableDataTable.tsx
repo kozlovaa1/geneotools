@@ -3,16 +3,34 @@
 import React, { useState, useRef, useEffect } from 'react';
 import DataTable from './DataTable';
 import type { ParsedAtdb } from '@/lib/types';
+import type { AtdbDraftFieldKey, AtdbEditDraftState } from '@/lib/atdbEditDraft';
+
+type ActiveEntity = 'persons' | 'families' | 'events' | 'places';
 
 interface ScrollableDataTableProps {
   persons: ParsedAtdb['persons'];
   families: ParsedAtdb['families'];
   events: ParsedAtdb['events'];
   places: ParsedAtdb['places'];
+  draft: AtdbEditDraftState;
+  sourceData: ParsedAtdb;
+  onDraftFieldChange: (key: AtdbDraftFieldKey, value: unknown) => void;
+  onDraftFieldReset: (key: AtdbDraftFieldKey) => void;
+  onDraftEntityReset: (entityType: AtdbDraftFieldKey['entityType'], id: number) => void;
 }
 
-const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({ persons, families, events, places }) => {
-  const [activeTab, setActiveTab] = useState<'persons' | 'families' | 'events' | 'places'>('persons');
+const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
+  persons,
+  families,
+  events,
+  places,
+  draft,
+  sourceData,
+  onDraftFieldChange,
+  onDraftFieldReset,
+  onDraftEntityReset,
+}) => {
+  const [activeTab, setActiveTab] = useState<ActiveEntity>('persons');
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Reset scroll position when tab changes
@@ -71,6 +89,11 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({ persons, fami
       </div>
 
       <div className="flex-1 flex flex-col shadow-sm overflow-hidden">
+        {activeTab === 'events' && (
+          <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-600">
+            События доступны только для просмотра.
+          </div>
+        )}
         {/* Table content (scrollable), including header and body in one scrollable area */}
         <div
           ref={tableContainerRef}
@@ -78,10 +101,17 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({ persons, fami
           style={{ maxHeight: 'calc(100vh - 250px)' }} // Adjust based on header and other elements height
         >
           <DataTable
-            persons={activeTab === 'persons' ? persons : []}
-            families={activeTab === 'families' ? families : []}
-            events={activeTab === 'events' ? events : []}
-            places={activeTab === 'places' ? places : []}
+            activeEntity={activeTab}
+            persons={persons}
+            families={families}
+            events={events}
+            places={places}
+            allPlaces={places}
+            draft={draft}
+            sourceData={sourceData}
+            onDraftFieldChange={onDraftFieldChange}
+            onDraftFieldReset={onDraftFieldReset}
+            onDraftEntityReset={onDraftEntityReset}
             renderOnlyContent={false} // This will render both header and content
           />
         </div>
