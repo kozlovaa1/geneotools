@@ -1,7 +1,24 @@
 import type { Person } from '../../types';
-import type { SqlJsDatabase } from '../dbTypes';
+import type { AtdbChangeSet, AtdbPersonField } from '../rebuildContract';
+import type { SqlJsDatabase, SqlParameter } from '../dbTypes';
 import type { AtdbSchemaContext } from '../schemaContext';
 import { replaceOwnedValue } from './valueWriter';
+
+const PERSON_STRING_RULES: Partial<Record<AtdbPersonField, string>> = {
+  firstName: 'personFirstName',
+  lastName: 'personLastName',
+  patronymic: 'personPatronymic',
+};
+
+function stringValue(value: unknown): SqlParameter[] | null {
+  return typeof value === 'string' ? [value] : null;
+}
+
+function genderValue(value: unknown): number {
+  if (value === 'M') return 1;
+  if (value === 'F') return 2;
+  return 0;
+}
 
 export function writePersons(db: SqlJsDatabase, persons: Person[], context: AtdbSchemaContext): void {
   const recTable = context.tableCode('persons', 'write');
@@ -19,4 +36,32 @@ export function writePersons(db: SqlJsDatabase, persons: Person[], context: Atdb
     }
   }
   context.logger({ level: 'DEBUG', code: 'persons.write', details: { count: persons.length } });
+}
+
+export function writePersonChanges(db: SqlJsDatabase, changeSet: AtdbChangeSet, context: AtdbSchemaContext): void {
+  const recTable = context.tableCode('persons', 'write');
+  let applied = 0;
+
+  for (const entityChange of changeSet.changes) {
+    if (entityChange.entityType !== 'person') continue;
+
+    for (const fieldChange of entityChange.fields) {
+      if (fieldChange.field === 'birthPlaceId' || fieldChange.field === 'deathPlaceId') continue;
+
+      if (fieldChange.field === 'gender') {
+        db.run('UPDATE Persons SET sex = ? WHERE id = ?', [genderValue(fieldChange.value), entityChange.id]);
+        applied++;
+        continue;
+      }
+
+      const ruleName = PERSON_STRING_RULES[fieldChange.field as AtdbPersonField];
+      const rule = ruleName ? context.resolveFieldRule(ruleName, 'write') : null;
+      if (rule) {
+        replaceOwnedValue(db, rule, recTable, entityChange.id, stringValue(fieldChange.value), context.logger);
+        applied++;
+      }
+    }
+  }
+
+  context.logger({ level: 'DEBUG', code: 'rebuild.persons.applied', details: { changes: applied } });
 }

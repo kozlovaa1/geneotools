@@ -1,6 +1,7 @@
 import type { Person } from '../../types';
 import { EVENT_TYPE_IDS } from '../constants';
 import type { SqlJsDatabase } from '../dbTypes';
+import type { AtdbChangeSet } from '../rebuildContract';
 import type { AtdbSchemaContext } from '../schemaContext';
 import { tableExists } from '../sqlHelpers';
 import { replaceOwnedValue } from './valueWriter';
@@ -50,4 +51,62 @@ export function writeLifeEventPlaceLinks(db: SqlJsDatabase, persons: Person[], c
       }
     }
   }
+}
+
+export function writeLifeEventPlaceLinkChanges(
+  db: SqlJsDatabase,
+  changeSet: AtdbChangeSet,
+  context: AtdbSchemaContext,
+): void {
+  if (!hasLifeEventTables(db)) {
+    context.logger({ level: 'WARN', code: 'rebuild.life-event.tables-missing' });
+    return;
+  }
+
+  const rule = context.resolveFieldRule('eventPlaceLink', 'write');
+  if (!rule) {
+    context.logger({ level: 'WARN', code: 'rebuild.life-event.field-missing' });
+    return;
+  }
+
+  const eventTable = context.tableCode('events', 'write');
+  const placeTable = context.tableCode('places', 'write');
+  let applied = 0;
+
+  for (const entityChange of changeSet.changes) {
+    if (entityChange.entityType !== 'person') continue;
+
+    for (const fieldChange of entityChange.fields) {
+      if (fieldChange.field !== 'birthPlaceId' && fieldChange.field !== 'deathPlaceId') continue;
+
+      const eventTypeId = fieldChange.field === 'birthPlaceId' ? EVENT_TYPE_IDS.birth : EVENT_TYPE_IDS.death;
+      const primaryRole =
+        eventTypeId === EVENT_TYPE_IDS.birth
+          ? context.resolveMappedEventRole('bornPerson')
+          : context.resolvePrimaryEventRole(eventTypeId);
+      if (!primaryRole) {
+        context.logger({ level: 'WARN', code: 'rebuild.life-event.role-missing', details: { eventTypeId } });
+        continue;
+      }
+
+      const eventId = findLifeEvent(db, entityChange.id, primaryRole.id);
+      if (eventId === null) {
+        context.logger({ level: 'WARN', code: 'rebuild.life-event.event-missing', details: { eventTypeId } });
+        continue;
+      }
+
+      replaceOwnedValue(
+        db,
+        rule,
+        eventTable,
+        eventId,
+        typeof fieldChange.value === 'number' ? [placeTable, fieldChange.value] : null,
+        context.logger,
+        placeTable,
+      );
+      applied++;
+    }
+  }
+
+  context.logger({ level: 'DEBUG', code: 'rebuild.life-event.places.applied', details: { changes: applied } });
 }

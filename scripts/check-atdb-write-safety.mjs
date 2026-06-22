@@ -157,12 +157,6 @@ try {
     [mapping.tableCodes.events.code, mapping.fields.eventPlaceLink.id, mapping.tableCodes.places.code, mapping.eventTypes.birth.id],
   )[0]?.values[0];
   assert.ok(secondaryParticipant, 'fixture has no secondary birth participant with a place');
-  const secondaryEventPlaceBefore = hashRows(
-    secondaryParticipantDb,
-    'ValuesLinks',
-    'rec_table = ? AND rec_id = ? AND f_id = ? AND vlink_table = ?',
-    [mapping.tableCodes.events.code, secondaryParticipant[1], mapping.fields.eventPlaceLink.id, mapping.tableCodes.places.code],
-  );
   secondaryParticipantDb.run(
     `DELETE FROM EventDetails
      WHERE p_id = ? AND er_id IN (SELECT id FROM EventRoles WHERE et_id = ? AND ismain = 1)`,
@@ -182,19 +176,11 @@ try {
   );
   secondaryReplacementDb.close();
   assert.equal(typeof secondaryPerson.birthPlaceId, 'number', 'fixture has no replacement place for secondary participant');
-  const secondaryParticipantRebuilt = await processor.buildAtdb(secondaryParticipantParsed, secondaryParticipantBuffer);
-  const secondaryParticipantAfterDb = new SQL.Database(secondaryParticipantRebuilt);
-  assert.deepEqual(
-    hashRows(
-      secondaryParticipantAfterDb,
-      'ValuesLinks',
-      'rec_table = ? AND rec_id = ? AND f_id = ? AND vlink_table = ?',
-      [mapping.tableCodes.events.code, secondaryParticipant[1], mapping.fields.eventPlaceLink.id, mapping.tableCodes.places.code],
-    ),
-    secondaryEventPlaceBefore,
-    'secondary birth participant write changed child event place',
+  await assert.rejects(
+    () => processor.buildAtdb(secondaryParticipantParsed, secondaryParticipantBuffer),
+    (error) => error?.name === 'AtdbBuildError' && error?.code === 'atdb.rebuild.failed',
+    'secondary birth participant write should be blocked',
   );
-  secondaryParticipantAfterDb.close();
 
   const foreignLinkDb = new SQL.Database(original);
   const eventPlace = mapping.fields.eventPlaceLink;
@@ -283,25 +269,14 @@ try {
   for (const [column, incompatibleValue] of [['tablecode', mapping.tableCodes.events.code], ['datatype', 12]]) {
     const mismatchDb = new SQL.Database(original);
     mismatchDb.run(`UPDATE Fields SET ${column} = ? WHERE id = ?`, [incompatibleValue, personFirstName.id]);
-    const mismatchBefore = hashRows(
-      mismatchDb,
-      personFirstName.valueTable,
-      'f_id = ? AND rec_table = ?',
-      [personFirstName.id, mapping.tableCodes.persons.code],
-    );
     const mismatchBuffer = mismatchDb.export();
     mismatchDb.close();
     const diagnostics = [];
-    const mismatchRebuilt = await processor.buildAtdb(parsed, mismatchBuffer, { logger: (diagnostic) => diagnostics.push(diagnostic) });
-    const mismatchAfterDb = new SQL.Database(mismatchRebuilt);
-    const mismatchAfter = hashRows(
-      mismatchAfterDb,
-      personFirstName.valueTable,
-      'f_id = ? AND rec_table = ?',
-      [personFirstName.id, mapping.tableCodes.persons.code],
+    await assert.rejects(
+      () => processor.buildAtdb(parsed, mismatchBuffer, { logger: (diagnostic) => diagnostics.push(diagnostic) }),
+      (error) => error?.name === 'AtdbBuildError' && error?.code === 'atdb.rebuild.failed',
+      `incompatible Fields.${column} mapping should be blocked`,
     );
-    mismatchAfterDb.close();
-    assert.deepEqual(mismatchAfter, mismatchBefore, `incompatible Fields.${column} mapping was written`);
     assert.ok(diagnostics.some((diagnostic) => diagnostic.code === 'field.write.skipped'), `missing Fields.${column} skip diagnostic`);
   }
 
@@ -317,10 +292,10 @@ try {
   safeLog(`unknown-values: ${afterUnknown.count}`);
   safeLog(`event-roles: ${afterRoles}`);
   safeLog('remapped-role-ids: ok');
-  safeLog('secondary-life-event-role: ignored');
+  safeLog('secondary-life-event-role: blocked');
   safeLog('foreign-link-target: preserved');
   safeLog('owned-life-event-place: update-and-remove-ok');
-  safeLog('incompatible-field-mapping: skipped');
+  safeLog('incompatible-field-mapping: blocked');
   safeLog('optional-schema-read: ok');
   safeLog('mapping-diagnostics: ok');
   safeLog('status: success');

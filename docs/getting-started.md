@@ -53,6 +53,7 @@ npm run schema:atdb:fixtures:check
 npm run mapping:atdb:check
 npm run test:atdb:fixtures:missing-local
 npm run test:atdb:write-safety
+npm run test:atdb:rebuild-contract
 ```
 
 `schema:atdb:diff:check` проверяет tracked redacted snapshot и diff harness без доступа к локальной `.atdb` базе. Для локального сравнения двух экспериментальных баз или snapshot-файлов используйте:
@@ -65,7 +66,9 @@ npm run schema:atdb:diff -- <baseline.snapshot.json> <after.snapshot.json>
 
 `smoke:atdb:matrix` и `schema:atdb:fixtures:check` падают при любом ненулевом parse/build/reparse delta по `persons`, `families`, `events` или `places`. Отсутствующие local-only fixtures остаются safe skip и не считаются ошибкой. `test:atdb:fixtures:missing-local` проверяет этот skip path и synthetic drift failure без чтения пользовательских `.atdb`.
 
-`mapping:atdb:check` валидирует единый реестр правил `lib/atdb/mapping.json`, baseline трёх fixtures и отсутствие конфликтующих кодов в readers/writers. `test:atdb:write-safety` проверяет, что сборка не изменяет неизвестные `Values*` и не создаёт новые `EventRoles`.
+`mapping:atdb:check` валидирует единый реестр правил `lib/atdb/mapping.json`, baseline трёх fixtures и отсутствие конфликтующих кодов в readers/writers. `test:atdb:write-safety` проверяет, что сборка не изменяет неизвестные `Values*`, не создаёт новые `EventRoles` и блокирует небезопасные write paths. `test:atdb:rebuild-contract` покрывает оба публичных write API: compatibility `buildAtdb(parsed, original)` и явный `applyAtdbChanges(original, changeSet)`.
+
+Экспорт проходит через strict rebuild contract. No-op export должен сохранять нулевой count drift. Если модель содержит структурные изменения вне разрешённого update-only scope, экспорт падает с безопасным сообщением до возврата файла.
 
 Локальные `.atdb`, before/after snapshots, verbose/debug logs и private summaries не коммитьте. Публичные artifacts должны содержать только redacted counts, `rec_table`, `f_id`, `datatype`, link targets и confidence labels. `yaman-test.atdb` остается tracked research fixture; любые дополнительные `.atdb` с реальными данными держите только как local-only файлы.
 
@@ -77,12 +80,13 @@ npm run schema:atdb:diff -- <baseline.snapshot.json> <after.snapshot.json>
 - `npm run lint` остаётся зелёным
 - `npm run schema:atdb:diff:check` проходит без локальной fixture
 - `npm run schema:atdb:fixtures:check` проходит на разрешенных fixtures без raw values в artifacts и падает при ненулевом parse/build drift
+- `npm run test:atdb:rebuild-contract` подтверждает strict rebuild success/failure paths
 
 ## Известные ограничения
 
-- Основной parser/build flow пока сосредоточен в одном файле `lib/sqlProcessor.ts`
 - Табличный UI пока не разделён на entity-specific компоненты
-- Автотестовый контур для критичных ветвей парсинга ещё не настроен
+- UI пока не предоставляет редактирование данных; явный `AtdbChangeSet` подготовлен для следующего этапа
+- Создание и удаление записей, изменение событий, metadata/`Global`, `Fields`, `Recs`, `EventRoles` и custom fields намеренно запрещены strict rebuild contract
 
 ## See Also
 

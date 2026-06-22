@@ -16,7 +16,6 @@ geneotools/
 │   └── page.tsx
 ├── components/
 │   ├── DataTable.tsx
-│   ├── DebugAnalyzer.tsx
 │   ├── FileUploader.tsx
 │   ├── Modal.tsx
 │   └── ScrollableDataTable.tsx
@@ -30,8 +29,16 @@ geneotools/
 │   │   ├── constants.ts
 │   │   ├── dates.ts
 │   │   ├── dbTypes.ts
+│   │   ├── diagnostics.ts
 │   │   ├── fieldDefinitions.ts
+│   │   ├── mapping.json
+│   │   ├── mapping.ts
+│   │   ├── rebuildContract.ts
+│   │   ├── rebuildDiff.ts
+│   │   ├── rebuildValidation.ts
+│   │   ├── schemaContext.ts
 │   │   ├── sqlHelpers.ts
+│   │   ├── transaction.ts
 │   │   ├── readers/
 │   │   └── writers/
 │   ├── buildAtdb.ts
@@ -57,9 +64,13 @@ geneotools/
 - `lib/types.ts` — единая доменная модель
 - `lib/sqlProcessor.ts` — публичный фасад parse/build flow
 - `lib/atdb/readers/*` — чтение metadata, персон, родов, событий и мест из SQLite
-- `lib/atdb/writers/*` — запись metadata, персон, родов, событий, мест и life-event связей
-- `lib/atdb/sqlHelpers.ts`, `dates.ts`, `fieldDefinitions.ts` — внутренние helper/mapping модули
-- `lib/buildAtdb.ts` — validation helper перед сборкой
+- `lib/atdb/writers/*` — field-level запись разрешённых изменений персон, родов, мест и life-event place links
+- `lib/atdb/rebuildContract.ts` — typed contract для `AtdbChangeSet`, build report и safe errors
+- `lib/atdb/rebuildDiff.ts` — compatibility diff из `ParsedAtdb` в явный change-set
+- `lib/atdb/rebuildValidation.ts` — preflight, post-build validation и protected fingerprints
+- `lib/atdb/transaction.ts` — общий `SAVEPOINT` / rollback helper для write phase
+- `lib/atdb/sqlHelpers.ts`, `dates.ts`, `fieldDefinitions.ts`, `mapping.ts` — внутренние helper/mapping модули
+- `lib/buildAtdb.ts` — compatibility re-export публичного build API
 - `lib/initSqlJs.ts` — bootstrap `sql.js`
 
 ## Поток данных
@@ -80,6 +91,9 @@ User
 User
   -> app/page.tsx
   -> lib/sqlProcessor.buildAtdb
+  -> compatibility diff / strict change-set validation
+  -> transaction write phase
+  -> post-build validation
   -> Blob
   -> browser download
 ```
@@ -88,7 +102,7 @@ User
 
 - `components/DataTable.tsx` совмещает rendering и sorting для нескольких сущностей
 - `parseAtdb.ts` пока используется как compatibility layer, а не как отдельный parser module
-- Автоматические тесты критичных parsing-ветвей ещё не созданы
+- UI пока не формирует `AtdbChangeSet` напрямую; текущий экспорт использует compatibility diff из `ParsedAtdb`
 
 ## Правила зависимостей
 
@@ -98,6 +112,7 @@ User
 - Доменные типы должны импортироваться из `lib/types.ts`
 - SQL-запросы должны оставаться в `lib/`, а не в UI
 - `lib/atdb/` считается внутренней реализацией: UI и скрипты должны обращаться к `lib/sqlProcessor.ts`, а не к reader/writer-модулям напрямую
+- Reliable rebuild остаётся в `lib/` за фасадом `lib/sqlProcessor.ts`; UI не должен импортировать `lib/atdb/rebuild*` или writer-модули напрямую
 - `.atdb` остается локальным файлом браузерной сессии; документация и логи не должны содержать персональные строки из пользовательской базы
 
 ## See Also

@@ -48,7 +48,33 @@
 
 Writer имеет право точечно удалить и заменить только строку с явно разрешённой комбинацией `Values*`, `f_id`, `rec_table` и link target. Массовое удаление всех значений сущности запрещено. Неизвестные, fixture-specific, legacy и неоднозначные значения сохраняются без изменений.
 
-Writer не создаёт `EventRoles` для разрешения отсутствующего mapping. Если существующая роль или поле не разрешены однозначно как `write-safe`, запись пропускается с безопасной диагностикой без `rec_id`, raw values и персональных данных.
+Writer не создаёт `EventRoles` для разрешения отсутствующего mapping. Если существующая роль или поле не разрешены однозначно как `write-safe`, strict rebuild блокирует изменение до записи с безопасной диагностикой без `rec_id`, raw values и персональных данных.
+
+### Strict rebuild contract
+
+Обратная сборка больше не переписывает всю `ParsedAtdb` модель. Публичный compatibility API `buildAtdb(data, originalBuffer, options)` сначала повторно читает исходный буфер, строит явный diff и превращает его во внутренний `AtdbChangeSet`. Новый явный API `applyAtdbChanges(originalBuffer, changeSet, options)` применяет уже подготовленный набор изменений.
+
+Разрешён только update-only scope существующих записей:
+
+- `Person.firstName`, `lastName`, `patronymic`, `gender`, `birthPlaceId`, `deathPlaceId`;
+- `Family.familyName`, `husbandLastName`, `wifeLastName`, `comment`, `color`;
+- `Place.name`, `shortName`, `comment`.
+
+`null` или `undefined` в явном `AtdbChangeSet` означает очистку write-safe значения. Для `Values*`-полей это удаляет owned row, для `Family.color` записывает `NULL`, а для `Person.gender` нормализуется в `Unknown` (`Persons.sex = 0`). Пустая строка сохраняется как строка и не трактуется как удаление.
+
+Strict rebuild запрещает до записи:
+
+- создание и удаление `Persons`, `Families`, `Events`, `Places`;
+- изменение `metadata.*` / `Global`;
+- изменение `Events.et_id` / `Event.eventType`;
+- изменение участников событий, `EventRoles`, `Fields`, `Recs`;
+- изменение custom, fixture-specific, legacy fallback и любых неизвестных `Values*`.
+
+Перед записью выполняется preflight: проверяется SQLite header, наличие нужных таблиц, совместимость `Fields` через `AtdbSchemaContext`, существование изменяемых записей, отсутствие duplicate updates, допустимые scalar values и существование целевых `Places.id` для birth/death place links.
+
+Write phase выполняется через `SAVEPOINT` / `ROLLBACK TO` / `RELEASE` и применяет только field-level changes. `Global` не удаляется и не пересоздаётся, `Events.et_id` не меняется. После записи выполняются `PRAGMA integrity_check`, reparse rebuilt buffer, проверка нулевого count drift по `persons`, `families`, `events`, `places`, подтверждение видимости supported changes и сравнение safe fingerprints для `Global`, `Fields`, `Recs`, `EventRoles`, unknown `Values*` и unchanged owned values.
+
+Ошибки strict rebuild представлены typed error/result и безопасным formatter: наружу уходят code/message/counts, без SQL, raw rows, `ValuesStr.vstr`, GUID, мест, заметок, имён или локальных путей.
 
 ### Диагностика и проверки
 
@@ -63,10 +89,11 @@ Runtime по умолчанию использует беззвучный logger
 ```bash
 npm run mapping:atdb:check
 npm run test:atdb:write-safety
+npm run test:atdb:rebuild-contract
 npm run schema:atdb:fixtures:check
 ```
 
-Первая команда валидирует реестр и отсутствие конфликтующих hard-coded кодов, вторая сравнивает внутренний хеш неизвестных `Values*` и количество `EventRoles` до/после build, третья выполняет общий fixture-gate. Вывод содержит только labels, коды, confidence, counts и статусы.
+Первая команда валидирует реестр и отсутствие конфликтующих hard-coded кодов, вторая сравнивает внутренний хеш неизвестных `Values*` и количество `EventRoles` до/после build, третья покрывает strict rebuild contract и failure paths, четвёртая выполняет общий fixture-gate. Вывод содержит только labels, коды, confidence, counts и статусы.
 
 ## Снимок тестовой базы (`yaman-test.atdb`)
 

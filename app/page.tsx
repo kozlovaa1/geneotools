@@ -35,8 +35,10 @@ export default function Home() {
       setOriginalFilename(file.name); // Store the original filename
       setSuccess(`Файл .atdb успешно загружен: ${parsedResult.persons.length} персон, ${parsedResult.families.length} родов, ${parsedResult.events.length} событий.`);
     } catch (err) {
-      console.error('Ошибка при разборе файла .atdb:', err);
-      setError(`Ошибка при разборе файла .atdb: ${err instanceof Error ? err.message : String(err)}`);
+      const { formatAtdbBuildError } = await import('@/lib/sqlProcessor');
+      const safeError = formatAtdbBuildError(err);
+      console.error('Ошибка при разборе файла .atdb:', { code: safeError.code, issueCount: safeError.issueCount });
+      setError(`Ошибка при разборе файла .atdb: ${safeError.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -81,8 +83,10 @@ export default function Home() {
         }
       }, 100);
     } catch (err) {
-      console.error('Ошибка при создании файла .atdb:', err);
-      setError(`Ошибка при создании файла .atdb: ${err instanceof Error ? err.message : String(err)}`);
+      const { formatAtdbBuildError } = await import('@/lib/sqlProcessor');
+      const safeError = formatAtdbBuildError(err);
+      console.error('Ошибка при создании файла .atdb:', { code: safeError.code, issueCount: safeError.issueCount });
+      setError(`Ошибка при создании файла .atdb: ${safeError.message}`);
     }
   };
 
