@@ -37,7 +37,13 @@ export type {
   AtdbBuildReport,
   AtdbChangeSet,
   AtdbEntityChange,
+  AtdbFamilyField,
+  AtdbFieldName,
   AtdbFieldChange,
+  AtdbFieldValue,
+  AtdbPersonField,
+  AtdbPlaceField,
+  AtdbWritableEntity,
   SafeAtdbBuildError,
 } from './atdb/rebuildContract';
 export { AtdbBuildError, formatAtdbBuildError };

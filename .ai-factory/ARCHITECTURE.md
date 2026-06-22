@@ -22,6 +22,7 @@ geneotools/
 │   └── globals.css
 ├── components/                  # Presentation: переиспользуемые React-компоненты
 │   ├── FileUploader.tsx
+│   ├── EditableCell.tsx
 │   ├── ScrollableDataTable.tsx
 │   ├── DataTable.tsx
 │   └── Modal.tsx
@@ -33,6 +34,7 @@ geneotools/
 │   │   ├── readers/             # Чтение metadata, персон, родов, событий и мест
 │   │   └── writers/             # Запись metadata, сущностей и life-event связей
 │   ├── sqlProcessor.ts          # Публичный фасад для parse/build
+│   ├── atdbEditDraft.ts         # UI draft state и явный AtdbChangeSet
 │   ├── parseAtdb.ts             # Парсинг .atdb
 │   ├── buildAtdb.ts             # Сборка .atdb
 │   ├── initSqlJs.ts             # Инфраструктура sql.js
@@ -63,7 +65,8 @@ geneotools/
 - Обработка: `app/page.tsx` динамически импортирует `lib/sqlProcessor.ts`, чтобы избежать SSR-проблем с `sql.js`.
 - Данные: `lib/` возвращает типизированный `ParsedAtdb`.
 - Отображение: таблицы получают готовые массивы сущностей через props.
-- Экспорт: UI вызывает фасад сборки, получает `Uint8Array`, создает `Blob` и скачивает файл.
+- Редактирование: UI хранит локальный draft state для write-safe полей персон, родов и мест, не мутируя исходный `ParsedAtdb`.
+- Экспорт: UI собирает явный `AtdbChangeSet`, вызывает `applyAtdbChanges`, получает `Uint8Array`, создает `Blob` и скачивает файл.
 
 ## Ключевые принципы
 

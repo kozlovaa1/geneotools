@@ -16,6 +16,7 @@ geneotools/
 │   └── page.tsx
 ├── components/
 │   ├── DataTable.tsx
+│   ├── EditableCell.tsx
 │   ├── FileUploader.tsx
 │   ├── Modal.tsx
 │   └── ScrollableDataTable.tsx
@@ -42,6 +43,7 @@ geneotools/
 │   │   ├── readers/
 │   │   └── writers/
 │   ├── buildAtdb.ts
+│   ├── atdbEditDraft.ts
 │   ├── initSqlJs.ts
 │   ├── parseAtdb.ts
 │   ├── sqlProcessor.ts
@@ -58,11 +60,13 @@ geneotools/
 - `components/FileUploader.tsx` — загрузка и валидация файла
 - `components/ScrollableDataTable.tsx` — табы и scroll container
 - `components/DataTable.tsx` — рендер таблиц и sorting state
+- `components/EditableCell.tsx` — компактные presentation controls для write-safe ячеек
 
 ### Domain / Processing
 
 - `lib/types.ts` — единая доменная модель
 - `lib/sqlProcessor.ts` — публичный фасад parse/build flow
+- `lib/atdbEditDraft.ts` — чистые UI-facing helper'ы локального draft state и сборки `AtdbChangeSet`
 - `lib/atdb/readers/*` — чтение metadata, персон, родов, событий и мест из SQLite
 - `lib/atdb/writers/*` — field-level запись разрешённых изменений персон, родов, мест и life-event place links
 - `lib/atdb/rebuildContract.ts` — typed contract для `AtdbChangeSet`, build report и safe errors
@@ -82,6 +86,7 @@ User
   -> lib/sqlProcessor.parseAtdb
   -> sql.js Database
   -> ParsedAtdb in React state
+  -> local edit draft state
   -> ScrollableDataTable / DataTable
 ```
 
@@ -90,8 +95,9 @@ User
 ```text
 User
   -> app/page.tsx
-  -> lib/sqlProcessor.buildAtdb
-  -> compatibility diff / strict change-set validation
+  -> lib/atdbEditDraft.buildAtdbChangeSet
+  -> lib/sqlProcessor.applyAtdbChanges
+  -> strict change-set validation
   -> transaction write phase
   -> post-build validation
   -> Blob
@@ -102,7 +108,8 @@ User
 
 - `components/DataTable.tsx` совмещает rendering и sorting для нескольких сущностей
 - `parseAtdb.ts` пока используется как compatibility layer, а не как отдельный parser module
-- UI пока не формирует `AtdbChangeSet` напрямую; текущий экспорт использует compatibility diff из `ParsedAtdb`
+- UI формирует `AtdbChangeSet` напрямую только для write-safe полей персон, родов и мест; события, даты, участники событий, родственные связи, notes/occupation и metadata остаются read-only
+- Compatibility `buildAtdb(parsed, original)` сохраняется для старых imports и проверок, но основной UI export использует `applyAtdbChanges(original, changeSet)`
 
 ## Правила зависимостей
 

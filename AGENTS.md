@@ -25,6 +25,7 @@ geneotools/
 │   └── globals.css             # Глобальные стили Tailwind
 ├── components/                 # React-компоненты интерфейса
 │   ├── DataTable.tsx           # Табличное отображение данных
+│   ├── EditableCell.tsx        # Presentation controls для редактируемых ячеек
 │   ├── FileUploader.tsx        # Drag-and-drop загрузка файлов
 │   ├── Modal.tsx               # Модальное окно
 │   └── ScrollableDataTable.tsx # Таблица с прокруткой
@@ -37,6 +38,7 @@ geneotools/
 │   │   ├── rebuildValidation.ts # Preflight/post-build validation и fingerprints
 │   │   ├── schemaContext.ts    # Resolver каталогов Fields/EventTypes/EventRoles
 │   │   ├── transaction.ts      # SAVEPOINT/rollback helper для write phase
+│   ├── atdbEditDraft.ts        # UI draft state и сборка явного AtdbChangeSet
 │   ├── buildAtdb.ts            # Совместимый re-export сборки .atdb
 │   ├── emptyNodeModule.ts      # Заглушка для браузерной сборки
 │   ├── initSqlJs.ts            # Инициализация sql.js
@@ -74,9 +76,12 @@ geneotools/
 | `lib/buildAtdb.ts` | Совместимый экспорт strict build API |
 | `lib/types.ts` | Типы `Person`, `Family`, `Event`, `Place`, `ParsedAtdb` |
 | `components/FileUploader.tsx` | Загрузка файлов в браузере |
+| `components/EditableCell.tsx` | Переиспользуемые controls редактируемых ячеек |
 | `components/ScrollableDataTable.tsx` | Основное табличное представление данных |
+| `lib/atdbEditDraft.ts` | Чистые helper'ы локального draft state и сборки `AtdbChangeSet` |
 | `scripts/atdb-fixtures.mjs` | Registry разрешённых fixtures и safe output paths для schema/smoke контуров |
 | `scripts/check-atdb-fixtures.mjs` | Batch gate для schema, diff, smoke matrix и redaction-проверок |
+| `scripts/check-atdb-edit-draft.mjs` | Regression gate для UI draft/change-set helper'ов без чтения `.atdb` |
 | `scripts/smoke-atdb.mjs` | Smoke-проверка parse/build/reparse для одиночной fixture или fixture label |
 | `scripts/check-atdb-rebuild-contract.mjs` | Regression gate для strict rebuild contract и failure paths |
 

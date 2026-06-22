@@ -1,6 +1,33 @@
 import React, { useState } from 'react';
 import { getEventTypeName } from '../lib/utils';
-import type { Event, Family, Person, Place } from '@/lib/types';
+import {
+  EditableNumberCell,
+  EditableSelectCell,
+  EditableTextCell,
+  type EditableSelectOption,
+} from './EditableCell';
+import type { Event, Family, ParsedAtdb, Person, Place } from '@/lib/types';
+import {
+  getDraftValue,
+  isFieldDirty,
+  type AtdbDraftFieldKey,
+  type AtdbEditDraftState,
+} from '@/lib/atdbEditDraft';
+import type { AtdbFieldName, AtdbWritableEntity } from '@/lib/sqlProcessor';
+
+type ActiveEntity = 'persons' | 'families' | 'events' | 'places';
+
+function formatPlaceLabel(place: Place): string {
+  return place.name || place.shortName || `ID ${place.id}`;
+}
+
+function createDraftKey(entityType: AtdbWritableEntity, id: number, field: AtdbFieldName): AtdbDraftFieldKey {
+  return {
+    entityType,
+    id,
+    field,
+  };
+}
 
 interface SortConfig {
   key: string;
@@ -8,21 +35,209 @@ interface SortConfig {
 }
 
 interface DataTableProps {
+  activeEntity: ActiveEntity;
   persons: Person[];
   families: Family[];
   events: Event[];
   places: Place[];
+  allPlaces?: Place[];
+  draft?: AtdbEditDraftState;
+  sourceData?: ParsedAtdb;
+  onDraftFieldChange?: (key: AtdbDraftFieldKey, value: unknown) => void;
+  onDraftFieldReset?: (key: AtdbDraftFieldKey) => void;
+  onDraftEntityReset?: (entityType: AtdbDraftFieldKey['entityType'], id: number) => void;
   renderOnlyHeader?: boolean;
   renderOnlyContent?: boolean;
 }
 
-const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places, renderOnlyHeader = false, renderOnlyContent = false }) => {
+const DataTable: React.FC<DataTableProps> = ({
+  activeEntity,
+  persons,
+  families,
+  events,
+  places,
+  allPlaces = places,
+  draft,
+  sourceData,
+  onDraftFieldChange,
+  onDraftFieldReset,
+  renderOnlyHeader = false,
+  renderOnlyContent = false,
+}) => {
   const [personSortConfig, setPersonSortConfig] = useState<SortConfig | null>(null);
   const [familySortConfig, setFamilySortConfig] = useState<SortConfig | null>(null);
   const [eventSortConfig, setEventSortConfig] = useState<SortConfig | null>(null);
   const [placeSortConfig, setPlaceSortConfig] = useState<SortConfig | null>(null);
 
-  const getValue = (record: object, key: string): unknown => (record as Record<string, unknown>)[key];
+  const canEdit = Boolean(draft && sourceData && onDraftFieldChange && onDraftFieldReset);
+  const placeLabelById = React.useMemo(
+    () => new Map(allPlaces.map((place) => [place.id, formatPlaceLabel(place)])),
+    [allPlaces],
+  );
+  const placeOptions = React.useMemo<EditableSelectOption[]>(
+    () => [
+      { value: '', label: 'Очистить' },
+      ...allPlaces.map((place) => ({
+        value: String(place.id),
+        label: formatPlaceLabel(place),
+      })),
+    ],
+    [allPlaces],
+  );
+
+  const getValue = React.useCallback(
+    (record: object, key: string): unknown => (record as Record<string, unknown>)[key],
+    [],
+  );
+
+  const getDraftAwareValue = React.useCallback((key: AtdbDraftFieldKey): unknown => {
+    if (!draft || !sourceData) return undefined;
+    return getDraftValue(draft, sourceData, key);
+  }, [draft, sourceData]);
+
+  const dirty = (key: AtdbDraftFieldKey): boolean => {
+    return Boolean(draft && sourceData && isFieldDirty(draft, sourceData, key));
+  };
+
+  const resetField = (key: AtdbDraftFieldKey) => {
+    onDraftFieldReset?.(key);
+  };
+
+  const updateField = (key: AtdbDraftFieldKey, value: unknown) => {
+    onDraftFieldChange?.(key, value);
+  };
+
+  const formatDraftCellValue = (value: unknown): string => {
+    if (value === null || value === undefined || value === '') return '-';
+    if (Array.isArray(value)) return value.join(', ');
+    return String(value);
+  };
+
+  const formatPlaceValue = React.useCallback((value: unknown, fallback: string | undefined): string => {
+    if (typeof value === 'number') return placeLabelById.get(value) ?? `ID ${value}`;
+    if (value === null) return '-';
+    return fallback || '-';
+  }, [placeLabelById]);
+
+  const renderTextEditor = (
+    entityType: AtdbWritableEntity,
+    id: number,
+    field: AtdbFieldName,
+    ariaLabel: string,
+  ) => {
+    const key = createDraftKey(entityType, id, field);
+    if (!canEdit) {
+      return formatDraftCellValue(getValue({ [field]: undefined }, field));
+    }
+
+    const value = getDraftAwareValue(key);
+    return (
+      <EditableTextCell
+        value={typeof value === 'string' ? value : ''}
+        dirty={dirty(key)}
+        ariaLabel={ariaLabel}
+        onChange={(nextValue) => updateField(key, nextValue)}
+        onReset={() => resetField(key)}
+      />
+    );
+  };
+
+  const renderNumberEditor = (
+    entityType: AtdbWritableEntity,
+    id: number,
+    field: AtdbFieldName,
+    ariaLabel: string,
+  ) => {
+    const key = createDraftKey(entityType, id, field);
+    const value = getDraftAwareValue(key);
+    return (
+      <EditableNumberCell
+        value={typeof value === 'number' ? value : null}
+        dirty={dirty(key)}
+        ariaLabel={ariaLabel}
+        onChange={(nextValue) => updateField(key, nextValue)}
+        onReset={() => resetField(key)}
+      />
+    );
+  };
+
+  const renderGenderEditor = (person: Person) => {
+    const key = createDraftKey('person', person.id, 'gender');
+    const value = getDraftAwareValue(key);
+    return (
+      <EditableSelectCell
+        value={value === null ? '' : String(value ?? person.gender)}
+        options={[
+          { value: '', label: 'Очистить' },
+          { value: 'M', label: 'M' },
+          { value: 'F', label: 'F' },
+          { value: 'Unknown', label: 'Unknown' },
+        ]}
+        dirty={dirty(key)}
+        ariaLabel="Пол"
+        onChange={(nextValue) => updateField(key, nextValue === '' ? null : nextValue)}
+        onReset={() => resetField(key)}
+      />
+    );
+  };
+
+  const renderPlaceLinkEditor = (person: Person, field: 'birthPlaceId' | 'deathPlaceId', label: string) => {
+    const originalPlaceId = person[field];
+    if (typeof originalPlaceId !== 'number') {
+      return formatDraftCellValue(field === 'birthPlaceId' ? person.birthPlace : person.deathPlace);
+    }
+
+    if (allPlaces.length === 0) {
+      return <span className="text-amber-700">Список мест недоступен</span>;
+    }
+
+    const key = createDraftKey('person', person.id, field);
+    const value = getDraftAwareValue(key);
+    return (
+      <EditableSelectCell
+        value={value === null ? '' : String(value ?? originalPlaceId)}
+        options={placeOptions}
+        dirty={dirty(key)}
+        ariaLabel={label}
+        onChange={(nextValue) => updateField(key, nextValue === '' ? null : Number.parseInt(nextValue, 10))}
+        onReset={() => resetField(key)}
+      />
+    );
+  };
+
+  const getPersonSortValue = React.useCallback((person: Person, key: string): unknown => {
+    if (key === 'birthPlace') {
+      const value = getDraftAwareValue(createDraftKey('person', person.id, 'birthPlaceId'));
+      return formatPlaceValue(value, person.birthPlace);
+    }
+
+    if (key === 'deathPlace') {
+      const value = getDraftAwareValue(createDraftKey('person', person.id, 'deathPlaceId'));
+      return formatPlaceValue(value, person.deathPlace);
+    }
+
+    if (['lastName', 'firstName', 'patronymic', 'gender'].includes(key)) {
+      return draft && sourceData ? getDraftAwareValue(createDraftKey('person', person.id, key as AtdbFieldName)) : getValue(person, key);
+    }
+
+    return getValue(person, key);
+  }, [draft, formatPlaceValue, getDraftAwareValue, getValue, sourceData]);
+
+  const getFamilySortValue = React.useCallback((family: Family, key: string): unknown => {
+    if (['familyName', 'husbandLastName', 'wifeLastName', 'comment', 'color'].includes(key)) {
+      return draft && sourceData ? getDraftAwareValue(createDraftKey('family', family.id, key as AtdbFieldName)) : getValue(family, key);
+    }
+
+    return getValue(family, key);
+  }, [draft, getDraftAwareValue, getValue, sourceData]);
+
+  const getPlaceSortValue = React.useCallback((place: Place, key: string): unknown => {
+    if (['name', 'shortName', 'comment'].includes(key)) {
+      return draft && sourceData ? getDraftAwareValue(createDraftKey('place', place.id, key as AtdbFieldName)) : getValue(place, key);
+    }
+
+    return getValue(place, key);
+  }, [draft, getDraftAwareValue, getValue, sourceData]);
 
   const handlePersonSort = (key: string) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -60,8 +275,8 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
     if (!personSortConfig) return persons;
 
     return [...persons].sort((a, b) => {
-      let valA = getValue(a, personSortConfig.key);
-      let valB = getValue(b, personSortConfig.key);
+      let valA = getPersonSortValue(a, personSortConfig.key);
+      let valB = getPersonSortValue(b, personSortConfig.key);
 
       if (valA === undefined && valB === undefined) return 0;
       if (valA === undefined) return personSortConfig.direction === 'ascending' ? 1 : -1;
@@ -83,14 +298,14 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
         return strB.localeCompare(strA, undefined, { numeric: true });
       }
     });
-  }, [persons, personSortConfig]);
+  }, [persons, personSortConfig, getPersonSortValue]);
 
   const sortedFamilies = React.useMemo(() => {
     if (!familySortConfig) return families;
 
     return [...families].sort((a, b) => {
-      let valA = getValue(a, familySortConfig.key);
-      let valB = getValue(b, familySortConfig.key);
+      let valA = getFamilySortValue(a, familySortConfig.key);
+      let valB = getFamilySortValue(b, familySortConfig.key);
 
       if (valA === undefined && valB === undefined) return 0;
       if (valA === undefined) return familySortConfig.direction === 'ascending' ? 1 : -1;
@@ -112,7 +327,7 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
         return strB.localeCompare(strA, undefined, { numeric: true });
       }
     });
-  }, [families, familySortConfig]);
+  }, [families, familySortConfig, getFamilySortValue]);
 
   const sortedEvents = React.useMemo(() => {
     if (!eventSortConfig) return events;
@@ -142,14 +357,14 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
         return strB.localeCompare(strA, undefined, { numeric: true });
       }
     });
-  }, [events, eventSortConfig]);
+  }, [events, eventSortConfig, getValue]);
 
   const sortedPlaces = React.useMemo(() => {
     if (!placeSortConfig) return places;
 
     return [...places].sort((a, b) => {
-      const valA = getValue(a, placeSortConfig.key);
-      const valB = getValue(b, placeSortConfig.key);
+      const valA = getPlaceSortValue(a, placeSortConfig.key);
+      const valB = getPlaceSortValue(b, placeSortConfig.key);
 
       if (valA === undefined && valB === undefined) return 0;
       if (valA === undefined) return placeSortConfig.direction === 'ascending' ? 1 : -1;
@@ -165,7 +380,7 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
         return strB.localeCompare(strA, undefined, { numeric: true });
       }
     });
-  }, [places, placeSortConfig]);
+  }, [places, placeSortConfig, getPlaceSortValue]);
 
   const getSortIndicator = (key: string, sortConfig: SortConfig | null) => {
     if (!sortConfig || sortConfig.key !== key) return '';
@@ -266,14 +481,14 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
             {sortedPersons.map((person) => (
               <tr key={person.id} className="hover:bg-gray-50">
                 <td className="py-2 px-4 border-b left-0 bg-white z-10">{person.id}</td>
-                <td className="py-2 px-4 border-b">{person.lastName || '-'}</td>
-                <td className="py-2 px-4 border-b">{person.firstName || '-'}</td>
-                <td className="py-2 px-4 border-b">{person.patronymic || '-'}</td>
-                <td className="py-2 px-4 border-b">{person.gender}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('person', person.id, 'lastName', 'Фамилия')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('person', person.id, 'firstName', 'Имя')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('person', person.id, 'patronymic', 'Отчество')}</td>
+                <td className="py-2 px-4 border-b">{renderGenderEditor(person)}</td>
                 <td className="py-2 px-4 border-b">{person.birthDate || '-'}</td>
                 <td className="py-2 px-4 border-b">{person.deathDate || '-'}</td>
-                <td className="py-2 px-4 border-b">{person.birthPlace || '-'}</td>
-                <td className="py-2 px-4 border-b">{person.deathPlace || '-'}</td>
+                <td className="py-2 px-4 border-b">{renderPlaceLinkEditor(person, 'birthPlaceId', 'Место рождения')}</td>
+                <td className="py-2 px-4 border-b">{renderPlaceLinkEditor(person, 'deathPlaceId', 'Место смерти')}</td>
                 <td className="py-2 px-4 border-b">{person.fatherId || '-'}</td>
                 <td className="py-2 px-4 border-b">{person.motherId || '-'}</td>
                 <td className="py-2 px-4 border-b">{person.notes || '-'}</td>
@@ -327,6 +542,12 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
               >
                 Комментарий{getSortIndicator('comment', familySortConfig)}
               </th>
+              <th
+                className="py-2 px-4 border-b text-left cursor-pointer hover:bg-gray-200"
+                onClick={() => handleFamilySort('color')}
+              >
+                Цвет{getSortIndicator('color', familySortConfig)}
+              </th>
             </tr>
           </thead>
         </table>
@@ -345,6 +566,7 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
                 <td className="py-2 px-4 border-b">{family.husbandLastName || '-'}</td>
                 <td className="py-2 px-4 border-b">{family.wifeLastName || '-'}</td>
                 <td className="py-2 px-4 border-b">{family.comment || '-'}</td>
+                <td className="py-2 px-4 border-b">{family.color ?? '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -387,6 +609,12 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
             >
               Комментарий{getSortIndicator('comment', familySortConfig)}
             </th>
+            <th
+              className="py-2 px-4 border-b text-left cursor-pointer hover:bg-gray-200"
+              onClick={() => handleFamilySort('color')}
+            >
+              Цвет{getSortIndicator('color', familySortConfig)}
+            </th>
           </tr>
         </thead>
         {showContent && (
@@ -394,10 +622,11 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
             {sortedFamilies.map((family) => (
               <tr key={family.id} className="hover:bg-gray-50">
                 <td className="py-2 px-4 border-b sticky left-0 bg-white z-10">{family.id}</td>
-                <td className="py-2 px-4 border-b">{family.familyName || '-'}</td>
-                <td className="py-2 px-4 border-b">{family.husbandLastName || '-'}</td>
-                <td className="py-2 px-4 border-b">{family.wifeLastName || '-'}</td>
-                <td className="py-2 px-4 border-b">{family.comment || '-'}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('family', family.id, 'familyName', 'Название рода')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('family', family.id, 'husbandLastName', 'Мужская фамилия')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('family', family.id, 'wifeLastName', 'Женская фамилия')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('family', family.id, 'comment', 'Комментарий рода')}</td>
+                <td className="py-2 px-4 border-b">{renderNumberEditor('family', family.id, 'color', 'Цвет рода')}</td>
               </tr>
             ))}
           </tbody>
@@ -589,9 +818,9 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
             {sortedPlaces.map((place) => (
               <tr key={place.id} className="hover:bg-gray-50">
                 <td className="py-2 px-4 border-b sticky left-0 bg-white z-10">{place.id}</td>
-                <td className="py-2 px-4 border-b">{place.name || '-'}</td>
-                <td className="py-2 px-4 border-b">{place.shortName || '-'}</td>
-                <td className="py-2 px-4 border-b">{place.comment || '-'}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'name', 'Название места')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'shortName', 'Краткое название места')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'comment', 'Комментарий места')}</td>
               </tr>
             ))}
           </tbody>
@@ -635,9 +864,9 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
             {sortedPlaces.map((place) => (
               <tr key={place.id} className="hover:bg-gray-50">
                 <td className="py-2 px-4 border-b sticky left-0 bg-white z-10">{place.id}</td>
-                <td className="py-2 px-4 border-b">{place.name || '-'}</td>
-                <td className="py-2 px-4 border-b">{place.shortName || '-'}</td>
-                <td className="py-2 px-4 border-b">{place.comment || '-'}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'name', 'Название места')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'shortName', 'Краткое название места')}</td>
+                <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'comment', 'Комментарий места')}</td>
               </tr>
             ))}
           </tbody>
@@ -646,14 +875,13 @@ const DataTable: React.FC<DataTableProps> = ({ persons, families, events, places
     );
   };
 
-  // Determine which table to render based on the non-empty data
-  if (persons.length > 0) {
+  if (activeEntity === 'persons') {
     return renderPersonsTable(true);
-  } else if (families.length > 0) {
+  } else if (activeEntity === 'families') {
     return renderFamiliesTable(true);
-  } else if (events.length > 0) {
+  } else if (activeEntity === 'events') {
     return renderEventsTable(true);
-  } else if (places.length > 0) {
+  } else if (activeEntity === 'places') {
     return renderPlacesTable(true);
   } else {
     return (
