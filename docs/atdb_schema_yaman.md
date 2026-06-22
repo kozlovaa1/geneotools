@@ -501,7 +501,7 @@ Controlled edit of custom role `212` confirmed that toggling "Не более о
 
 ## Implementation gaps
 
-This section compares the confirmed `yaman-test.atdb` schema with the current parser/build mapping. It documents known drift only; this research milestone does not change reader or writer behavior.
+This section compares the confirmed `yaman-test.atdb` schema with the current parser/build mapping. It keeps historical drift notes as aggregate counts and documents the current regression gate semantics.
 
 ### Table code drift
 
@@ -536,10 +536,11 @@ This section compares the confirmed `yaman-test.atdb` schema with the current pa
 
 - Исторически smoke-проверка фиксировала drift с `665` исходных событий до `678` событий после parse/build/reparse.
 - После подключения write-safe mapping текущая проверка `npm run smoke:atdb:matrix` сохраняет `665` событий для fixture `yaman`.
-- Ненулевой drift остаётся warn-only диагностическим сигналом; отдельный milestone должен закрепить критерий, запрещающий его повторное появление.
+- Ненулевой drift больше не является warn-only сигналом: `scripts/smoke-atdb.mjs` завершает проверку ошибкой при любом ненулевом delta по `persons`, `families`, `events` или `places`.
+- `scripts/check-atdb-fixtures.mjs` наследует этот failure для `smoke:atdb:matrix` и `schema:atdb:fixtures:check`, сохраняя safe skip для отсутствующих local-only fixtures.
 
-### Mapping work for the next milestone
+### Mapping and gate follow-up
 
 - Канонический mapping реализован в `lib/atdb/mapping.json` с уровнями `invariant`, `fixture-specific` и `legacy-fallback`.
-- Следующий этап должен закрепить отсутствие parse-build drift отдельной блокирующей regression-проверкой.
+- Отсутствие parse-build drift закреплено блокирующей regression-проверкой без чтения пользовательских `.atdb` fixtures.
 - Add fixture-based checks before changing writers, because incorrect writer mappings can corrupt user data even when parsing appears successful.

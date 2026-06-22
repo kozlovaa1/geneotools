@@ -84,17 +84,19 @@ npm run test:atdb:write-safety
 
 Эти diff summaries пока считаются warn-only и нужны для следующего слоя universal mapping, а не для немедленного fail-fast по каждой variативности.
 
-## Known drift
+## Drift gate
 
-Parse/build/reparse drift остаётся отдельным warn-only diagnostic signal: критерий gate не был повышен до hard-fail в рамках этого milestone. После подключения write-safe mapping текущий локальный запуск показал:
+Parse/build/reparse drift теперь является hard-fail regression gate. `npm run smoke:atdb:matrix` и общий `npm run schema:atdb:fixtures:check` завершаются ошибкой, если после `parse -> build -> reparse` меняется count хотя бы одной отслеживаемой сущности: `persons`, `families`, `events` или `places`.
 
-| Fixture | Parse Events | Reparse Events | Drift |
-|---------|--------------|----------------|-------|
-| `yaman` | 665 | 665 | `0` |
-| `yaman-full` | 7586 | 7586 | `0` |
-| `family` | 18011 | 18011 | `0` |
+Текущий ожидаемый invariant для доступных fixtures:
 
-Инвариант текущего gate не менялся: parser/build flow должен успешно пройти все три фазы и вывести только safe counts, а ненулевой drift остаётся предупреждением для отдельного milestone `Устранение parse-build drift`.
+| Fixture | Persons delta | Families delta | Events delta | Places delta | Gate |
+|---------|---------------|----------------|--------------|--------------|------|
+| `yaman` | `0` | `0` | `0` | `0` | success |
+| `yaman-full` | `0` | `0` | `0` | `0` | success when local fixture exists |
+| `family` | `0` | `0` | `0` | `0` | success when local fixture exists |
+
+Local-only fixtures остаются safe skip, если соответствующий `.atdb` файл отсутствует локально. Такой skip не маскирует drift: если fixture доступна и smoke-check возвращает ненулевой delta, matrix/gate падает.
 
 ## Gate semantics
 
@@ -104,11 +106,11 @@ Parse/build/reparse drift остаётся отдельным warn-only diagnost
 - snapshot/artifact without `safety.redacted = true`
 - missing required sections in redacted snapshot
 - broken inspect/diff/smoke harness execution
+- nonzero parse/build/reparse drift deltas for `persons`, `families`, `events` or `places`
 
 ### Warn-only
 
 - fixture-specific `rec_table`, `Fields`, `EventTypes`, `EventRoles`, `Values*` differences
-- parse/build drift deltas
 - missing local-only fixture in matrix mode
 
 ## Needs more samples

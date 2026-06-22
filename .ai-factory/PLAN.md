@@ -1,7 +1,7 @@
-# Implementation Plan: Стабилизация качества MVP
+# Implementation Plan: Устранение parse-build drift
 
-Branch: master
-Created: 2026-05-26
+Branch: codex/universal-atdb-mapping-docs
+Created: 2026-06-22
 
 ## Settings
 - Testing: yes
@@ -9,79 +9,126 @@ Created: 2026-05-26
 - Docs: yes
 
 ## Roadmap Linkage
-Milestone: "Стабилизация качества MVP"
-Rationale: План закрепляет минимальный quality gate для текущего MVP-сценария загрузки, просмотра и экспорта `.atdb`.
+Milestone: "Устранение parse-build drift"
+Rationale: План закрепляет уже достигнутый нулевой `parse -> build -> reparse` drift как блокирующий regression gate перед расширением обратной сборки `.atdb`.
+
+## Research Context
+Source: `.ai-factory/RESEARCH.md` (Active Summary), `.ai-factory/ROADMAP.md`, текущий `$aif-explore ROADMAP "Устранение parse-build drift"`.
+
+Goal:
+- Запретить неявное изменение counts после `parse -> build -> reparse` на разрешённых ATDB-fixtures.
+
+Constraints:
+- SQL-логика остаётся в `lib/`; UI не должен напрямую работать со схемой SQLite.
+- Вывод проверок и документация не должны содержать персональные строки, GUID, места, заметки, raw `ValuesStr` или локальные пути к private fixtures.
+- Local-only fixtures `yaman-full` и `family` должны по-прежнему корректно пропускаться, если файлы отсутствуют.
+
+Decisions:
+- Текущий локальный `npm run smoke:atdb:matrix` показывает нулевой drift для `yaman`, `yaman-full` и `family`.
+- Исторические значения `665 -> 678` и `7586 -> 8116` считать историческим контекстом, а не текущим поведением.
+- Цель milestone теперь не широкий ремонт writers, а перевод drift из warn-only сигнала в hard-fail gate.
+
+Open questions:
+- Нужен ли отдельный npm-скрипт для regression-проверок fixture gates или достаточно расширить существующий `test:atdb:fixtures:missing-local`.
+
+Success signals:
+- Любой ненулевой drift по `persons`, `families`, `events` или `places` завершает smoke/gate проверку с ошибкой.
+- `npm run schema:atdb:fixtures:check` падает при drift, но продолжает пропускать отсутствующие local-only fixtures.
+- Документация и roadmap больше не описывают исторический drift как активную текущую проблему.
+
+## Commit Plan
+- **Commit 1** (after tasks 1-3): `test(atdb): fail on parse-build drift`
+- **Commit 2** (after tasks 4-5): `docs(atdb): document drift gate semantics`
 
 ## Tasks
 
-### Phase 1: Зафиксировать текущий quality gate
-- [x] Task 1: Проверить базовые npm-скрипты качества в `package.json`: `lint` и `build`; добавление отдельного smoke-check оставить для Tasks 5-7.
+### Phase 1: Сделать drift блокирующим
+- [x] Task 1: Перевести `scripts/smoke-atdb.mjs` с warn-only поведения на hard-fail при любом ненулевом drift.
+
+  Deliverable:
+  - После успешных `parse`, `build` и `reparse` скрипт сравнивает counts `persons`, `families`, `events`, `places`.
+  - Если любой delta не равен `0`, скрипт печатает безопасные `drift-*` строки, статус failure и выставляет ненулевой `process.exitCode`.
+  - При нулевом drift текущий success output сохраняется.
+  - Missing local fixture behavior остаётся safe skip, а не failure.
+
+  Files:
+  - `scripts/smoke-atdb.mjs`
 
   LOGGING REQUIREMENTS:
-  - Не добавлять verbose-логи в пользовательский сценарий.
-  - Любой smoke/check output должен содержать только технические статусы и счетчики.
-  - Не выводить имена, места, заметки или другие данные из `.atdb`.
+  - Печатать только fixture label, статусы фаз, размеры, counts и drift deltas.
+  - Не печатать raw rows, имена, места, заметки, GUID, `ValuesStr.vstr`, document/source text или локальные пути.
+  - Ошибки drift формулировать как безопасный gate failure без дампа данных.
 
-- [x] Task 2: Запустить текущие проверки `npm run lint` и `npm run build`, зафиксировать фактические ошибки/предупреждения и устранить только blockers для green-состояния.
+- [x] Task 2: Обновить matrix wrapper, чтобы `scripts/check-atdb-fixtures.mjs` явно отображал и наследовал hard-fail drift gate.
 
-  LOGGING REQUIREMENTS:
-  - Логи команд не должны включать содержимое пользовательской базы.
-  - Сохранять существующий уровень `console.error` только для критичных ошибок сценария.
-  - Не добавлять временный debug output в `app/`, `components/` или `lib/`.
+  Deliverable:
+  - `runSmokeMatrix()` сохраняет текущую пропускную модель для отсутствующих local-only fixtures.
+  - Summary matrix показывает deltas по всем отслеживаемым сущностям, а не только `deltaEvents`.
+  - Если `scripts/smoke-atdb.mjs` падает из-за drift, `smoke:atdb:matrix` и `schema:atdb:fixtures:check` тоже падают.
+  - Safe output остаётся пригодным для redaction gate.
 
-### Phase 2: Убрать остаточный debug-шум
-- [x] Task 3: Разобраться с `components/DebugAnalyzer.tsx`: удалить неиспользуемый компонент или изолировать его вне production UI, если он еще нужен для локальной диагностики.
-
-  LOGGING REQUIREMENTS:
-  - Debug-путь не должен автоматически загружать `.atdb` из браузера в production UI.
-  - Не показывать персональные поля из тестовой базы в интерфейсе или консоли.
-  - Ошибки диагностики не должны попадать в основной пользовательский сценарий.
-
-- [x] Task 4: Пройти по `app/`, `components/`, `lib/` и убрать комментарии/сообщения, которые ссылаются на временные debug logs как на источник production-логики, не меняя сам mapping `.atdb` шире необходимого.
+  Files:
+  - `scripts/check-atdb-fixtures.mjs`
 
   LOGGING REQUIREMENTS:
-  - Оставить `console.warn` только для действительно необязательных таблиц/полей.
-  - `console.error` использовать только на границах ошибок парсинга/сборки.
-  - Не логировать строки из таблиц `Persons`, `Places`, `ValuesStr`, `ValuesDates`, `ValuesLinks`.
+  - В обычном режиме выводить только labels, статусы и числовые deltas.
+  - Подробный режим может показывать выбранный fixture label, но не абсолютные пути и не содержимое базы.
+  - Ошибки wrapper должны ссылаться на label fixture и фазу, без пользовательских данных.
 
-### Phase 3: Добавить приватный smoke-check `.atdb`
-- [x] Task 5: Зафиксировать приватную политику для `.atdb`-фикстуры: убедиться, что tracked `yaman-test.atdb` является намеренно обезличенной/разрешенной fixture, либо перевести smoke-check на локальный untracked файл с graceful skip и добавить безопасное игнорирование локальных пользовательских `.atdb`.
+- [x] Task 3: Добавить regression-проверку failure-пути drift gate без изменения реальных `.atdb` fixtures.
 
-  LOGGING REQUIREMENTS:
-  - Не печатать содержимое `yaman-test.atdb` и не выводить персональные поля при проверке статуса fixture.
-  - Если fixture отсутствует или не должна быть tracked, smoke-check должен завершаться безопасным skip/status, а не дампом ошибки с данными.
-  - Не читать `.env` или другие secret-bearing файлы.
+  Deliverable:
+  - Расширить существующий regression harness или добавить новый скрипт, который в temp directory моделирует smoke output с ненулевым drift и проверяет, что matrix/gate завершается ошибкой.
+  - Сохранить отдельную проверку missing-local behavior: отсутствующие local-only fixtures остаются skip/success.
+  - Если добавляется новый npm-скрипт, добавить его в `package.json` и включить в финальный gate.
 
-- [x] Task 6: Переделать существующий `test-parsing.ts`/`test-parsing.js` или заменить их скриптом в `scripts/`, который проверяет parse -> build -> re-parse на разрешенной `.atdb` fixture без вывода персональных данных. Явно удалить или заменить старые небезопасные скрипты, которые печатают имена персон.
-
-  LOGGING REQUIREMENTS:
-  - Печатать только: размер файла, количество сущностей, статус parse/build/re-parse, итог success/failure.
-  - Не печатать имена персон, названия мест, заметки, GUID или параметры базы.
-  - При ошибке выводить тип ошибки и безопасное сообщение без дампа данных.
-  - Если parse/build/re-parse выявляет runtime blocker в `lib/sqlProcessor.ts` или `lib/buildAtdb.ts`, исправить только минимальный blocker, нужный для smoke-check.
-
-- [x] Task 7: Добавить npm-скрипт для smoke-check и включить его в ручной MVP quality gate рядом с `npm run lint` и `npm run build`. Если скрипт остается TypeScript, добавить минимальный runner (`tsx`/аналог) или реализовать Node-compatible `.mjs` без лишних dev-зависимостей.
+  Files:
+  - `scripts/check-atdb-fixtures-regression.mjs` или новый `scripts/check-atdb-drift-gate-regression.mjs`
+  - `package.json` при добавлении нового npm-скрипта
 
   LOGGING REQUIREMENTS:
-  - Название и вывод скрипта должны явно показывать, что это безопасный smoke-check без персональных данных.
-  - Не добавлять CI/деплой-настройки в рамках этого fast-плана.
-  - Не читать `.env` или другие secret-bearing файлы.
+  - Regression output должен содержать только synthetic labels/statuses/deltas.
+  - Не читать пользовательские `.atdb` для моделирования failure-пути.
+  - Не выводить temp absolute paths, если они не нужны для диагностики сбоя.
 
-### Phase 4: Минимальная документация и верификация
-- [x] Task 8: Обновить краткую документацию запуска проверок в `README.md` или `DOCS.md`, если добавлен новый smoke-скрипт.
+<!-- Commit checkpoint: tasks 1-3 -->
+
+### Phase 2: Синхронизировать документацию и завершить gate
+- [x] Task 4: Обновить документацию и roadmap-формулировки под новую семантику hard-fail drift gate.
+
+  Deliverable:
+  - В `docs/atdb_multi_fixture_schema.md` заменить описание drift как warn-only на hard-fail для `parse/build/reparse` count deltas.
+  - В `docs/atdb_schema_yaman.md` оставить исторический drift как historical note и явно указать, что текущий gate должен блокировать его повторение.
+  - В `docs/getting-started.md` описать, что `smoke:atdb:matrix` и `schema:atdb:fixtures:check` падают при ненулевом drift.
+  - В `.ai-factory/ROADMAP.md` обновить активный milestone: убрать формулировку, будто увеличение counts всё ещё текущая проблема, и описать закрепление regression gate.
+
+  Files:
+  - `docs/atdb_multi_fixture_schema.md`
+  - `docs/atdb_schema_yaman.md`
+  - `docs/getting-started.md`
+  - `.ai-factory/ROADMAP.md`
 
   LOGGING REQUIREMENTS:
-  - Документация должна явно предупреждать не коммитить пользовательские `.atdb` с реальными данными без осознанного решения.
-  - Не включать примеры вывода с персональными данными.
-  - Не описывать внутреннее содержимое тестовой базы.
+  - Документация не должна включать raw data, имена, места, заметки, GUID, локальные пути или содержимое `ValuesStr`.
+  - Примеры вывода держать на уровне labels/count deltas/statuses.
+  - Исторические drift values можно упоминать только как агрегированные counts.
 
-- [x] Task 9: Финально выполнить `npm run lint`, `npm run build` и новый smoke-check; убедиться, что основной сценарий MVP не затронут за пределами стабилизации. Выполнять после Tasks 2, 6, 7 и 8.
+- [x] Task 5: Выполнить финальную проверку drift gate и общего качества.
+
+  Deliverable:
+  - Запустить `npm run lint`.
+  - Запустить `npm run smoke:atdb:matrix`.
+  - Запустить `npm run schema:atdb:fixtures:check`.
+  - Запустить regression-проверку из Task 3.
+  - Если local-only fixtures отсутствуют, явно подтвердить skip behavior и не считать это ошибкой.
+  - Если доступные fixtures показывают drift, не маскировать failure: вернуться к Task 1-2 или локализовать writer/read path отдельной правкой в рамках этого плана.
+
+  Files:
+  - Исправления только в файлах из Tasks 1-4, если проверки выявят ошибку.
 
   LOGGING REQUIREMENTS:
-  - В итоговом отчете указать только статусы проверок и безопасные счетчики.
-  - Не вставлять в отчет персональные строки из `.atdb`.
-  - Если build/smoke не запускается, явно указать причину и оставить следующий минимальный шаг.
+  - Итоговый вывод команд должен содержать только статусы, fixture labels, counts и deltas.
+  - Не добавлять debug logs в `app/`, `components/` или runtime `lib/` ради этого gate.
+  - При падении проверки фиксировать safe error message без дампа пользовательских данных.
 
-## Commit Plan
-- **Commit 1** (after tasks 1-4): "chore: clean mvp quality debug surface"
-- **Commit 2** (after tasks 5-9): "test: add private atdb smoke check"
+<!-- Commit checkpoint: tasks 4-5 -->
