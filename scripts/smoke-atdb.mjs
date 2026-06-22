@@ -156,7 +156,10 @@ async function main() {
     safeLog(`drift-places: ${drift.places}`);
     const hasDrift = Object.values(drift).some((value) => value !== 0);
     if (hasDrift) {
-      safeLog('warning: known drift detected');
+      safeLog('status: failure');
+      safeLog('error: drift gate failed with nonzero parse-build deltas');
+      process.exitCode = 1;
+      return;
     }
     safeLog('status: success');
   } catch (error) {

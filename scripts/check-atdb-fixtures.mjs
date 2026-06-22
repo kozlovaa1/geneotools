@@ -30,6 +30,7 @@ const requiredSnapshotExclusions = [
   'notes',
   'private/debug/raw artifacts',
 ];
+const trackedDriftEntities = ['persons', 'families', 'events', 'places'];
 const forbiddenPublicContentPatterns = [
   {
     label: 'raw-guid',
@@ -117,6 +118,16 @@ function warnSkipFixture(fixture, reason) {
   safeLog(`warning: fixture ${fixture.label} skipped (${reason})`);
 }
 
+function formatDriftLabel(entity) {
+  return `delta${entity[0].toUpperCase()}${entity.slice(1)}`;
+}
+
+function formatDriftSummary(summary) {
+  return trackedDriftEntities
+    .map((entity) => `${formatDriftLabel(entity)}:${summary?.get(`drift-${entity}`) ?? 'n/a'}`)
+    .join(',');
+}
+
 function runSchemaMatrix() {
   safeLog('mode: schema');
   ensureLocalArtifactDir();
@@ -163,7 +174,7 @@ function runSmokeMatrix() {
   for (const fixture of fixtures) {
     if (!hasFixtureFile(fixture) && !fixture.tracked) {
       warnSkipFixture(fixture, 'local fixture missing');
-      rows.push(`${fixture.label}=parse:skipped,build:skipped,reparse:skipped,deltaEvents:n/a`);
+      rows.push(`${fixture.label}=parse:skipped,build:skipped,reparse:skipped,${formatDriftSummary()}`);
       continue;
     }
 
@@ -174,7 +185,7 @@ function runSmokeMatrix() {
     }
     const summary = parseSafeOutput(result.stdout);
     rows.push(
-      `${fixture.label}=parse:${summary.get('parse')},build:${summary.get('build')},reparse:${summary.get('reparse')},deltaEvents:${summary.get('drift-events') ?? 'n/a'}`,
+      `${fixture.label}=parse:${summary.get('parse')},build:${summary.get('build')},reparse:${summary.get('reparse')},${formatDriftSummary(summary)}`,
     );
   }
   safeLog(`smoke-matrix: ${rows.join(' | ')}`);
