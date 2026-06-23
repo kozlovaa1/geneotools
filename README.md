@@ -2,73 +2,63 @@
 
 > Локальный браузерный инструмент для чтения, безопасного редактирования и пересборки `.atdb` баз из «Древо Жизни 6».
 
-GeneoTools открывает `.atdb` файл прямо в браузере, разбирает SQLite-данные через `sql.js`, показывает извлечённые сущности в таблицах, позволяет редактировать write-safe поля и скачать обновлённый `.atdb`. Приложение не требует внешнего backend для основной работы с файлами.
+GeneoTools открывает `.atdb` файл прямо в браузере, разбирает SQLite-данные через `sql.js`, показывает извлечённые сущности в таблицах и позволяет скачать обновлённый `.atdb`. Основной сценарий не требует сервера и не отправляет пользовательские данные во внешние сервисы.
 
-## Quick Start
+## Быстрый старт
 
 ```bash
 npm install
 npm run dev
 ```
 
-Открой `http://localhost:3000`, загрузите локальный `.atdb` файл и дождитесь завершения парсинга.
+Откройте `http://localhost:3000`, загрузите локальную копию `.atdb` файла и дождитесь завершения парсинга.
 
-## Key Features
+## Возможности
 
-- **Локальная обработка** — файл разбирается в браузере без внешней БД
-- **Типизированная доменная модель** — сущности приложения описаны в `lib/types.ts`
-- **Табличный просмотр** — персоны, роды, события и места отображаются по вкладкам
-- **Поиск и фильтры текущей вкладки** — быстрый поиск, один field-level фильтр и controlled sorting работают поверх видимой выборки
-- **Локальное редактирование** — доступны только write-safe поля персон, родов и мест; события остаются только для просмотра
-- **Массовое редактирование** — выбранные строки, все строки вкладки или строки по простому условию можно заполнить, очистить или обработать строковой заменой через предпросмотр; выбор всех строк в таблице работает по текущим видимым строкам
-- **Экспорт обратно в `.atdb`** — локальный draft превращается в явный `AtdbChangeSet` и применяется к исходному буферу при скачивании
-- **Модульный ATDB-процессор** — публичный фасад `lib/sqlProcessor.ts` координирует внутренние `lib/atdb` readers/writers
+- **Локальная обработка** — база читается в браузере через `sql.js`.
+- **Табличный просмотр** — персоны, роды, события и места доступны по вкладкам.
+- **Поиск и фильтрация** — быстрый поиск, фильтр по одному полю и сортировка работают внутри активной вкладки.
+- **Write-safe редактирование** — изменяются только разрешённые поля персон, родов и мест.
+- **Массовое редактирование** — выбранные строки, видимая выборка или строки по простому условию проходят через предпросмотр перед применением.
+- **Строгий экспорт** — локальный draft превращается в явный `AtdbChangeSet` и применяется к исходному буферу только при скачивании.
+- **Безопасная диагностика** — проверки и сообщения не должны раскрывать raw-значения из пользовательской базы.
 
-## Example
+## Пример сценария
 
 ```text
-1. Загрузить файл .atdb
-2. Дождаться парсинга SQLite базы
-3. Переключаться между вкладками Персоны / Роды / События / Места
-4. Найти строки быстрым поиском или field-level фильтром текущей вкладки
-5. Изменить разрешённые поля в таблицах
-6. При необходимости выбрать видимые строки и применить массовое редактирование после предпросмотра
-7. Скачать обновлённый .atdb
+1. Загрузить локальный .atdb файл.
+2. Дождаться чтения SQLite базы.
+3. Переключаться между вкладками Персоны / Роды / События / Места.
+4. Найти строки поиском, фильтром или сортировкой.
+5. Изменить разрешённые поля прямо в таблице.
+6. При необходимости применить массовое редактирование после предпросмотра.
+7. Скачать обновлённый .atdb файл.
 ```
 
-## Current Status
+## Текущее состояние
 
-- MVP в активном рефакторинге
-- `npm run lint` проходит
-- `npx tsc --noEmit` проходит
-- `.atdb` processor декомпозирован за фасадом `lib/sqlProcessor.ts`
-- Табличный UI поддерживает локальное редактирование write-safe полей, но ещё не декомпозирован до целевой архитектуры
+- Приложение работает как client-first Next.js App Router интерфейс.
+- Публичный фасад `.atdb` обработки находится в `lib/sqlProcessor.ts`.
+- Внутренние readers, writers, mapping, validation и transaction helper находятся в `lib/atdb/`.
+- События, даты, участники событий, родственные связи, metadata, `Global`, `Fields`, `Recs`, `EventRoles` и custom fields остаются только для чтения.
+- Создание и удаление записей намеренно не входят в текущий write-safe scope.
 
----
+## Документация
 
-## Documentation
+| Документ | Описание |
+|----------|----------|
+| [Начало работы](docs/getting-started.md) | Установка, запуск и основной сценарий |
+| [Архитектура](docs/architecture.md) | Слои, зависимости и поток данных |
+| [Формат ATDB](docs/atdb_format.md) | Безопасное описание SQLite-структуры `.atdb` |
+| [Анализ кода](docs/codebase-analysis.md) | Актуальные сильные стороны, риски и техдолг |
+| [План рефакторинга](docs/refactoring-plan.md) | Выполненные этапы и следующие улучшения |
 
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](docs/getting-started.md) | Установка, запуск и пользовательский сценарий |
-| [Architecture](docs/architecture.md) | Актуальная структура и архитектурные ограничения |
-| [ATDB Format](docs/atdb_format.md) | Наблюдения по структуре `.atdb` |
-| [Yaman ATDB Schema](docs/atdb_schema_yaman.md) | Полный безопасный schema artifact по `yaman-test.atdb` |
-| [Multi-fixture ATDB Schema](docs/atdb_multi_fixture_schema.md) | Structural-only сравнение `yaman`, `yaman-full`, `family` |
-| [Codebase Analysis](docs/codebase-analysis.md) | Технический долг и найденные проблемы |
-| [Refactoring Plan](docs/refactoring-plan.md) | Этапы и критерии рефакторинга |
-
-## Development
+## Разработка
 
 ```bash
 npm run lint
 npx tsc --noEmit
 npm run build
-npm run smoke:atdb
-npm run smoke:atdb:matrix
-npm run schema:atdb:fixtures
-npm run schema:atdb:fixtures:diff
-npm run schema:atdb:fixtures:check
 npm run mapping:atdb:check
 npm run test:atdb:table-view
 npm run test:atdb:edit-draft
@@ -77,39 +67,15 @@ npm run test:atdb:write-safety
 npm run test:atdb:rebuild-contract
 ```
 
-`npm run smoke:atdb` по умолчанию ищет локальную fixture в `scripts/fixtures/local-smoke.atdb`.
-Если файла нет, проверка завершается со статусом `skipped` без ошибки. Для разовой проверки можно передать путь через
-`ATDB_SMOKE_FIXTURE=/path/to/local.atdb npm run smoke:atdb`.
-Smoke harness компилирует `lib/sqlProcessor.ts` вместе с внутренними `lib/atdb/**/*.ts` модулями, чтобы проверять тот же фасад, который использует UI.
+Для ручной проверки используйте только локальную копию `.atdb` и не добавляйте пользовательские базы в git. Если нужно исследовать новый вариант структуры, публикуйте только обобщённые structural counts, коды таблиц, `f_id`, link targets и confidence labels.
 
-Не коммитьте пользовательские `.atdb` с реальными данными без осознанного решения и разрешения владельца данных.
-Репозиторий игнорирует новые `*.atdb` файлы и локальные `scripts/fixtures/`, чтобы случайно не добавить приватные базы.
-`yaman-test.atdb` является уже tracked research fixture для анализа схемы ATDB; для других локальных проверок используйте
-`ATDB_SMOKE_FIXTURE` или `ATDB_SCHEMA_FIXTURE`.
-Дополнительные fixtures `yaman-test-full.atdb` и `family-test.atdb` остаются local-only и не должны попадать в git без отдельного решения.
-`npm run schema:atdb:check` выполняет generic structural check для выбранной fixture, а
-`npm run schema:atdb:check:yaman` дополнительно проверяет golden counts и mapping для `yaman-test.atdb`.
-Команда `npm run schema:atdb` пишет tracked Yaman snapshot только для `yaman-test.atdb`; для другой fixture явно задавайте
-`ATDB_SCHEMA_OUTPUT` или `--output`, чтобы не перезаписать публичный snapshot локальными агрегатами.
-Команда `npm run schema:atdb:fixtures` прогоняет allow-list `yaman`, `yaman-full`, `family` и пишет local-only snapshots только в ignored paths.
-Команда `npm run schema:atdb:fixtures:diff` сравнивает baseline `yaman` с дополнительными fixtures в warn-only режиме: structural deltas видны в summary, но не считаются blocker сами по себе.
-Команда `npm run smoke:atdb:matrix` фиксирует parse/build/reparse counts для всех разрешенных fixtures и показывает drift только как safe deltas.
-Команда `npm run mapping:atdb:check` проверяет единый канонический реестр `lib/atdb/mapping.json` и запрещает конфликтующие hard-coded mapping-коды в readers/writers.
-Команда `npm run test:atdb:table-view` проверяет поиск, field-level фильтры, sorting, visible IDs и draft-aware display labels на synthetic данных без чтения `.atdb`.
-Команда `npm run test:atdb:edit-draft` проверяет локальный draft state и сборку `AtdbChangeSet` на synthetic данных без чтения `.atdb`.
-Команда `npm run test:atdb:batch-edit` проверяет массовое редактирование, predicate scope, stale-preview защиту и place-link skip reasons на synthetic данных без чтения `.atdb`.
-Команда `npm run test:atdb:write-safety` проверяет сохранение неизвестных `Values*` и отсутствие новых `EventRoles` после сборки.
-Smoke-check должен выводить только размеры, счетчики сущностей и статусы parse/build/re-parse.
+## Правила безопасности данных
 
-## Notes
+- Не коммитьте пользовательские `.atdb`, `.env`, raw logs и приватные snapshots.
+- Не переносите в документацию имена, места, заметки, пути документов, GUID, source text или raw `ValuesStr`.
+- Проверки и ошибки должны выводить только безопасные коды, счётчики и статусы.
+- Исходный локальный файл не перезаписывается: экспорт создаёт новый скачиваемый `.atdb`.
 
-- Основная логика парсинга и сборки находится во внутренних модулях `lib/atdb/`, а `lib/sqlProcessor.ts` остается совместимым фасадом
-- Локальный draft UI находится в `lib/atdbEditDraft.ts`, а controls редактируемых ячеек — в `components/EditableCell.tsx`
-- Поиск, фильтры, sorting и visible IDs рассчитываются в чистом helper `lib/atdbTableView.ts` поверх `ParsedAtdb + AtdbEditDraftState`
-- Массовое редактирование рассчитывается в чистом helper `lib/atdbBatchEdit.ts` и применяет результат только в локальный draft
-- События, даты, участники событий, родственные связи, notes/occupation и metadata остаются только для просмотра
-- Автотесты для parsing-flow ещё не настроены
-
-## License
+## Лицензия
 
 MIT
