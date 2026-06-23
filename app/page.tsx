@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import FileUploader from '@/components/FileUploader';
 import ScrollableDataTable from '@/components/ScrollableDataTable';
 import Modal from '@/components/Modal';
+import BulkEditDialog from '@/components/BulkEditDialog';
 import type { ParsedAtdb } from '@/lib/types';
 import {
   clearDraft,
@@ -16,13 +17,54 @@ import {
   type AtdbDraftFieldKey,
   type AtdbEditDraftState,
 } from '@/lib/atdbEditDraft';
+import {
+  applyAtdbBatchEdit,
+  previewAtdbBatchEdit,
+  type AtdbBatchEditOperation,
+  type AtdbBatchEditPreview,
+} from '@/lib/atdbBatchEdit';
+import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
 import Image from 'next/image';
+import { Download, RotateCcw, Wand2 } from 'lucide-react';
+
+type ActiveEntity = 'persons' | 'families' | 'events' | 'places';
+type SelectionState = Record<AtdbWritableEntity, number[]>;
+
+function createEmptySelection(): SelectionState {
+  return {
+    person: [],
+    family: [],
+    place: [],
+  };
+}
+
+function mergeSelectedIds(currentIds: readonly number[], nextIds: readonly number[]): number[] {
+  const selected = new Set(currentIds);
+  const merged = [...currentIds];
+  for (const id of nextIds) {
+    if (!Number.isInteger(id) || selected.has(id)) continue;
+    selected.add(id);
+    merged.push(id);
+  }
+  return merged;
+}
+
+function writableEntityFromActive(activeEntity: ActiveEntity): AtdbWritableEntity | null {
+  if (activeEntity === 'persons') return 'person';
+  if (activeEntity === 'families') return 'family';
+  if (activeEntity === 'places') return 'place';
+  return null;
+}
 
 export default function Home() {
   const [parsedData, setParsedData] = useState<ParsedAtdb | null>(null);
   const [originalBuffer, setOriginalBuffer] = useState<Uint8Array | null>(null);
   const [originalFilename, setOriginalFilename] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<AtdbEditDraftState>(() => createEmptyAtdbEditDraft());
+  const [activeEntity, setActiveEntity] = useState<ActiveEntity>('persons');
+  const [selectedRows, setSelectedRows] = useState<SelectionState>(() => createEmptySelection());
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+  const [bulkPreview, setBulkPreview] = useState<AtdbBatchEditPreview | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +74,8 @@ export default function Home() {
     () => (parsedData ? countDraftChanges(parsedData, editDraft) : { entities: 0, fields: 0 }),
     [editDraft, parsedData],
   );
+  const activeWritableEntity = writableEntityFromActive(activeEntity);
+  const activeSelectedIds = activeWritableEntity ? selectedRows[activeWritableEntity] : [];
   const hasDraftChanges = draftChangeCount.fields > 0;
 
   const handleFileUpload = async (file: File, buffer: ArrayBuffer) => {
@@ -40,6 +84,10 @@ export default function Home() {
     setOriginalBuffer(null);
     setOriginalFilename(null);
     setEditDraft(clearDraft());
+    setSelectedRows(createEmptySelection());
+    setActiveEntity('persons');
+    setBulkPreview(null);
+    setIsBulkDialogOpen(false);
     setError(null);
     setSuccess(null);
     setShowModal(false);
@@ -74,20 +122,60 @@ export default function Home() {
     }
 
     setEditDraft((currentDraft) => setDraftField(currentDraft, parsedData, key, value));
+    setBulkPreview(null);
     setError(null);
     setSuccess(null);
   };
 
   const handleDraftFieldReset = (key: AtdbDraftFieldKey) => {
     setEditDraft((currentDraft) => resetDraftField(currentDraft, key));
+    setBulkPreview(null);
     setError(null);
     setSuccess(null);
   };
 
   const handleDraftEntityReset = (entityType: AtdbDraftFieldKey['entityType'], id: number) => {
     setEditDraft((currentDraft) => resetDraftEntity(currentDraft, entityType, id));
+    setBulkPreview(null);
     setError(null);
     setSuccess(null);
+  };
+
+  const handleActiveEntityChange = (nextActiveEntity: ActiveEntity) => {
+    setActiveEntity(nextActiveEntity);
+    setBulkPreview(null);
+  };
+
+  const handleRowSelectionChange = (entityType: AtdbWritableEntity, id: number, selected: boolean) => {
+    setSelectedRows((currentSelection) => ({
+      ...currentSelection,
+      [entityType]: selected
+        ? mergeSelectedIds(currentSelection[entityType], [id])
+        : currentSelection[entityType].filter((selectedId) => selectedId !== id),
+    }));
+    setBulkPreview(null);
+  };
+
+  const handleRenderedRowsSelectionChange = (
+    entityType: AtdbWritableEntity,
+    ids: readonly number[],
+    selected: boolean,
+  ) => {
+    setSelectedRows((currentSelection) => ({
+      ...currentSelection,
+      [entityType]: selected
+        ? mergeSelectedIds(currentSelection[entityType], ids)
+        : currentSelection[entityType].filter((selectedId) => !ids.includes(selectedId)),
+    }));
+    setBulkPreview(null);
+  };
+
+  const handleClearSelection = (entityType: AtdbWritableEntity) => {
+    setSelectedRows((currentSelection) => ({
+      ...currentSelection,
+      [entityType]: [],
+    }));
+    setBulkPreview(null);
   };
 
   const handleClearDraft = () => {
@@ -100,8 +188,52 @@ export default function Home() {
     }
 
     setEditDraft(clearDraft());
+    setBulkPreview(null);
     setError(null);
     setSuccess('Все изменения сброшены. Исходный файл не изменён.');
+  };
+
+  const handleOpenBulkEdit = () => {
+    if (!activeWritableEntity) {
+      return;
+    }
+
+    setBulkPreview(null);
+    setIsBulkDialogOpen(true);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleBulkPreview = (operation: AtdbBatchEditOperation) => {
+    if (!parsedData) {
+      return;
+    }
+
+    setBulkPreview(previewAtdbBatchEdit(parsedData, editDraft, operation));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleBulkApply = (preview: AtdbBatchEditPreview) => {
+    if (!parsedData) {
+      return;
+    }
+
+    const result = applyAtdbBatchEdit(parsedData, editDraft, preview);
+    if (result.stale) {
+      setError('Предпросмотр устарел. Пересчитайте предпросмотр перед применением.');
+      setSuccess(null);
+      setBulkPreview(null);
+      return;
+    }
+
+    setEditDraft(result.draft);
+    setBulkPreview(null);
+    setIsBulkDialogOpen(false);
+    setError(null);
+    setSuccess(
+      `Массовое редактирование применено в черновик: ${result.applied} изменений, ${result.skipped} пропущено, ${result.noop} без изменений.`,
+    );
   };
 
   const handleDownload = async () => {
@@ -237,20 +369,34 @@ export default function Home() {
                       ? `${draftChangeCount.fields} полей в ${draftChangeCount.entities} записях изменено`
                       : 'Изменений нет'}
                   </span>
+                  <span className="rounded border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm">
+                    Выбрано: {activeSelectedIds.length}
+                  </span>
                   <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleOpenBulkEdit}
+                      disabled={!activeWritableEntity || isDownloading}
+                      className="flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+                    >
+                      <Wand2 className="h-4 w-4" aria-hidden="true" />
+                      Массовое редактирование
+                    </button>
                     <button
                       onClick={handleDownload}
                       disabled={!hasDraftChanges || isDownloading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors shadow-lg"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors shadow-lg"
                     >
+                      <Download className="h-4 w-4" aria-hidden="true" />
                       {isDownloading ? 'Подготовка файла...' : 'Скачать обновленный .atdb'}
                     </button>
                     <button
                       type="button"
                       onClick={handleClearDraft}
                       disabled={!hasDraftChanges || isDownloading}
-                      className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+                      className="flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
                     >
+                      <RotateCcw className="h-4 w-4" aria-hidden="true" />
                       Сбросить все изменения
                     </button>
                   </div>
@@ -262,12 +408,18 @@ export default function Home() {
                 )}
                 <div className="flex-1 overflow-hidden min-h-0">
                   <ScrollableDataTable
+                    activeEntity={activeEntity}
+                    onActiveEntityChange={handleActiveEntityChange}
                     persons={parsedData.persons}
                     families={parsedData.families}
                     events={parsedData.events}
                     places={parsedData.places || []}
                     draft={editDraft}
                     sourceData={parsedData}
+                    selectedRows={selectedRows}
+                    onRowSelectionChange={handleRowSelectionChange}
+                    onRenderedRowsSelectionChange={handleRenderedRowsSelectionChange}
+                    onClearSelection={handleClearSelection}
                     onDraftFieldChange={handleDraftFieldChange}
                     onDraftFieldReset={handleDraftFieldReset}
                     onDraftEntityReset={handleDraftEntityReset}
@@ -294,6 +446,20 @@ export default function Home() {
           <span className="font-semibold">{originalFilename ? originalFilename.replace('.atdb', '') + '.files' : '*.files'}</span>
         </p>
       </Modal>
+      {parsedData && activeWritableEntity && (
+        <BulkEditDialog
+          isOpen={isBulkDialogOpen}
+          activeEntity={activeWritableEntity}
+          data={parsedData}
+          draft={editDraft}
+          selectedIds={activeSelectedIds}
+          preview={bulkPreview}
+          isDownloading={isDownloading}
+          onPreview={handleBulkPreview}
+          onApply={handleBulkApply}
+          onClose={() => setIsBulkDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }
