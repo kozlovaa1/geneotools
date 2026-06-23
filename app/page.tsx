@@ -330,7 +330,7 @@ export default function Home() {
             <FileUploader 
               onFileUpload={handleFileUpload} 
               acceptedFileTypes={['.atdb']} 
-              maxFileSize={50 * 1024 * 1024} // 50MB
+              maxFileSize={100 * 1024 * 1024} // 100MB
             />
             
             {isLoading && (
