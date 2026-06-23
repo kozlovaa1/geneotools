@@ -28,8 +28,10 @@ geneotools/
 │   ├── EditableCell.tsx        # Presentation controls для редактируемых ячеек
 │   ├── FileUploader.tsx        # Drag-and-drop загрузка файлов
 │   ├── Modal.tsx               # Модальное окно
-│   └── ScrollableDataTable.tsx # Таблица с прокруткой
+│   ├── ScrollableDataTable.tsx # Таблица с прокруткой
+│   └── TableQueryToolbar.tsx   # Поиск, фильтр и счетчик видимых строк
 ├── lib/                        # Работа с .atdb, sql.js, типы и утилиты
+│   ├── atdbTableView.ts        # Поиск, фильтрация, sorting и visible IDs для таблиц
 │   ├── atdb/                   # Внутренние readers/writers/helpers .atdb-процессора
 │   │   ├── mapping.json        # Канонический машиночитаемый реестр правил формата
 │   │   ├── mapping.ts          # Типизированный доступ к mapping
@@ -78,7 +80,9 @@ geneotools/
 | `components/FileUploader.tsx` | Загрузка файлов в браузере |
 | `components/EditableCell.tsx` | Переиспользуемые controls редактируемых ячеек |
 | `components/ScrollableDataTable.tsx` | Основное табличное представление данных |
+| `components/TableQueryToolbar.tsx` | Быстрый поиск, field-level фильтр и счетчик видимой выборки |
 | `lib/atdbEditDraft.ts` | Чистые helper'ы локального draft state и сборки `AtdbChangeSet` |
+| `lib/atdbTableView.ts` | Чистый table-view/query слой поверх `ParsedAtdb + AtdbEditDraftState` |
 | `scripts/atdb-fixtures.mjs` | Registry разрешённых fixtures и safe output paths для schema/smoke контуров |
 | `scripts/check-atdb-fixtures.mjs` | Batch gate для schema, diff, smoke matrix и redaction-проверок |
 | `scripts/check-atdb-edit-draft.mjs` | Regression gate для UI draft/change-set helper'ов без чтения `.atdb` |
