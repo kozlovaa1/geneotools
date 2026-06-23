@@ -43,11 +43,21 @@ interface DataTableProps {
   allPlaces?: Place[];
   draft?: AtdbEditDraftState;
   sourceData?: ParsedAtdb;
+  selectedIds?: readonly number[];
+  onRowSelectionChange?: (entityType: AtdbWritableEntity, id: number, selected: boolean) => void;
+  onRenderedRowsSelectionChange?: (entityType: AtdbWritableEntity, ids: readonly number[], selected: boolean) => void;
   onDraftFieldChange?: (key: AtdbDraftFieldKey, value: unknown) => void;
   onDraftFieldReset?: (key: AtdbDraftFieldKey) => void;
   onDraftEntityReset?: (entityType: AtdbDraftFieldKey['entityType'], id: number) => void;
   renderOnlyHeader?: boolean;
   renderOnlyContent?: boolean;
+}
+
+function writableEntityFromActive(activeEntity: ActiveEntity): AtdbWritableEntity | null {
+  if (activeEntity === 'persons') return 'person';
+  if (activeEntity === 'families') return 'family';
+  if (activeEntity === 'places') return 'place';
+  return null;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -59,6 +69,9 @@ const DataTable: React.FC<DataTableProps> = ({
   allPlaces = places,
   draft,
   sourceData,
+  selectedIds = [],
+  onRowSelectionChange,
+  onRenderedRowsSelectionChange,
   onDraftFieldChange,
   onDraftFieldReset,
   renderOnlyHeader = false,
@@ -70,6 +83,9 @@ const DataTable: React.FC<DataTableProps> = ({
   const [placeSortConfig, setPlaceSortConfig] = useState<SortConfig | null>(null);
 
   const canEdit = Boolean(draft && sourceData && onDraftFieldChange && onDraftFieldReset);
+  const selectableEntityType = writableEntityFromActive(activeEntity);
+  const canSelectRows = Boolean(selectableEntityType && onRowSelectionChange && onRenderedRowsSelectionChange);
+  const selectedIdSet = React.useMemo(() => new Set(selectedIds), [selectedIds]);
   const placeLabelById = React.useMemo(
     () => new Map(allPlaces.map((place) => [place.id, formatPlaceLabel(place)])),
     [allPlaces],
@@ -387,6 +403,52 @@ const DataTable: React.FC<DataTableProps> = ({
     return sortConfig.direction === 'ascending' ? ' ↑' : ' ↓';
   };
 
+  const getStickyIdHeaderClassName = () =>
+    `py-2 px-4 border-b text-left cursor-pointer hover:bg-gray-200 sticky ${
+      canSelectRows ? 'left-12' : 'left-0'
+    } bg-gray-100 z-30`;
+
+  const getStickyIdCellClassName = () =>
+    `py-2 px-4 border-b sticky ${canSelectRows ? 'left-12' : 'left-0'} bg-white z-10`;
+
+  const renderSelectionHeader = (entityType: AtdbWritableEntity, rowIds: readonly number[]) => {
+    if (!canSelectRows || selectableEntityType !== entityType) {
+      return null;
+    }
+
+    const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIdSet.has(id));
+    return (
+      <th className="sticky left-0 z-40 w-12 min-w-12 border-b bg-gray-100 px-3 py-2 text-center">
+        <input
+          type="checkbox"
+          aria-label="Выбрать все строки"
+          checked={allSelected}
+          disabled={rowIds.length === 0}
+          onChange={(event) => onRenderedRowsSelectionChange?.(entityType, rowIds, event.target.checked)}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+      </th>
+    );
+  };
+
+  const renderSelectionCell = (entityType: AtdbWritableEntity, id: number) => {
+    if (!canSelectRows || selectableEntityType !== entityType) {
+      return null;
+    }
+
+    return (
+      <td className="sticky left-0 z-20 w-12 min-w-12 border-b bg-white px-3 py-2 text-center">
+        <input
+          type="checkbox"
+          aria-label={`Выбрать строку ID ${id}`}
+          checked={selectedIdSet.has(id)}
+          onChange={(event) => onRowSelectionChange?.(entityType, id, event.target.checked)}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+      </td>
+    );
+  };
+
   const renderPersonsTable = (showContent: boolean) => {
     if (showContent && sortedPersons.length === 0) {
       return <p className="text-gray-500">Нет доступных данных о персонах</p>;
@@ -396,8 +458,9 @@ const DataTable: React.FC<DataTableProps> = ({
       <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg">
         <thead className="sticky top-0 z-20 bg-gray-100">
           <tr className="bg-gray-100">
+            {renderSelectionHeader('person', sortedPersons.map((person) => person.id))}
             <th
-              className="py-2 px-4 border-b text-left cursor-pointer hover:bg-gray-200 left-0 bg-gray-100 z-30"
+              className={getStickyIdHeaderClassName()}
               onClick={() => handlePersonSort('id')}
             >
               ID{getSortIndicator('id', personSortConfig)}
@@ -480,7 +543,8 @@ const DataTable: React.FC<DataTableProps> = ({
           <tbody>
             {sortedPersons.map((person) => (
               <tr key={person.id} className="hover:bg-gray-50">
-                <td className="py-2 px-4 border-b left-0 bg-white z-10">{person.id}</td>
+                {renderSelectionCell('person', person.id)}
+                <td className={getStickyIdCellClassName()}>{person.id}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('person', person.id, 'lastName', 'Фамилия')}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('person', person.id, 'firstName', 'Имя')}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('person', person.id, 'patronymic', 'Отчество')}</td>
@@ -512,8 +576,9 @@ const DataTable: React.FC<DataTableProps> = ({
         <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg">
           <thead className="sticky top-0 z-20 bg-gray-100">
             <tr className="bg-gray-100">
+              {renderSelectionHeader('family', sortedFamilies.map((family) => family.id))}
               <th
-                className="py-2 px-4 border-b text-left cursor-pointer hover:bg-gray-200 sticky left-0 bg-gray-100 z-30"
+                className={getStickyIdHeaderClassName()}
                 onClick={() => handleFamilySort('id')}
               >
                 ID{getSortIndicator('id', familySortConfig)}
@@ -561,7 +626,8 @@ const DataTable: React.FC<DataTableProps> = ({
           <tbody>
             {sortedFamilies.map((family) => (
               <tr key={family.id} className="hover:bg-gray-50">
-                <td className="py-2 px-4 border-b sticky left-0 bg-white z-10">{family.id}</td>
+                {renderSelectionCell('family', family.id)}
+                <td className={getStickyIdCellClassName()}>{family.id}</td>
                 <td className="py-2 px-4 border-b">{family.familyName || '-'}</td>
                 <td className="py-2 px-4 border-b">{family.husbandLastName || '-'}</td>
                 <td className="py-2 px-4 border-b">{family.wifeLastName || '-'}</td>
@@ -579,8 +645,9 @@ const DataTable: React.FC<DataTableProps> = ({
       <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg">
         <thead className="sticky top-0 z-20 bg-gray-100">
           <tr className="bg-gray-100">
+            {renderSelectionHeader('family', sortedFamilies.map((family) => family.id))}
             <th
-              className="py-2 px-4 border-b text-left cursor-pointer hover:bg-gray-200 sticky left-0 bg-gray-100 z-30"
+              className={getStickyIdHeaderClassName()}
               onClick={() => handleFamilySort('id')}
             >
               ID{getSortIndicator('id', familySortConfig)}
@@ -621,7 +688,8 @@ const DataTable: React.FC<DataTableProps> = ({
           <tbody>
             {sortedFamilies.map((family) => (
               <tr key={family.id} className="hover:bg-gray-50">
-                <td className="py-2 px-4 border-b sticky left-0 bg-white z-10">{family.id}</td>
+                {renderSelectionCell('family', family.id)}
+                <td className={getStickyIdCellClassName()}>{family.id}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('family', family.id, 'familyName', 'Название рода')}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('family', family.id, 'husbandLastName', 'Мужская фамилия')}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('family', family.id, 'wifeLastName', 'Женская фамилия')}</td>
@@ -780,8 +848,9 @@ const DataTable: React.FC<DataTableProps> = ({
         <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg">
           <thead className="sticky top-0 z-20 bg-gray-100">
             <tr className="bg-gray-100">
+              {renderSelectionHeader('place', sortedPlaces.map((place) => place.id))}
               <th
-                className="py-2 px-4 border-b text-left cursor-pointer hover:bg-gray-200 sticky left-0 bg-gray-100 z-30"
+                className={getStickyIdHeaderClassName()}
                 onClick={() => handlePlaceSort('id')}
               >
                 ID{getSortIndicator('id', placeSortConfig)}
@@ -817,7 +886,8 @@ const DataTable: React.FC<DataTableProps> = ({
           <tbody>
             {sortedPlaces.map((place) => (
               <tr key={place.id} className="hover:bg-gray-50">
-                <td className="py-2 px-4 border-b sticky left-0 bg-white z-10">{place.id}</td>
+                {renderSelectionCell('place', place.id)}
+                <td className={getStickyIdCellClassName()}>{place.id}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'name', 'Название места')}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'shortName', 'Краткое название места')}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'comment', 'Комментарий места')}</td>
@@ -833,8 +903,9 @@ const DataTable: React.FC<DataTableProps> = ({
       <table className="min-w-full bg-white border border-gray-200 shadow-sm rounded-lg">
         <thead className="sticky top-0 z-20 bg-gray-100">
           <tr className="bg-gray-100">
+            {renderSelectionHeader('place', sortedPlaces.map((place) => place.id))}
             <th
-              className="py-2 px-4 border-b text-left cursor-pointer hover:bg-gray-200 sticky left-0 bg-gray-100 z-30"
+              className={getStickyIdHeaderClassName()}
               onClick={() => handlePlaceSort('id')}
             >
               ID{getSortIndicator('id', placeSortConfig)}
@@ -863,7 +934,8 @@ const DataTable: React.FC<DataTableProps> = ({
           <tbody>
             {sortedPlaces.map((place) => (
               <tr key={place.id} className="hover:bg-gray-50">
-                <td className="py-2 px-4 border-b sticky left-0 bg-white z-10">{place.id}</td>
+                {renderSelectionCell('place', place.id)}
+                <td className={getStickyIdCellClassName()}>{place.id}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'name', 'Название места')}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'shortName', 'Краткое название места')}</td>
                 <td className="py-2 px-4 border-b">{renderTextEditor('place', place.id, 'comment', 'Комментарий места')}</td>

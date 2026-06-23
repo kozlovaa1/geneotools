@@ -16,6 +16,7 @@ geneotools/
 │   └── page.tsx
 ├── components/
 │   ├── DataTable.tsx
+│   ├── BulkEditDialog.tsx
 │   ├── EditableCell.tsx
 │   ├── FileUploader.tsx
 │   ├── Modal.tsx
@@ -43,6 +44,7 @@ geneotools/
 │   │   ├── readers/
 │   │   └── writers/
 │   ├── buildAtdb.ts
+│   ├── atdbBatchEdit.ts
 │   ├── atdbEditDraft.ts
 │   ├── initSqlJs.ts
 │   ├── parseAtdb.ts
@@ -60,6 +62,7 @@ geneotools/
 - `components/FileUploader.tsx` — загрузка и валидация файла
 - `components/ScrollableDataTable.tsx` — табы и scroll container
 - `components/DataTable.tsx` — рендер таблиц и sorting state
+- `components/BulkEditDialog.tsx` — controls массового редактирования, предпросмотр и apply action
 - `components/EditableCell.tsx` — компактные presentation controls для write-safe ячеек
 
 ### Domain / Processing
@@ -67,6 +70,7 @@ geneotools/
 - `lib/types.ts` — единая доменная модель
 - `lib/sqlProcessor.ts` — публичный фасад parse/build flow
 - `lib/atdbEditDraft.ts` — чистые UI-facing helper'ы локального draft state и сборки `AtdbChangeSet`
+- `lib/atdbBatchEdit.ts` — чистый helper массового preview/apply поверх `AtdbEditDraftState`
 - `lib/atdb/readers/*` — чтение metadata, персон, родов, событий и мест из SQLite
 - `lib/atdb/writers/*` — field-level запись разрешённых изменений персон, родов, мест и life-event place links
 - `lib/atdb/rebuildContract.ts` — typed contract для `AtdbChangeSet`, build report и safe errors
@@ -104,11 +108,24 @@ User
   -> browser download
 ```
 
+Массовое редактирование:
+
+```text
+User
+  -> BulkEditDialog
+  -> lib/atdbBatchEdit.previewAtdbBatchEdit
+  -> preview counts / reason codes / affected rows
+  -> lib/atdbBatchEdit.applyAtdbBatchEdit
+  -> local edit draft state
+  -> lib/atdbEditDraft.buildAtdbChangeSet
+```
+
 ## Текущие архитектурные ограничения
 
 - `components/DataTable.tsx` совмещает rendering и sorting для нескольких сущностей
 - `parseAtdb.ts` пока используется как compatibility layer, а не как отдельный parser module
 - UI формирует `AtdbChangeSet` напрямую только для write-safe полей персон, родов и мест; события, даты, участники событий, родственные связи, notes/occupation и metadata остаются read-only
+- Массовое редактирование не расширяет strict rebuild contract: оно работает только как draft operation перед существующим экспортом
 - Compatibility `buildAtdb(parsed, original)` сохраняется для старых imports и проверок, но основной UI export использует `applyAtdbChanges(original, changeSet)`
 
 ## Правила зависимостей
