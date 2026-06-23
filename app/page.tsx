@@ -350,8 +350,8 @@ export default function Home() {
               className="dark:invert"
               src="/logo.svg"
               alt="logo"
-              width={100}
-              height={20}
+              width={64}
+              height={64}
               priority
             />
           </div>
