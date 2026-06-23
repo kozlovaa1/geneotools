@@ -1,5 +1,6 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
+import { parseAtdbIntegerInput } from '@/lib/atdbIntegerInput';
 
 export interface EditableSelectOption {
   value: string;
@@ -110,7 +111,15 @@ export function EditableNumberCell({ value, dirty, ariaLabel, onChange, onReset 
         value={value ?? ''}
         onChange={(event) => {
           const nextValue = event.target.value.trim();
-          onChange(nextValue === '' ? null : Number.parseInt(nextValue, 10));
+          if (nextValue === '') {
+            onChange(null);
+            return;
+          }
+
+          const parsed = parseAtdbIntegerInput(nextValue);
+          if (parsed !== undefined) {
+            onChange(parsed);
+          }
         }}
         className={`${controlClassName} ${dirty ? dirtyControlClassName : ''}`}
       />

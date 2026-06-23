@@ -61,6 +61,7 @@ npx tsc --noEmit
 npm run build
 npm run mapping:atdb:check
 npm run test:atdb:table-view
+npm run test:atdb:table-components
 npm run test:atdb:edit-draft
 npm run test:atdb:batch-edit
 npm run test:atdb:write-safety

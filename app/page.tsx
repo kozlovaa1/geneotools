@@ -11,7 +11,6 @@ import {
   buildAtdbChangeSet,
   countDraftChanges,
   createEmptyAtdbEditDraft,
-  resetDraftEntity,
   resetDraftField,
   setDraftField,
   type AtdbDraftFieldKey,
@@ -156,13 +155,6 @@ export default function Home() {
 
   const handleDraftFieldReset = (key: AtdbDraftFieldKey) => {
     setEditDraft((currentDraft) => resetDraftField(currentDraft, key));
-    setBulkPreview(null);
-    setError(null);
-    setSuccess(null);
-  };
-
-  const handleDraftEntityReset = (entityType: AtdbDraftFieldKey['entityType'], id: number) => {
-    setEditDraft((currentDraft) => resetDraftEntity(currentDraft, entityType, id));
     setBulkPreview(null);
     setError(null);
     setSuccess(null);
@@ -462,7 +454,6 @@ export default function Home() {
                     onClearSelection={handleClearSelection}
                     onDraftFieldChange={handleDraftFieldChange}
                     onDraftFieldReset={handleDraftFieldReset}
-                    onDraftEntityReset={handleDraftEntityReset}
                   />
                 </div>
               </div>

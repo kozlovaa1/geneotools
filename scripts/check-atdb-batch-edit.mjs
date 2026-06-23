@@ -116,13 +116,17 @@ try {
 
   const batchEdit = requireFromScript(path.join(tempDir, 'lib/atdbBatchEdit.js'));
   const editDraft = requireFromScript(path.join(tempDir, 'lib/atdbEditDraft.js'));
+  const integerInput = requireFromScript(path.join(tempDir, 'lib/atdbIntegerInput.js'));
   const data = syntheticParsedData();
 
-  assert.equal(batchEdit.parseAtdbBatchIntegerInput('12'), 12, 'integer input parse mismatch');
-  assert.equal(batchEdit.parseAtdbBatchIntegerInput(' 12 '), 12, 'trimmed integer input parse mismatch');
-  assert.equal(batchEdit.parseAtdbBatchIntegerInput('12abc'), undefined, 'partial integer input should be rejected');
-  assert.equal(batchEdit.parseAtdbBatchIntegerInput('1e2'), undefined, 'exponential integer input should be rejected');
-  assert.equal(batchEdit.parseAtdbBatchIntegerInput('12.9'), undefined, 'decimal integer input should be rejected');
+  for (const parseIntegerInput of [integerInput.parseAtdbIntegerInput, batchEdit.parseAtdbBatchIntegerInput]) {
+    assert.equal(parseIntegerInput('12'), 12, 'integer input parse mismatch');
+    assert.equal(parseIntegerInput(' 12 '), 12, 'trimmed integer input parse mismatch');
+    assert.equal(parseIntegerInput('12abc'), undefined, 'partial integer input should be rejected');
+    assert.equal(parseIntegerInput('1e2'), undefined, 'exponential integer input should be rejected');
+    assert.equal(parseIntegerInput('12.9'), undefined, 'decimal integer input should be rejected');
+    assert.equal(parseIntegerInput(String(Number.MAX_SAFE_INTEGER + 1)), undefined, 'unsafe integer input should be rejected');
+  }
   safeLog('strict-integer-input: ok');
 
   let draft = editDraft.createEmptyAtdbEditDraft();

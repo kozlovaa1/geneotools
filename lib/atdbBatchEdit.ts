@@ -12,6 +12,7 @@ import {
   type AtdbDraftFieldValue,
   type AtdbEditDraftState,
 } from './atdbEditDraft';
+import { parseAtdbIntegerInput } from './atdbIntegerInput';
 import type {
   AtdbFieldName,
   AtdbFieldValue,
@@ -228,11 +229,7 @@ export function getAtdbBatchEditableField(
 }
 
 export function parseAtdbBatchIntegerInput(value: string): number | undefined {
-  const trimmed = value.trim();
-  if (!/^[+-]?\d+$/.test(trimmed)) return undefined;
-
-  const parsed = Number(trimmed);
-  return Number.isSafeInteger(parsed) ? parsed : undefined;
+  return parseAtdbIntegerInput(value);
 }
 
 export function previewAtdbBatchEdit(

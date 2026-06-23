@@ -34,7 +34,6 @@ interface ScrollableDataTableProps {
   onClearSelection: (entityType: AtdbWritableEntity) => void;
   onDraftFieldChange: (key: AtdbDraftFieldKey, value: unknown) => void;
   onDraftFieldReset: (key: AtdbDraftFieldKey) => void;
-  onDraftEntityReset: (entityType: AtdbDraftFieldKey['entityType'], id: number) => void;
 }
 
 const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
@@ -55,7 +54,6 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
   onClearSelection,
   onDraftFieldChange,
   onDraftFieldReset,
-  onDraftEntityReset,
 }) => {
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const activeWritableEntity = getWritableEntityForAtdbTableEntity(activeEntity);
@@ -64,10 +62,6 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
     ? tableQueryResult.visibleIds.filter((id) => selectedRows[activeWritableEntity].includes(id)).length
     : 0;
   const queryIsActive = tableQuery.quickSearch.trim().length > 0 || Boolean(tableQuery.filter);
-  const visiblePersons = activeEntity === 'persons' ? tableQueryResult.rows as ParsedAtdb['persons'] : [];
-  const visibleFamilies = activeEntity === 'families' ? tableQueryResult.rows as ParsedAtdb['families'] : [];
-  const visibleEvents = activeEntity === 'events' ? tableQueryResult.rows as ParsedAtdb['events'] : [];
-  const visiblePlaces = activeEntity === 'places' ? tableQueryResult.rows as ParsedAtdb['places'] : [];
 
   // Reset scroll position when tab changes
   useEffect(() => {
@@ -162,16 +156,11 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
         >
           <DataTable
             activeEntity={activeEntity}
-            persons={visiblePersons}
-            families={visibleFamilies}
-            events={visibleEvents}
-            places={visiblePlaces}
+            tableQueryResult={tableQueryResult}
             allPlaces={places}
             draft={draft}
             sourceData={sourceData}
             selectedIds={activeWritableEntity ? selectedRows[activeWritableEntity] : []}
-            visibleIds={tableQueryResult.visibleIds}
-            totalCount={tableQueryResult.totalCount}
             isQueryActive={queryIsActive}
             sortConfig={tableQuery.sort}
             onSortChange={(sortConfig) => onTableQueryChange(activeEntity, { ...tableQuery, sort: sortConfig })}
@@ -180,7 +169,6 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
             onRenderedRowsSelectionChange={onRenderedRowsSelectionChange}
             onDraftFieldChange={onDraftFieldChange}
             onDraftFieldReset={onDraftFieldReset}
-            onDraftEntityReset={onDraftEntityReset}
           />
         </div>
       </div>
