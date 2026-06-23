@@ -2,11 +2,19 @@
 
 import React, { useRef, useEffect } from 'react';
 import DataTable from './DataTable';
+import TableQueryToolbar from './TableQueryToolbar';
 import type { ParsedAtdb } from '@/lib/types';
 import type { AtdbDraftFieldKey, AtdbEditDraftState } from '@/lib/atdbEditDraft';
+import {
+  createEmptyAtdbTableQueryState,
+  getWritableEntityForAtdbTableEntity,
+  type AtdbTableEntity,
+  type AtdbTableQueryResult,
+  type AtdbTableQueryState,
+} from '@/lib/atdbTableView';
 import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
 
-type ActiveEntity = 'persons' | 'families' | 'events' | 'places';
+type ActiveEntity = AtdbTableEntity;
 
 interface ScrollableDataTableProps {
   activeEntity: ActiveEntity;
@@ -15,22 +23,18 @@ interface ScrollableDataTableProps {
   families: ParsedAtdb['families'];
   events: ParsedAtdb['events'];
   places: ParsedAtdb['places'];
+  tableQuery: AtdbTableQueryState;
+  tableQueryResult: AtdbTableQueryResult;
   draft: AtdbEditDraftState;
   sourceData: ParsedAtdb;
   selectedRows: Record<AtdbWritableEntity, number[]>;
+  onTableQueryChange: (entity: AtdbTableEntity, query: AtdbTableQueryState) => void;
   onRowSelectionChange: (entityType: AtdbWritableEntity, id: number, selected: boolean) => void;
   onRenderedRowsSelectionChange: (entityType: AtdbWritableEntity, ids: readonly number[], selected: boolean) => void;
   onClearSelection: (entityType: AtdbWritableEntity) => void;
   onDraftFieldChange: (key: AtdbDraftFieldKey, value: unknown) => void;
   onDraftFieldReset: (key: AtdbDraftFieldKey) => void;
   onDraftEntityReset: (entityType: AtdbDraftFieldKey['entityType'], id: number) => void;
-}
-
-function writableEntityFromActive(activeEntity: ActiveEntity): AtdbWritableEntity | null {
-  if (activeEntity === 'persons') return 'person';
-  if (activeEntity === 'families') return 'family';
-  if (activeEntity === 'places') return 'place';
-  return null;
 }
 
 const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
@@ -40,9 +44,12 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
   families,
   events,
   places,
+  tableQuery,
+  tableQueryResult,
   draft,
   sourceData,
   selectedRows,
+  onTableQueryChange,
   onRowSelectionChange,
   onRenderedRowsSelectionChange,
   onClearSelection,
@@ -51,8 +58,16 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
   onDraftEntityReset,
 }) => {
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const activeWritableEntity = writableEntityFromActive(activeEntity);
+  const activeWritableEntity = getWritableEntityForAtdbTableEntity(activeEntity);
   const selectedCount = activeWritableEntity ? selectedRows[activeWritableEntity].length : 0;
+  const visibleSelectedCount = activeWritableEntity
+    ? tableQueryResult.visibleIds.filter((id) => selectedRows[activeWritableEntity].includes(id)).length
+    : 0;
+  const queryIsActive = tableQuery.quickSearch.trim().length > 0 || Boolean(tableQuery.filter);
+  const visiblePersons = activeEntity === 'persons' ? tableQueryResult.rows as ParsedAtdb['persons'] : [];
+  const visibleFamilies = activeEntity === 'families' ? tableQueryResult.rows as ParsedAtdb['families'] : [];
+  const visibleEvents = activeEntity === 'events' ? tableQueryResult.rows as ParsedAtdb['events'] : [];
+  const visiblePlaces = activeEntity === 'places' ? tableQueryResult.rows as ParsedAtdb['places'] : [];
 
   // Reset scroll position when tab changes
   useEffect(() => {
@@ -110,9 +125,20 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
       </div>
 
       <div className="flex-1 flex flex-col shadow-sm overflow-hidden">
+        <TableQueryToolbar
+          activeEntity={activeEntity}
+          query={tableQuery}
+          visibleCount={tableQueryResult.visibleCount}
+          totalCount={tableQueryResult.totalCount}
+          activeFilterCount={tableQueryResult.activeFilterCount}
+          onQueryChange={(nextQuery) => onTableQueryChange(activeEntity, nextQuery)}
+        />
         {activeWritableEntity && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700">
-            <span>Выбрано: {selectedCount}</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span>Выбрано всего: {selectedCount}</span>
+              <span>Видимых выбрано: {visibleSelectedCount}</span>
+            </div>
             <button
               type="button"
               disabled={selectedCount === 0}
@@ -136,20 +162,25 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
         >
           <DataTable
             activeEntity={activeEntity}
-            persons={persons}
-            families={families}
-            events={events}
-            places={places}
+            persons={visiblePersons}
+            families={visibleFamilies}
+            events={visibleEvents}
+            places={visiblePlaces}
             allPlaces={places}
             draft={draft}
             sourceData={sourceData}
             selectedIds={activeWritableEntity ? selectedRows[activeWritableEntity] : []}
+            visibleIds={tableQueryResult.visibleIds}
+            totalCount={tableQueryResult.totalCount}
+            isQueryActive={queryIsActive}
+            sortConfig={tableQuery.sort}
+            onSortChange={(sortConfig) => onTableQueryChange(activeEntity, { ...tableQuery, sort: sortConfig })}
+            onClearQuery={() => onTableQueryChange(activeEntity, createEmptyAtdbTableQueryState())}
             onRowSelectionChange={onRowSelectionChange}
             onRenderedRowsSelectionChange={onRenderedRowsSelectionChange}
             onDraftFieldChange={onDraftFieldChange}
             onDraftFieldReset={onDraftFieldReset}
             onDraftEntityReset={onDraftEntityReset}
-            renderOnlyContent={false} // This will render both header and content
           />
         </div>
       </div>

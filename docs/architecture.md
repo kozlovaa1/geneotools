@@ -20,7 +20,8 @@ geneotools/
 │   ├── EditableCell.tsx
 │   ├── FileUploader.tsx
 │   ├── Modal.tsx
-│   └── ScrollableDataTable.tsx
+│   ├── ScrollableDataTable.tsx
+│   └── TableQueryToolbar.tsx
 ├── docs/
 │   ├── atdb_format.md
 │   ├── codebase-analysis.md
@@ -46,6 +47,7 @@ geneotools/
 │   ├── buildAtdb.ts
 │   ├── atdbBatchEdit.ts
 │   ├── atdbEditDraft.ts
+│   ├── atdbTableView.ts
 │   ├── initSqlJs.ts
 │   ├── parseAtdb.ts
 │   ├── sqlProcessor.ts
@@ -61,7 +63,8 @@ geneotools/
 - `app/page.tsx` — orchestration upload/parse/download сценария
 - `components/FileUploader.tsx` — загрузка и валидация файла
 - `components/ScrollableDataTable.tsx` — табы и scroll container
-- `components/DataTable.tsx` — рендер таблиц и sorting state
+- `components/TableQueryToolbar.tsx` — быстрый поиск, field-level фильтр и счётчик видимой выборки
+- `components/DataTable.tsx` — рендер уже отфильтрованных/отсортированных строк и controlled sort headers
 - `components/BulkEditDialog.tsx` — controls массового редактирования, предпросмотр и apply action
 - `components/EditableCell.tsx` — компактные presentation controls для write-safe ячеек
 
@@ -70,6 +73,7 @@ geneotools/
 - `lib/types.ts` — единая доменная модель
 - `lib/sqlProcessor.ts` — публичный фасад parse/build flow
 - `lib/atdbEditDraft.ts` — чистые UI-facing helper'ы локального draft state и сборки `AtdbChangeSet`
+- `lib/atdbTableView.ts` — чистый table-view/query слой поверх `ParsedAtdb + AtdbEditDraftState`: metadata колонок, поиск, фильтры, sorting и visible IDs
 - `lib/atdbBatchEdit.ts` — чистый helper массового preview/apply поверх `AtdbEditDraftState`
 - `lib/atdb/readers/*` — чтение metadata, персон, родов, событий и мест из SQLite
 - `lib/atdb/writers/*` — field-level запись разрешённых изменений персон, родов, мест и life-event place links
@@ -91,7 +95,9 @@ User
   -> sql.js Database
   -> ParsedAtdb in React state
   -> local edit draft state
-  -> ScrollableDataTable / DataTable
+  -> lib/atdbTableView.queryAtdbTableRows
+  -> visible rows / visible IDs / counts
+  -> ScrollableDataTable / TableQueryToolbar / DataTable
 ```
 
 Экспорт:
@@ -120,9 +126,20 @@ User
   -> lib/atdbEditDraft.buildAtdbChangeSet
 ```
 
+Поиск и фильтрация:
+
+```text
+ParsedAtdb + local edit draft state
+  -> lib/atdbTableView.queryAtdbTableRows
+  -> quick search / field-level filter / controlled sorting
+  -> visible rows + visible IDs
+  -> DataTable rendering
+  -> selection / bulk edit state
+```
+
 ## Текущие архитектурные ограничения
 
-- `components/DataTable.tsx` совмещает rendering и sorting для нескольких сущностей
+- `components/DataTable.tsx` всё ещё совмещает rendering нескольких сущностей, но query/sorting contract вынесен в `lib/atdbTableView.ts`
 - `parseAtdb.ts` пока используется как compatibility layer, а не как отдельный parser module
 - UI формирует `AtdbChangeSet` напрямую только для write-safe полей персон, родов и мест; события, даты, участники событий, родственные связи, notes/occupation и metadata остаются read-only
 - Массовое редактирование не расширяет strict rebuild contract: оно работает только как draft operation перед существующим экспортом

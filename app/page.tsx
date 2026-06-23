@@ -23,18 +23,38 @@ import {
   type AtdbBatchEditOperation,
   type AtdbBatchEditPreview,
 } from '@/lib/atdbBatchEdit';
+import {
+  createAtdbTableQuery,
+  createEmptyAtdbTableQueryState,
+  getWritableEntityForAtdbTableEntity,
+  queryAtdbTableRows,
+  type AtdbTableEntity,
+  type AtdbTableQueryResult,
+  type AtdbTableQueryState,
+} from '@/lib/atdbTableView';
 import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
 import Image from 'next/image';
 import { Download, RotateCcw, Wand2 } from 'lucide-react';
 
-type ActiveEntity = 'persons' | 'families' | 'events' | 'places';
+type ActiveEntity = AtdbTableEntity;
 type SelectionState = Record<AtdbWritableEntity, number[]>;
+type TableQueryStateByEntity = Record<AtdbTableEntity, AtdbTableQueryState>;
+type TableQueryResultByEntity = Record<AtdbTableEntity, AtdbTableQueryResult>;
 
 function createEmptySelection(): SelectionState {
   return {
     person: [],
     family: [],
     place: [],
+  };
+}
+
+function createEmptyTableQueries(): TableQueryStateByEntity {
+  return {
+    persons: createEmptyAtdbTableQueryState(),
+    families: createEmptyAtdbTableQueryState(),
+    events: createEmptyAtdbTableQueryState(),
+    places: createEmptyAtdbTableQueryState(),
   };
 }
 
@@ -49,13 +69,6 @@ function mergeSelectedIds(currentIds: readonly number[], nextIds: readonly numbe
   return merged;
 }
 
-function writableEntityFromActive(activeEntity: ActiveEntity): AtdbWritableEntity | null {
-  if (activeEntity === 'persons') return 'person';
-  if (activeEntity === 'families') return 'family';
-  if (activeEntity === 'places') return 'place';
-  return null;
-}
-
 export default function Home() {
   const [parsedData, setParsedData] = useState<ParsedAtdb | null>(null);
   const [originalBuffer, setOriginalBuffer] = useState<Uint8Array | null>(null);
@@ -63,6 +76,7 @@ export default function Home() {
   const [editDraft, setEditDraft] = useState<AtdbEditDraftState>(() => createEmptyAtdbEditDraft());
   const [activeEntity, setActiveEntity] = useState<ActiveEntity>('persons');
   const [selectedRows, setSelectedRows] = useState<SelectionState>(() => createEmptySelection());
+  const [tableQueries, setTableQueries] = useState<TableQueryStateByEntity>(() => createEmptyTableQueries());
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [bulkPreview, setBulkPreview] = useState<AtdbBatchEditPreview | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,9 +88,21 @@ export default function Home() {
     () => (parsedData ? countDraftChanges(parsedData, editDraft) : { entities: 0, fields: 0 }),
     [editDraft, parsedData],
   );
-  const activeWritableEntity = writableEntityFromActive(activeEntity);
+  const activeWritableEntity = getWritableEntityForAtdbTableEntity(activeEntity);
   const activeSelectedIds = activeWritableEntity ? selectedRows[activeWritableEntity] : [];
   const hasDraftChanges = draftChangeCount.fields > 0;
+  const tableQueryResults = useMemo<TableQueryResultByEntity | null>(() => {
+    if (!parsedData) return null;
+
+    return {
+      persons: queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery('persons', tableQueries.persons)),
+      families: queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery('families', tableQueries.families)),
+      events: queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery('events', tableQueries.events)),
+      places: queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery('places', tableQueries.places)),
+    };
+  }, [editDraft, parsedData, tableQueries]);
+  const activeTableQuery = tableQueries[activeEntity];
+  const activeTableQueryResult = tableQueryResults?.[activeEntity] ?? null;
 
   const handleFileUpload = async (file: File, buffer: ArrayBuffer) => {
     setIsLoading(true);
@@ -85,6 +111,7 @@ export default function Home() {
     setOriginalFilename(null);
     setEditDraft(clearDraft());
     setSelectedRows(createEmptySelection());
+    setTableQueries(createEmptyTableQueries());
     setActiveEntity('persons');
     setBulkPreview(null);
     setIsBulkDialogOpen(false);
@@ -144,6 +171,16 @@ export default function Home() {
   const handleActiveEntityChange = (nextActiveEntity: ActiveEntity) => {
     setActiveEntity(nextActiveEntity);
     setBulkPreview(null);
+  };
+
+  const handleTableQueryChange = (entity: AtdbTableEntity, query: AtdbTableQueryState) => {
+    setTableQueries((currentQueries) => ({
+      ...currentQueries,
+      [entity]: query,
+    }));
+    setBulkPreview(null);
+    setError(null);
+    setSuccess(null);
   };
 
   const handleRowSelectionChange = (entityType: AtdbWritableEntity, id: number, selected: boolean) => {
@@ -361,7 +398,7 @@ export default function Home() {
               </div>
             )}
             
-            {parsedData && (
+            {parsedData && activeTableQueryResult && (
               <div className="mt-8 -mx-6 flex-1 flex flex-col min-h-0">
                 <div className="sticky top-4 z-50 mb-4 flex flex-wrap items-center justify-center gap-3 px-6">
                   <span className="rounded border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm">
@@ -414,9 +451,12 @@ export default function Home() {
                     families={parsedData.families}
                     events={parsedData.events}
                     places={parsedData.places || []}
+                    tableQuery={activeTableQuery}
+                    tableQueryResult={activeTableQueryResult}
                     draft={editDraft}
                     sourceData={parsedData}
                     selectedRows={selectedRows}
+                    onTableQueryChange={handleTableQueryChange}
                     onRowSelectionChange={handleRowSelectionChange}
                     onRenderedRowsSelectionChange={handleRenderedRowsSelectionChange}
                     onClearSelection={handleClearSelection}
