@@ -24,8 +24,15 @@ geneotools/
 │   ├── page.tsx                # Загрузка, просмотр, draft, ошибки и экспорт
 │   └── globals.css             # Глобальные стили Tailwind
 ├── components/                 # React-компоненты интерфейса
+│   ├── atdb-table/             # Entity-specific таблицы и общие primitives таблиц
+│   │   ├── AtdbTablePrimitives.tsx # Table frame, sortable headers, selection и empty state
+│   │   ├── EventTable.tsx      # Read-only таблица событий
+│   │   ├── FamilyTable.tsx     # Таблица родов
+│   │   ├── PersonTable.tsx     # Таблица персон
+│   │   ├── PlaceTable.tsx      # Таблица мест
+│   │   └── useAtdbTableEditors.tsx # Presentation helpers editable ячеек
 │   ├── BulkEditDialog.tsx      # Предпросмотр и применение массового редактирования
-│   ├── DataTable.tsx           # Табличный рендер сущностей
+│   ├── DataTable.tsx           # Router-wrapper для entity-specific таблиц
 │   ├── EditableCell.tsx        # Presentation controls редактируемых ячеек
 │   ├── FileUploader.tsx        # Drag-and-drop загрузка файлов
 │   ├── Modal.tsx               # Модальное окно
@@ -45,6 +52,7 @@ geneotools/
 │   │   └── writers/            # Field-level запись разрешённых изменений
 │   ├── atdbBatchEdit.ts        # Предпросмотр и apply массового редактирования
 │   ├── atdbEditDraft.ts        # UI draft state и сборка явного AtdbChangeSet
+│   ├── atdbIntegerInput.ts     # Strict parser целочисленного UI input
 │   ├── atdbTableView.ts        # Поиск, фильтрация, sorting и visible IDs
 │   ├── buildAtdb.ts            # Совместимый re-export сборки .atdb
 │   ├── emptyNodeModule.ts      # Заглушка для браузерной сборки
@@ -84,15 +92,23 @@ geneotools/
 | `lib/atdb/writers/*` | Внутренние модули field-level записи разрешённых изменений |
 | `lib/atdbEditDraft.ts` | Чистые helper'ы локального draft state и сборки `AtdbChangeSet` |
 | `lib/atdbBatchEdit.ts` | Чистые helper'ы массового редактирования |
+| `lib/atdbIntegerInput.ts` | Strict parser целочисленного ввода для таблиц и batch edit |
 | `lib/atdbTableView.ts` | Чистый table-view/query слой поверх `ParsedAtdb + AtdbEditDraftState` |
 | `components/FileUploader.tsx` | Загрузка файлов в браузере |
 | `components/ScrollableDataTable.tsx` | Основное табличное представление данных |
 | `components/TableQueryToolbar.tsx` | Быстрый поиск, field-level фильтр и счётчик видимой выборки |
-| `components/DataTable.tsx` | Рендер строк, controlled sort headers и editable cells |
+| `components/DataTable.tsx` | Router-wrapper, который выбирает таблицу по активной сущности |
+| `components/atdb-table/AtdbTablePrimitives.tsx` | Общие table frame, sort headers, selection cells и empty state |
+| `components/atdb-table/PersonTable.tsx` | Entity-specific таблица персон |
+| `components/atdb-table/FamilyTable.tsx` | Entity-specific таблица родов |
+| `components/atdb-table/EventTable.tsx` | Read-only entity-specific таблица событий |
+| `components/atdb-table/PlaceTable.tsx` | Entity-specific таблица мест |
+| `components/atdb-table/useAtdbTableEditors.tsx` | Presentation helpers для draft-aware editable cells |
 | `components/EditableCell.tsx` | Переиспользуемые controls редактируемых ячеек |
 | `components/BulkEditDialog.tsx` | Предпросмотр и применение массового редактирования |
 | `scripts/check-atdb-mapping.mjs` | Regression gate для канонического mapping |
 | `scripts/check-atdb-table-view.mjs` | Regression gate для query/filter/sort helper'ов |
+| `scripts/check-atdb-table-components.mjs` | Regression gate для component-level table contract |
 | `scripts/check-atdb-edit-draft.mjs` | Regression gate для UI draft/change-set helper'ов |
 | `scripts/check-atdb-batch-edit.mjs` | Regression gate для batch edit preview/apply |
 | `scripts/check-atdb-write-safety.mjs` | Regression gate для write-safety |

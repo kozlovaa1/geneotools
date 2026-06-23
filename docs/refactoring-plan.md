@@ -21,23 +21,11 @@
 | Draft helpers | `lib/atdbEditDraft.ts` собирает изменения без мутации `ParsedAtdb` |
 | Table query helpers | `lib/atdbTableView.ts` отвечает за поиск, фильтры, сортировку и visible IDs |
 | Batch edit helpers | `lib/atdbBatchEdit.ts` строит предпросмотр и применяет изменения только в draft |
+| Разделение таблиц | `components/DataTable.tsx` стал router-wrapper, entity-specific таблицы и table primitives вынесены в `components/atdb-table/` |
 
 ## Следующие этапы
 
-### Этап 1 — Разделение таблиц по сущностям
-
-**Задачи:**
-
-- Выделить `PersonsTable`, `FamiliesTable`, `EventsTable`, `PlacesTable`.
-- Оставить общий wrapper для вкладок, selection и toolbar.
-- Сохранить текущий contract `DataTable` на время миграции или заменить его поэтапно.
-
-**Критерий готовности:**
-
-- Рендер каждой сущности можно менять без правок большого общего switch.
-- Поведение поиска, сортировки, selection и batch edit не меняется.
-
-### Этап 2 — Browser smoke для основного сценария
+### Этап 1 — Browser smoke для основного сценария
 
 **Задачи:**
 
@@ -49,7 +37,7 @@
 
 - UI-regression в загрузке, draft state или скачивании ловится до ручного релиза.
 
-### Этап 3 — Производительность больших таблиц
+### Этап 2 — Производительность больших таблиц
 
 **Задачи:**
 
@@ -61,7 +49,7 @@
 
 - Большие базы не создают заметных зависаний при поиске, сортировке и переключении вкладок.
 
-### Этап 4 — Расширение mapping без расширения риска
+### Этап 3 — Расширение mapping без расширения риска
 
 **Задачи:**
 
@@ -73,7 +61,7 @@
 
 - Новый write path проходит preflight, transaction, post-build validation и safe fingerprint checks.
 
-### Этап 5 — Документация и DX
+### Этап 4 — Документация и DX
 
 **Задачи:**
 
@@ -90,6 +78,7 @@
 - `npm run lint` проходит.
 - `npx tsc --noEmit` проходит.
 - Релевантные `test:atdb:*` проверки проходят.
+- Для изменений в таблицах проходит `npm run test:atdb:table-components`.
 - Изменение не расширяет write scope без mapping/validation покрытия.
 - Документация обновлена вместе с кодом.
 - В публичных artifacts нет пользовательских raw-значений.

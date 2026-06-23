@@ -17,6 +17,13 @@ geneotools/
 │   ├── layout.tsx
 │   └── page.tsx
 ├── components/
+│   ├── atdb-table/
+│   │   ├── AtdbTablePrimitives.tsx
+│   │   ├── EventTable.tsx
+│   │   ├── FamilyTable.tsx
+│   │   ├── PersonTable.tsx
+│   │   ├── PlaceTable.tsx
+│   │   └── useAtdbTableEditors.tsx
 │   ├── BulkEditDialog.tsx
 │   ├── DataTable.tsx
 │   ├── EditableCell.tsx
@@ -44,6 +51,7 @@ geneotools/
 │   │   └── transaction.ts
 │   ├── atdbBatchEdit.ts
 │   ├── atdbEditDraft.ts
+│   ├── atdbIntegerInput.ts
 │   ├── atdbTableView.ts
 │   ├── buildAtdb.ts
 │   ├── initSqlJs.ts
@@ -62,7 +70,7 @@ geneotools/
 | Слой | Файлы | Ответственность |
 |------|-------|-----------------|
 | App | `app/page.tsx`, `app/layout.tsx` | Загрузка файла, состояние сценария, ошибки, экспорт |
-| Components | `components/*` | Отображение, controls, таблицы, модальные окна |
+| Components | `components/*`, `components/atdb-table/*` | Отображение, controls, таблицы, модальные окна |
 | Domain helpers | `lib/atdbEditDraft.ts`, `lib/atdbBatchEdit.ts`, `lib/atdbTableView.ts` | Чистая логика draft, массовых операций, поиска и сортировки |
 | ATDB facade | `lib/sqlProcessor.ts`, `lib/parseAtdb.ts`, `lib/buildAtdb.ts` | Публичный parse/build API |
 | ATDB internals | `lib/atdb/*` | Readers, writers, mapping, validation, transaction helper |
@@ -81,12 +89,13 @@ FileUploader
   -> React state
   -> atdbTableView
   -> ScrollableDataTable / TableQueryToolbar / DataTable
+  -> PersonTable / FamilyTable / EventTable / PlaceTable
 ```
 
 ## Поток редактирования
 
 ```text
-DataTable / EditableCell
+DataTable / entity-specific tables / EditableCell
   -> local edit draft state
   -> atdbEditDraft
   -> счетчик изменённых полей и записей
@@ -130,8 +139,8 @@ No-op export не запускает сборку: пока `AtdbChangeSet` пу
 
 ## Текущие ограничения архитектуры
 
-- `components/DataTable.tsx` всё ещё рендерит несколько сущностей в одном компоненте.
-- Entity-specific таблицы пока не выделены.
+- `components/DataTable.tsx` остаётся совместимым router-wrapper для выбора entity-specific таблицы.
+- Entity-specific таблицы выделены в `components/atdb-table/`; общая механика заголовков, selection и empty state вынесена в shared primitives.
 - Виртуализация больших таблиц не внедрена.
 - Write-safe scope ограничен update-only изменениями существующих записей.
 - Compatibility API `buildAtdb(parsed, original)` сохранён, но основной UI export использует явный `AtdbChangeSet`.

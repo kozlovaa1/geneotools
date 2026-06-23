@@ -24,8 +24,15 @@ geneotools/
 │   ├── page.tsx                 # Upload, parse, draft, errors, export
 │   └── globals.css
 ├── components/                  # Presentation layer
+│   ├── atdb-table/              # Entity-specific tables and shared table primitives
+│   │   ├── AtdbTablePrimitives.tsx
+│   │   ├── EventTable.tsx
+│   │   ├── FamilyTable.tsx
+│   │   ├── PersonTable.tsx
+│   │   ├── PlaceTable.tsx
+│   │   └── useAtdbTableEditors.tsx
 │   ├── BulkEditDialog.tsx       # Batch edit preview/apply controls
-│   ├── DataTable.tsx            # Entity table rendering
+│   ├── DataTable.tsx            # Router-wrapper for entity tables
 │   ├── EditableCell.tsx         # Reusable editable cell controls
 │   ├── FileUploader.tsx         # File selection and drag-and-drop
 │   ├── Modal.tsx
@@ -46,6 +53,7 @@ geneotools/
 │   │   └── writers/             # Field-level write-safe changes
 │   ├── atdbBatchEdit.ts         # Pure batch preview/apply helper
 │   ├── atdbEditDraft.ts         # Draft state and AtdbChangeSet builder
+│   ├── atdbIntegerInput.ts      # Strict integer input parser shared by tables and batch edit
 │   ├── atdbTableView.ts         # Query, filter, sort, visible IDs
 │   ├── buildAtdb.ts             # Compatibility build exports
 │   ├── initSqlJs.ts             # sql.js bootstrap
@@ -96,12 +104,13 @@ ParsedAtdb + AtdbEditDraftState
   -> quick search / field filter / sorting
   -> visible rows + visible IDs
   -> ScrollableDataTable / TableQueryToolbar / DataTable
+  -> PersonTable / FamilyTable / EventTable / PlaceTable
 ```
 
 ### Локальное редактирование
 
 ```text
-EditableCell / DataTable
+EditableCell / entity-specific tables
   -> app/page.tsx editDraft state
   -> lib/atdbEditDraft
   -> buildAtdbChangeSet only before export
@@ -225,6 +234,7 @@ export async function parseAtdb(
 | Зона изменения | Проверки |
 |----------------|----------|
 | UI/components | `npm run lint`, `npx tsc --noEmit`, ручной browser smoke |
+| Table components | `npm run test:atdb:table-components`, `npm run lint`, `npx tsc --noEmit` |
 | Draft/query/batch helpers | `npm run test:atdb:table-view`, `npm run test:atdb:edit-draft`, `npm run test:atdb:batch-edit` |
 | Mapping/write/rebuild | `npm run mapping:atdb:check`, `npm run test:atdb:write-safety`, `npm run test:atdb:rebuild-contract` |
 | Документация | link check, `git diff --check`, `npm run lint` |
