@@ -1,12 +1,14 @@
-[← Getting Started](getting-started.md) · [Back to README](../README.md) · [ATDB Format →](atdb_format.md)
+[← Начало работы](getting-started.md) · [К README](../README.md) · [Формат ATDB →](atdb_format.md)
 
-# Architecture
+# Архитектура
 
-## Overview
+## Обзор
 
-GeneoTools сейчас устроен как client-first modular monolith внутри одного Next.js приложения. Основная обработка `.atdb` вынесена во внутренний модульный слой `lib/atdb/`, скрытый за публичным фасадом `lib/sqlProcessor.ts`.
+GeneoTools устроен как client-first modular app внутри одного Next.js приложения. UI управляет пользовательским сценарием, а вся логика чтения, нормализации, безопасного редактирования и сборки `.atdb` находится в `lib/`.
 
-## Актуальная структура
+Главное правило: компоненты не выполняют SQL-запросы напрямую и не знают деталей SQLite-схемы.
+
+## Структура
 
 ```text
 geneotools/
@@ -15,149 +17,127 @@ geneotools/
 │   ├── layout.tsx
 │   └── page.tsx
 ├── components/
-│   ├── DataTable.tsx
 │   ├── BulkEditDialog.tsx
+│   ├── DataTable.tsx
 │   ├── EditableCell.tsx
 │   ├── FileUploader.tsx
 │   ├── Modal.tsx
 │   ├── ScrollableDataTable.tsx
 │   └── TableQueryToolbar.tsx
 ├── docs/
+│   ├── architecture.md
 │   ├── atdb_format.md
 │   ├── codebase-analysis.md
 │   ├── getting-started.md
 │   └── refactoring-plan.md
 ├── lib/
 │   ├── atdb/
-│   │   ├── constants.ts
-│   │   ├── dates.ts
-│   │   ├── dbTypes.ts
-│   │   ├── diagnostics.ts
-│   │   ├── fieldDefinitions.ts
 │   │   ├── mapping.json
 │   │   ├── mapping.ts
+│   │   ├── mappingTypes.ts
+│   │   ├── readers/
+│   │   ├── writers/
 │   │   ├── rebuildContract.ts
 │   │   ├── rebuildDiff.ts
 │   │   ├── rebuildValidation.ts
 │   │   ├── schemaContext.ts
-│   │   ├── sqlHelpers.ts
-│   │   ├── transaction.ts
-│   │   ├── readers/
-│   │   └── writers/
-│   ├── buildAtdb.ts
+│   │   └── transaction.ts
 │   ├── atdbBatchEdit.ts
 │   ├── atdbEditDraft.ts
 │   ├── atdbTableView.ts
+│   ├── buildAtdb.ts
 │   ├── initSqlJs.ts
 │   ├── parseAtdb.ts
 │   ├── sqlProcessor.ts
 │   ├── types.ts
 │   └── utils.ts
-└── public/
+├── public/
+├── scripts/
+├── Dockerfile
+└── docker-compose.yml
 ```
 
-## Основные слои
+## Слои
 
-### Presentation
+| Слой | Файлы | Ответственность |
+|------|-------|-----------------|
+| App | `app/page.tsx`, `app/layout.tsx` | Загрузка файла, состояние сценария, ошибки, экспорт |
+| Components | `components/*` | Отображение, controls, таблицы, модальные окна |
+| Domain helpers | `lib/atdbEditDraft.ts`, `lib/atdbBatchEdit.ts`, `lib/atdbTableView.ts` | Чистая логика draft, массовых операций, поиска и сортировки |
+| ATDB facade | `lib/sqlProcessor.ts`, `lib/parseAtdb.ts`, `lib/buildAtdb.ts` | Публичный parse/build API |
+| ATDB internals | `lib/atdb/*` | Readers, writers, mapping, validation, transaction helper |
+| Scripts | `scripts/*` | Проверки mapping, write-safety, rebuild contract и вспомогательные gates |
 
-- `app/page.tsx` — orchestration upload/parse/download сценария
-- `components/FileUploader.tsx` — загрузка и валидация файла
-- `components/ScrollableDataTable.tsx` — табы и scroll container
-- `components/TableQueryToolbar.tsx` — быстрый поиск, field-level фильтр и счётчик видимой выборки
-- `components/DataTable.tsx` — рендер уже отфильтрованных/отсортированных строк и controlled sort headers
-- `components/BulkEditDialog.tsx` — controls массового редактирования, предпросмотр и apply action
-- `components/EditableCell.tsx` — компактные presentation controls для write-safe ячеек
-
-### Domain / Processing
-
-- `lib/types.ts` — единая доменная модель
-- `lib/sqlProcessor.ts` — публичный фасад parse/build flow
-- `lib/atdbEditDraft.ts` — чистые UI-facing helper'ы локального draft state и сборки `AtdbChangeSet`
-- `lib/atdbTableView.ts` — чистый table-view/query слой поверх `ParsedAtdb + AtdbEditDraftState`: metadata колонок, поиск, фильтры, sorting и visible IDs
-- `lib/atdbBatchEdit.ts` — чистый helper массового preview/apply поверх `AtdbEditDraftState`
-- `lib/atdb/readers/*` — чтение metadata, персон, родов, событий и мест из SQLite
-- `lib/atdb/writers/*` — field-level запись разрешённых изменений персон, родов, мест и life-event place links
-- `lib/atdb/rebuildContract.ts` — typed contract для `AtdbChangeSet`, build report и safe errors
-- `lib/atdb/rebuildDiff.ts` — compatibility diff из `ParsedAtdb` в явный change-set
-- `lib/atdb/rebuildValidation.ts` — preflight, post-build validation и protected fingerprints
-- `lib/atdb/transaction.ts` — общий `SAVEPOINT` / rollback helper для write phase
-- `lib/atdb/sqlHelpers.ts`, `dates.ts`, `fieldDefinitions.ts`, `mapping.ts` — внутренние helper/mapping модули
-- `lib/buildAtdb.ts` — compatibility re-export публичного build API
-- `lib/initSqlJs.ts` — bootstrap `sql.js`
-
-## Поток данных
+## Поток чтения
 
 ```text
-User
-  -> FileUploader
+FileUploader
   -> app/page.tsx
-  -> lib/sqlProcessor.parseAtdb
+  -> динамический импорт lib/sqlProcessor.ts
+  -> parseAtdb(buffer)
   -> sql.js Database
-  -> ParsedAtdb in React state
-  -> local edit draft state
-  -> lib/atdbTableView.queryAtdbTableRows
-  -> visible rows / visible IDs / counts
+  -> readers + AtdbSchemaContext
+  -> ParsedAtdb
+  -> React state
+  -> atdbTableView
   -> ScrollableDataTable / TableQueryToolbar / DataTable
 ```
 
-Экспорт:
+## Поток редактирования
 
 ```text
-User
-  -> app/page.tsx
-  -> lib/atdbEditDraft.buildAtdbChangeSet
-  -> lib/sqlProcessor.applyAtdbChanges
-  -> strict change-set validation
-  -> transaction write phase
+DataTable / EditableCell
+  -> local edit draft state
+  -> atdbEditDraft
+  -> счетчик изменённых полей и записей
+```
+
+Массовое редактирование использует тот же draft:
+
+```text
+BulkEditDialog
+  -> atdbBatchEdit.previewAtdbBatchEdit
+  -> preview counts и reason codes
+  -> atdbBatchEdit.applyAtdbBatchEdit
+  -> local edit draft state
+```
+
+## Поток экспорта
+
+```text
+app/page.tsx
+  -> buildAtdbChangeSet(parsedData, editDraft)
+  -> applyAtdbChanges(originalBuffer, changeSet)
+  -> strict preflight
+  -> SAVEPOINT write phase
   -> post-build validation
   -> Blob
   -> browser download
 ```
 
-Массовое редактирование:
-
-```text
-User
-  -> BulkEditDialog
-  -> lib/atdbBatchEdit.previewAtdbBatchEdit
-  -> preview counts / reason codes / affected rows
-  -> lib/atdbBatchEdit.applyAtdbBatchEdit
-  -> local edit draft state
-  -> lib/atdbEditDraft.buildAtdbChangeSet
-```
-
-Поиск и фильтрация:
-
-```text
-ParsedAtdb + local edit draft state
-  -> lib/atdbTableView.queryAtdbTableRows
-  -> quick search / field-level filter / controlled sorting
-  -> visible rows + visible IDs
-  -> DataTable rendering
-  -> selection / bulk edit state
-```
-
-## Текущие архитектурные ограничения
-
-- `components/DataTable.tsx` всё ещё совмещает rendering нескольких сущностей, но query/sorting contract вынесен в `lib/atdbTableView.ts`
-- `parseAtdb.ts` пока используется как compatibility layer, а не как отдельный parser module
-- UI формирует `AtdbChangeSet` напрямую только для write-safe полей персон, родов и мест; события, даты, участники событий, родственные связи, notes/occupation и metadata остаются read-only
-- Массовое редактирование не расширяет strict rebuild contract: оно работает только как draft operation перед существующим экспортом
-- Compatibility `buildAtdb(parsed, original)` сохраняется для старых imports и проверок, но основной UI export использует `applyAtdbChanges(original, changeSet)`
+No-op export не запускает сборку: пока `AtdbChangeSet` пустой, кнопка скачивания отключена.
 
 ## Правила зависимостей
 
-- `app/` может импортировать `components/` и `lib/`
-- `components/` могут импортировать `lib/`
-- `lib/` не должен зависеть от `app/` и `components/`
-- Доменные типы должны импортироваться из `lib/types.ts`
-- SQL-запросы должны оставаться в `lib/`, а не в UI
-- `lib/atdb/` считается внутренней реализацией: UI и скрипты должны обращаться к `lib/sqlProcessor.ts`, а не к reader/writer-модулям напрямую
-- Reliable rebuild остаётся в `lib/` за фасадом `lib/sqlProcessor.ts`; UI не должен импортировать `lib/atdb/rebuild*` или writer-модули напрямую
-- `.atdb` остается локальным файлом браузерной сессии; документация и логи не должны содержать персональные строки из пользовательской базы
+- `app/` может импортировать `components/` и публичные helpers из `lib/`.
+- `components/` могут импортировать типы и чистые helpers из `lib/`.
+- `lib/` не должен зависеть от `app/` или `components/`.
+- UI не должен импортировать reader/writer-модули из `lib/atdb/` напрямую.
+- SQL-запросы остаются в `lib/atdb/` и фасаде `lib/sqlProcessor.ts`.
+- Доменные типы импортируются из `lib/types.ts`.
+- Числовые ATDB-коды должны идти через `lib/atdb/mapping.json` и `AtdbSchemaContext`.
+- Документация, логи и ошибки не должны раскрывать пользовательские raw-значения.
 
-## See Also
+## Текущие ограничения архитектуры
 
-- [Getting Started](getting-started.md) — запуск и основной пользовательский сценарий
-- [Codebase Analysis](codebase-analysis.md) — детализированные проблемы текущей реализации
-- [Refactoring Plan](refactoring-plan.md) — план перехода к более чистой архитектуре
+- `components/DataTable.tsx` всё ещё рендерит несколько сущностей в одном компоненте.
+- Entity-specific таблицы пока не выделены.
+- Виртуализация больших таблиц не внедрена.
+- Write-safe scope ограничен update-only изменениями существующих записей.
+- Compatibility API `buildAtdb(parsed, original)` сохранён, но основной UI export использует явный `AtdbChangeSet`.
+
+## См. также
+
+- [Начало работы](getting-started.md) — запуск и пользовательский сценарий
+- [Формат ATDB](atdb_format.md) — структура данных и safe write contract
+- [Анализ кода](codebase-analysis.md) — текущие риски и технический долг
