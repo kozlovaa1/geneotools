@@ -164,6 +164,7 @@ try {
 
   const tableView = requireFromScript(path.join(tempDir, 'lib/atdbTableView.js'));
   const editDraft = requireFromScript(path.join(tempDir, 'lib/atdbEditDraft.js'));
+  const tableViewSource = fs.readFileSync(path.join(projectRoot, 'lib/atdbTableView.ts'), 'utf8');
   const data = syntheticParsedData();
   const original = clone(data);
   let draft = editDraft.createEmptyAtdbEditDraft();
@@ -173,6 +174,20 @@ try {
   assert.equal(tableView.getWritableEntityForAtdbTableEntity('events'), null, 'event writable mapping mismatch');
   assert.equal(tableView.getWritableEntityForAtdbTableEntity('places'), 'place', 'place writable mapping mismatch');
   safeLog('entity-contract: ok');
+
+  assert.ok(
+    tableViewSource.includes('function createAtdbTableQueryContext'),
+    'table query should create a per-query context',
+  );
+  assert.ok(
+    tableViewSource.includes('cellValueCache: new Map()'),
+    'table query should keep a per-query cell value cache',
+  );
+  assert.ok(
+    tableViewSource.includes('context.placeById.get(placeId)'),
+    'draft-aware place labels should use query-level place lookup',
+  );
+  safeLog('query-cache-contract: ok');
 
   assert.deepEqual(ids(query(tableView, data, draft, 'persons')), [1, 2, 3], 'empty person query order mismatch');
   assert.deepEqual(ids(query(tableView, data, draft, 'families')), [20, 21], 'empty family query order mismatch');

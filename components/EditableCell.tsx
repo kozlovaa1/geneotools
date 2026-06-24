@@ -1,6 +1,12 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { parseAtdbIntegerInput } from '@/lib/atdbIntegerInput';
+import { cn } from '@/lib/utils';
+import {
+  compactInputClassName,
+  dirtyInputClassName,
+  iconButtonClassName,
+} from './uiStyles';
 
 export interface EditableSelectOption {
   value: string;
@@ -38,11 +44,6 @@ interface EditableNumberCellProps {
   onReset: () => void;
 }
 
-const controlClassName =
-  'h-8 w-full min-w-0 rounded border border-gray-300 bg-white px-2 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
-
-const dirtyControlClassName = 'border-amber-400 bg-amber-50 focus:border-amber-500 focus:ring-amber-100';
-
 function EditableCellFrame({ dirty, onReset, children }: EditableCellFrameProps) {
   return (
     <div className="flex min-w-[11rem] items-center gap-1">
@@ -53,7 +54,7 @@ function EditableCellFrame({ dirty, onReset, children }: EditableCellFrameProps)
         aria-label="Сбросить поле"
         disabled={!dirty}
         onClick={onReset}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-gray-300 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30"
+        className={cn(iconButtonClassName, 'h-8 w-8 shrink-0 disabled:opacity-30')}
       >
         <RotateCcw className="h-4 w-4" aria-hidden="true" />
       </button>
@@ -69,7 +70,7 @@ export function EditableTextCell({ value, dirty, ariaLabel, onChange, onReset }:
         aria-label={ariaLabel}
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value)}
-        className={`${controlClassName} ${dirty ? dirtyControlClassName : ''}`}
+        className={cn(compactInputClassName, 'w-full min-w-0', dirty && dirtyInputClassName)}
       />
     </EditableCellFrame>
   );
@@ -89,7 +90,7 @@ export function EditableSelectCell({
         aria-label={ariaLabel}
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value)}
-        className={`${controlClassName} ${dirty ? dirtyControlClassName : ''}`}
+        className={cn(compactInputClassName, 'w-full min-w-0', dirty && dirtyInputClassName)}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -121,7 +122,7 @@ export function EditableNumberCell({ value, dirty, ariaLabel, onChange, onReset 
             onChange(parsed);
           }
         }}
-        className={`${controlClassName} ${dirty ? dirtyControlClassName : ''}`}
+        className={cn(compactInputClassName, 'w-full min-w-0', dirty && dirtyInputClassName)}
       />
     </EditableCellFrame>
   );

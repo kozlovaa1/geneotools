@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useDeferredValue, useMemo, useState, useTransition } from 'react';
 import FileUploader from '@/components/FileUploader';
 import ScrollableDataTable from '@/components/ScrollableDataTable';
 import Modal from '@/components/Modal';
@@ -34,11 +34,29 @@ import {
 import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
 import Image from 'next/image';
 import { Download, RotateCcw, Wand2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  primaryButtonClassName,
+  secondaryButtonClassName,
+  statusBadgeClassName,
+  statusSurfaceClassName,
+} from '@/components/uiStyles';
 
 type ActiveEntity = AtdbTableEntity;
+type ImportPhase = 'idle' | 'reading' | 'parsing' | 'ready' | 'error';
+type ExportPhase = 'idle' | 'preparing' | 'ready' | 'error';
+type BulkPreviewPhase = 'idle' | 'previewing' | 'ready' | 'error';
+type BulkApplyPhase = 'idle' | 'applying' | 'ready' | 'error';
 type SelectionState = Record<AtdbWritableEntity, number[]>;
 type TableQueryStateByEntity = Record<AtdbTableEntity, AtdbTableQueryState>;
-type TableQueryResultByEntity = Record<AtdbTableEntity, AtdbTableQueryResult>;
+
+const EMPTY_SELECTED_IDS: readonly number[] = [];
+
+function waitForNextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+}
 
 function createEmptySelection(): SelectionState {
   return {
@@ -78,33 +96,45 @@ export default function Home() {
   const [tableQueries, setTableQueries] = useState<TableQueryStateByEntity>(() => createEmptyTableQueries());
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [bulkPreview, setBulkPreview] = useState<AtdbBatchEditPreview | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [importPhase, setImportPhase] = useState<ImportPhase>('idle');
+  const [exportPhase, setExportPhase] = useState<ExportPhase>('idle');
+  const [bulkPreviewPhase, setBulkPreviewPhase] = useState<BulkPreviewPhase>('idle');
+  const [bulkApplyPhase, setBulkApplyPhase] = useState<BulkApplyPhase>('idle');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [isTablePending, startTableTransition] = useTransition();
   const draftChangeCount = useMemo(
     () => (parsedData ? countDraftChanges(parsedData, editDraft) : { entities: 0, fields: 0 }),
     [editDraft, parsedData],
   );
   const activeWritableEntity = getWritableEntityForAtdbTableEntity(activeEntity);
-  const activeSelectedIds = activeWritableEntity ? selectedRows[activeWritableEntity] : [];
+  const activeSelectedIds = activeWritableEntity ? selectedRows[activeWritableEntity] : EMPTY_SELECTED_IDS;
+  const activeSelectedIdSet = useMemo(() => new Set(activeSelectedIds), [activeSelectedIds]);
   const hasDraftChanges = draftChangeCount.fields > 0;
-  const tableQueryResults = useMemo<TableQueryResultByEntity | null>(() => {
+  const isImportBusy = importPhase === 'reading' || importPhase === 'parsing';
+  const isDownloading = exportPhase === 'preparing';
+  const isBulkPreviewPending = bulkPreviewPhase === 'previewing';
+  const isBulkApplyPending = bulkApplyPhase === 'applying';
+  const importStatusText =
+    importPhase === 'reading'
+      ? 'Чтение файла .atdb...'
+        : importPhase === 'parsing'
+          ? 'Разбор структуры .atdb...'
+          : null;
+  const exportStatusText = exportPhase === 'preparing' ? 'Подготовка обновлённого .atdb...' : null;
+  const activeTableQuery = tableQueries[activeEntity];
+  const deferredTableQueries = useDeferredValue(tableQueries);
+  const renderedTableQuery = deferredTableQueries[activeEntity];
+  const isTableRefreshing = isTablePending || deferredTableQueries !== tableQueries;
+  const activeTableQueryResult = useMemo<AtdbTableQueryResult | null>(() => {
     if (!parsedData) return null;
 
-    return {
-      persons: queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery('persons', tableQueries.persons)),
-      families: queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery('families', tableQueries.families)),
-      events: queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery('events', tableQueries.events)),
-      places: queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery('places', tableQueries.places)),
-    };
-  }, [editDraft, parsedData, tableQueries]);
-  const activeTableQuery = tableQueries[activeEntity];
-  const activeTableQueryResult = tableQueryResults?.[activeEntity] ?? null;
+    return queryAtdbTableRows(parsedData, editDraft, createAtdbTableQuery(activeEntity, renderedTableQuery));
+  }, [activeEntity, editDraft, parsedData, renderedTableQuery]);
 
-  const handleFileUpload = async (file: File, buffer: ArrayBuffer) => {
-    setIsLoading(true);
+  const handleFileReadStart = () => {
+    setImportPhase('reading');
     setParsedData(null);
     setOriginalBuffer(null);
     setOriginalFilename(null);
@@ -117,7 +147,21 @@ export default function Home() {
     setError(null);
     setSuccess(null);
     setShowModal(false);
-    setIsDownloading(false);
+    setExportPhase('idle');
+    setBulkPreviewPhase('idle');
+    setBulkApplyPhase('idle');
+  };
+
+  const handleFileReadError = () => {
+    setImportPhase('error');
+    setError('Ошибка чтения файла .atdb');
+    setSuccess(null);
+  };
+
+  const handleFileUpload = async (file: File, buffer: ArrayBuffer) => {
+    setImportPhase('parsing');
+    setError(null);
+    setSuccess(null);
 
     try {
       // Dynamically import the sql processor functions
@@ -131,14 +175,14 @@ export default function Home() {
       setParsedData(parsedResult);
       setOriginalBuffer(uint8Array);
       setOriginalFilename(file.name); // Store the original filename
-      setSuccess(`Файл .atdb успешно загружен: ${parsedResult.persons.length} персон, ${parsedResult.families.length} родов, ${parsedResult.events.length} событий.`);
+      setImportPhase('ready');
+      setSuccess(`Файл .atdb успешно загружен: ${parsedResult.persons.length} персон, ${parsedResult.families.length} родов, ${parsedResult.events.length} событий, ${parsedResult.places.length} мест.`);
     } catch (err) {
       const { formatAtdbBuildError } = await import('@/lib/sqlProcessor');
       const safeError = formatAtdbBuildError(err);
       console.error('Ошибка при разборе файла .atdb:', { code: safeError.code, issueCount: safeError.issueCount });
+      setImportPhase('error');
       setError(`Ошибка при разборе файла .atdb: ${safeError.message}`);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -149,6 +193,8 @@ export default function Home() {
 
     setEditDraft((currentDraft) => setDraftField(currentDraft, parsedData, key, value));
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
+    setBulkApplyPhase('idle');
     setError(null);
     setSuccess(null);
   };
@@ -156,13 +202,19 @@ export default function Home() {
   const handleDraftFieldReset = (key: AtdbDraftFieldKey) => {
     setEditDraft((currentDraft) => resetDraftField(currentDraft, key));
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
+    setBulkApplyPhase('idle');
     setError(null);
     setSuccess(null);
   };
 
   const handleActiveEntityChange = (nextActiveEntity: ActiveEntity) => {
-    setActiveEntity(nextActiveEntity);
-    setBulkPreview(null);
+    startTableTransition(() => {
+      setActiveEntity(nextActiveEntity);
+      setBulkPreview(null);
+      setBulkPreviewPhase('idle');
+      setBulkApplyPhase('idle');
+    });
   };
 
   const handleTableQueryChange = (entity: AtdbTableEntity, query: AtdbTableQueryState) => {
@@ -171,11 +223,17 @@ export default function Home() {
       [entity]: query,
     }));
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
+    setBulkApplyPhase('idle');
     setError(null);
     setSuccess(null);
   };
 
   const handleRowSelectionChange = (entityType: AtdbWritableEntity, id: number, selected: boolean) => {
+    if (isTableRefreshing) {
+      return;
+    }
+
     setSelectedRows((currentSelection) => ({
       ...currentSelection,
       [entityType]: selected
@@ -183,6 +241,7 @@ export default function Home() {
         : currentSelection[entityType].filter((selectedId) => selectedId !== id),
     }));
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
   };
 
   const handleRenderedRowsSelectionChange = (
@@ -190,13 +249,20 @@ export default function Home() {
     ids: readonly number[],
     selected: boolean,
   ) => {
+    if (isTableRefreshing) {
+      return;
+    }
+
+    const renderedIdSet = new Set(ids);
+
     setSelectedRows((currentSelection) => ({
       ...currentSelection,
       [entityType]: selected
         ? mergeSelectedIds(currentSelection[entityType], ids)
-        : currentSelection[entityType].filter((selectedId) => !ids.includes(selectedId)),
+        : currentSelection[entityType].filter((selectedId) => !renderedIdSet.has(selectedId)),
     }));
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
   };
 
   const handleClearSelection = (entityType: AtdbWritableEntity) => {
@@ -205,6 +271,8 @@ export default function Home() {
       [entityType]: [],
     }));
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
+    setBulkApplyPhase('idle');
   };
 
   const handleClearDraft = () => {
@@ -218,38 +286,59 @@ export default function Home() {
 
     setEditDraft(clearDraft());
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
+    setBulkApplyPhase('idle');
+    setExportPhase('idle');
     setError(null);
     setSuccess('Все изменения сброшены. Исходный файл не изменён.');
   };
 
   const handleOpenBulkEdit = () => {
-    if (!activeWritableEntity) {
+    if (!activeWritableEntity || isTableRefreshing) {
       return;
     }
 
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
+    setBulkApplyPhase('idle');
     setIsBulkDialogOpen(true);
     setError(null);
     setSuccess(null);
   };
 
-  const handleBulkPreview = (operation: AtdbBatchEditOperation) => {
-    if (!parsedData) {
+  const handleBulkPreview = async (operation: AtdbBatchEditOperation) => {
+    if (!parsedData || isBulkPreviewPending || isBulkApplyPending) {
       return;
     }
 
-    setBulkPreview(previewAtdbBatchEdit(parsedData, editDraft, operation));
+    setBulkPreviewPhase('previewing');
+    await waitForNextFrame();
+
+    try {
+      setBulkPreview(previewAtdbBatchEdit(parsedData, editDraft, operation));
+      setBulkPreviewPhase('ready');
+    } catch {
+      setBulkPreview(null);
+      setBulkPreviewPhase('error');
+      setError('Не удалось подготовить предпросмотр массового редактирования.');
+      return;
+    }
+
     setError(null);
     setSuccess(null);
   };
 
-  const handleBulkApply = (preview: AtdbBatchEditPreview) => {
-    if (!parsedData) {
+  const handleBulkApply = async (preview: AtdbBatchEditPreview) => {
+    if (!parsedData || isBulkApplyPending || isBulkPreviewPending) {
       return;
     }
 
+    setBulkApplyPhase('applying');
+    await waitForNextFrame();
+
     const result = applyAtdbBatchEdit(parsedData, editDraft, preview);
     if (result.stale) {
+      setBulkApplyPhase('error');
       setError('Предпросмотр устарел. Пересчитайте предпросмотр перед применением.');
       setSuccess(null);
       setBulkPreview(null);
@@ -258,6 +347,9 @@ export default function Home() {
 
     setEditDraft(result.draft);
     setBulkPreview(null);
+    setBulkPreviewPhase('idle');
+    setBulkApplyPhase('ready');
+    setExportPhase('idle');
     setIsBulkDialogOpen(false);
     setError(null);
     setSuccess(
@@ -281,8 +373,9 @@ export default function Home() {
     }
 
     let changes = draftChangeCount.fields;
-    setIsDownloading(true);
+    setExportPhase('preparing');
     setError(null);
+    setSuccess(null);
 
     try {
       if (!originalBuffer) {
@@ -319,6 +412,7 @@ export default function Home() {
       setSuccess(
         `Обновленный .atdb подготовлен: применено ${changes} изменений в ${changeSet.changes.length} записях. Исходный файл не изменён.`,
       );
+      setExportPhase('ready');
     } catch (err) {
       const { formatAtdbBuildError } = await import('@/lib/sqlProcessor');
       const safeError = formatAtdbBuildError(err);
@@ -328,8 +422,7 @@ export default function Home() {
         changes,
       });
       setError(`Ошибка при создании файла .atdb: ${safeError.message}`);
-    } finally {
-      setIsDownloading(false);
+      setExportPhase('error');
     }
   };
 
@@ -358,13 +451,21 @@ export default function Home() {
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 mb-8">
             <FileUploader 
               onFileUpload={handleFileUpload} 
+              onFileReadStart={handleFileReadStart}
+              onFileReadError={handleFileReadError}
               acceptedFileTypes={['.atdb']} 
               maxFileSize={100 * 1024 * 1024} // 100MB
+              disabled={isImportBusy}
+              busyLabel={importStatusText ?? 'Файл обрабатывается...'}
             />
             
-            {isLoading && (
-              <div className="mt-4 text-center flex flex-col items-center">
-                <div className="animate-spin mb-4">
+            {importStatusText && (
+              <div
+                className={cn(statusSurfaceClassName, 'mt-4 flex flex-col items-center text-center')}
+                role="status"
+                aria-live="polite"
+              >
+                <div className="gt-spinner mb-4 animate-spin">
                   <Image
                     className="dark:invert"
                     src="/logo.svg"
@@ -374,18 +475,36 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <p className="text-zinc-600 dark:text-zinc-400">Обработка файла...</p>
+                <p className="text-zinc-600 dark:text-zinc-400">{importStatusText}</p>
+              </div>
+            )}
+
+            {exportStatusText && (
+              <div
+                className={cn(statusSurfaceClassName, 'mt-4 rounded-md bg-blue-50 p-3 text-blue-700')}
+                role="status"
+                aria-live="polite"
+              >
+                {exportStatusText}
               </div>
             )}
             
             {error && (
-              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md">
+              <div
+                className={cn(statusSurfaceClassName, 'mt-4 rounded-md bg-red-50 p-3 text-red-700')}
+                role="alert"
+                aria-live="assertive"
+              >
                 {error}
               </div>
             )}
             
             {success && (
-              <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
+              <div
+                className={cn(statusSurfaceClassName, 'mt-4 rounded-md bg-green-50 p-3 text-green-700')}
+                role="status"
+                aria-live="polite"
+              >
                 {success}
               </div>
             )}
@@ -393,20 +512,20 @@ export default function Home() {
             {parsedData && activeTableQueryResult && (
               <div className="mt-8 -mx-6 flex-1 flex flex-col min-h-0">
                 <div className="sticky top-4 z-50 mb-4 flex flex-wrap items-center justify-center gap-3 px-6">
-                  <span className="rounded border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm">
+                  <span className={cn(statusBadgeClassName, 'bg-white shadow-sm')}>
                     {hasDraftChanges
                       ? `${draftChangeCount.fields} полей в ${draftChangeCount.entities} записях изменено`
                       : 'Изменений нет'}
                   </span>
-                  <span className="rounded border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm">
+                  <span className={cn(statusBadgeClassName, 'bg-white shadow-sm')}>
                     Выбрано: {activeSelectedIds.length}
                   </span>
                   <div className="flex flex-wrap items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={handleOpenBulkEdit}
-                      disabled={!activeWritableEntity || isDownloading}
-                      className="flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+                      disabled={!activeWritableEntity || isDownloading || isTableRefreshing}
+                      className={cn(secondaryButtonClassName, 'px-4 py-2 shadow-lg')}
                     >
                       <Wand2 className="h-4 w-4" aria-hidden="true" />
                       Массовое редактирование
@@ -414,7 +533,7 @@ export default function Home() {
                     <button
                       onClick={handleDownload}
                       disabled={!hasDraftChanges || isDownloading}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors shadow-lg"
+                      className={cn(primaryButtonClassName, 'px-4 py-2 shadow-lg')}
                     >
                       <Download className="h-4 w-4" aria-hidden="true" />
                       {isDownloading ? 'Подготовка файла...' : 'Скачать обновленный .atdb'}
@@ -423,7 +542,7 @@ export default function Home() {
                       type="button"
                       onClick={handleClearDraft}
                       disabled={!hasDraftChanges || isDownloading}
-                      className="flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+                      className={cn(secondaryButtonClassName, 'px-4 py-2 shadow-lg')}
                     >
                       <RotateCcw className="h-4 w-4" aria-hidden="true" />
                       Сбросить все изменения
@@ -445,9 +564,12 @@ export default function Home() {
                     places={parsedData.places || []}
                     tableQuery={activeTableQuery}
                     tableQueryResult={activeTableQueryResult}
+                    isTableRefreshing={isTableRefreshing}
+                    renderedTableQuery={renderedTableQuery}
                     draft={editDraft}
                     sourceData={parsedData}
                     selectedRows={selectedRows}
+                    selectedIdSet={activeSelectedIdSet}
                     onTableQueryChange={handleTableQueryChange}
                     onRowSelectionChange={handleRowSelectionChange}
                     onRenderedRowsSelectionChange={handleRenderedRowsSelectionChange}
@@ -485,7 +607,9 @@ export default function Home() {
           draft={editDraft}
           selectedIds={activeSelectedIds}
           preview={bulkPreview}
-          isDownloading={isDownloading}
+          isExportPending={isDownloading}
+          isPreviewPending={isBulkPreviewPending}
+          isApplyPending={isBulkApplyPending}
           onPreview={handleBulkPreview}
           onApply={handleBulkApply}
           onClose={() => setIsBulkDialogOpen(false)}

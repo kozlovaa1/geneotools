@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Check, Eye, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   createAtdbBatchEditFingerprint,
   getAtdbBatchEditableField,
@@ -18,6 +19,15 @@ import {
 import type { AtdbEditDraftState } from '@/lib/atdbEditDraft';
 import type { AtdbFieldName, AtdbWritableEntity } from '@/lib/sqlProcessor';
 import type { ParsedAtdb, Place } from '@/lib/types';
+import {
+  checkboxClassName,
+  dialogPanelClassName,
+  iconButtonClassName,
+  inputClassName,
+  primaryButtonClassName,
+  statusSurfaceClassName,
+  successButtonClassName,
+} from './uiStyles';
 
 interface BulkEditDialogProps {
   isOpen: boolean;
@@ -26,7 +36,9 @@ interface BulkEditDialogProps {
   draft: AtdbEditDraftState;
   selectedIds: readonly number[];
   preview: AtdbBatchEditPreview | null;
-  isDownloading: boolean;
+  isExportPending: boolean;
+  isPreviewPending: boolean;
+  isApplyPending: boolean;
   onPreview: (operation: AtdbBatchEditOperation) => void;
   onApply: (preview: AtdbBatchEditPreview) => void;
   onClose: () => void;
@@ -90,11 +102,17 @@ export default function BulkEditDialog({
   draft,
   selectedIds,
   preview,
-  isDownloading,
+  isExportPending,
+  isPreviewPending,
+  isApplyPending,
   onPreview,
   onApply,
   onClose,
 }: BulkEditDialogProps) {
+  const titleId = React.useId();
+  const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+  const previousActiveElementRef = React.useRef<HTMLElement | null>(null);
+  const onCloseRef = React.useRef(onClose);
   const fields = React.useMemo(() => getAtdbBatchEditableFields(activeEntity), [activeEntity]);
   const [fieldName, setFieldName] = React.useState<AtdbFieldName>(() => firstField(fields));
   const [scopeType, setScopeType] = React.useState<AtdbBatchEditScopeType>('selected');
@@ -110,6 +128,35 @@ export default function BulkEditDialog({
   const [searchText, setSearchText] = React.useState('');
   const [replacementText, setReplacementText] = React.useState('');
   const [replaceCaseSensitive, setReplaceCaseSensitive] = React.useState(false);
+
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    previousActiveElementRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onCloseRef.current();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previousActiveElementRef.current?.focus();
+    };
+  }, [isOpen]);
 
   React.useEffect(() => {
     const nextField = firstField(fields);
@@ -196,27 +243,47 @@ export default function BulkEditDialog({
   ]);
 
   const currentFingerprint = React.useMemo(
-    () => (operation ? createAtdbBatchEditFingerprint(data, draft, operation) : null),
-    [data, draft, operation],
+    () => (preview && operation ? createAtdbBatchEditFingerprint(data, draft, operation) : null),
+    [data, draft, operation, preview],
   );
   const previewIsCurrent = Boolean(preview && currentFingerprint && preview.fingerprint === currentFingerprint);
-  const canPreview = Boolean(operation && isOperationReady(selectedField, action, numberValue, placeValue, searchText));
-  const canApply = Boolean(preview && previewIsCurrent && preview.valid && preview.counts.affected > 0 && !isDownloading);
+  const canPreview = Boolean(
+    operation
+    && isOperationReady(selectedField, action, numberValue, placeValue, searchText)
+    && !isPreviewPending
+    && !isApplyPending
+    && !isExportPending,
+  );
+  const canApply = Boolean(
+    preview
+    && previewIsCurrent
+    && preview.valid
+    && preview.counts.affected > 0
+    && !isPreviewPending
+    && !isApplyPending
+    && !isExportPending,
+  );
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-gray-950/50 px-3 py-6">
-      <div className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+      <div
+        className={cn(dialogPanelClassName, 'flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-xl')}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-950">Массовое редактирование</h2>
+            <h2 id={titleId} className="text-lg font-semibold text-gray-950">Массовое редактирование</h2>
             <p className="mt-1 text-sm text-gray-600">{ENTITY_LABELS[activeEntity]}</p>
           </div>
           <button
             type="button"
+            ref={closeButtonRef}
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-100"
+            className={cn(iconButtonClassName, 'h-9 w-9')}
             aria-label="Закрыть"
             title="Закрыть"
           >
@@ -231,7 +298,7 @@ export default function BulkEditDialog({
               <select
                 value={fieldName}
                 onChange={(event) => setFieldName(event.target.value as AtdbFieldName)}
-                className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className={inputClassName}
               >
                 {fields.map((field) => (
                   <option key={fieldOptionKey(field)} value={field.field}>
@@ -246,7 +313,7 @@ export default function BulkEditDialog({
               <select
                 value={scopeType}
                 onChange={(event) => setScopeType(event.target.value as AtdbBatchEditScopeType)}
-                className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className={inputClassName}
               >
                 <option value="selected">Выбранные строки ({selectedIds.length})</option>
                 <option value="all">Все строки вкладки</option>
@@ -261,7 +328,7 @@ export default function BulkEditDialog({
                   <select
                     value={predicateField}
                     onChange={(event) => setPredicateField(event.target.value as AtdbFieldName)}
-                    className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className={inputClassName}
                   >
                     {fields.map((field) => (
                       <option key={fieldOptionKey(field)} value={field.field}>
@@ -275,7 +342,7 @@ export default function BulkEditDialog({
                   <select
                     value={predicateOperator}
                     onChange={(event) => setPredicateOperator(event.target.value as AtdbBatchPredicateOperator)}
-                    className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className={inputClassName}
                   >
                     {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -291,7 +358,7 @@ export default function BulkEditDialog({
                       type="text"
                       value={predicateValue}
                       onChange={(event) => setPredicateValue(event.target.value)}
-                      className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      className={inputClassName}
                     />
                   </label>
                 )}
@@ -300,7 +367,7 @@ export default function BulkEditDialog({
                     type="checkbox"
                     checked={predicateCaseSensitive}
                     onChange={(event) => setPredicateCaseSensitive(event.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className={checkboxClassName}
                   />
                   Учитывать регистр
                 </label>
@@ -312,7 +379,7 @@ export default function BulkEditDialog({
               <select
                 value={action}
                 onChange={(event) => setAction(event.target.value as AtdbBatchEditAction)}
-                className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className={inputClassName}
               >
                 <option value="fill">Заполнить</option>
                 <option value="clear">Очистить</option>
@@ -343,7 +410,7 @@ export default function BulkEditDialog({
                     type="text"
                     value={searchText}
                     onChange={(event) => setSearchText(event.target.value)}
-                    className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className={inputClassName}
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
@@ -352,7 +419,7 @@ export default function BulkEditDialog({
                     type="text"
                     value={replacementText}
                     onChange={(event) => setReplacementText(event.target.value)}
-                    className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className={inputClassName}
                   />
                 </label>
                 <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -360,7 +427,7 @@ export default function BulkEditDialog({
                     type="checkbox"
                     checked={replaceCaseSensitive}
                     onChange={(event) => setReplaceCaseSensitive(event.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className={checkboxClassName}
                   />
                   Учитывать регистр
                 </label>
@@ -373,20 +440,25 @@ export default function BulkEditDialog({
               type="button"
               disabled={!canPreview}
               onClick={() => operation && onPreview(operation)}
-              className="flex items-center gap-2 rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+              className={cn(primaryButtonClassName, 'px-4 py-2')}
             >
               <Eye className="h-4 w-4" aria-hidden="true" />
-              Предпросмотр
+              {isPreviewPending ? 'Готовим предпросмотр...' : 'Предпросмотр'}
             </button>
             <button
               type="button"
               disabled={!canApply}
               onClick={() => preview && onApply(preview)}
-              className="flex items-center gap-2 rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+              className={cn(successButtonClassName, 'px-4 py-2')}
             >
               <Check className="h-4 w-4" aria-hidden="true" />
-              Применить в черновик
+              {isApplyPending ? 'Применяем...' : 'Применить в черновик'}
             </button>
+            {(isPreviewPending || isApplyPending) && (
+              <span className={cn(statusSurfaceClassName, 'rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700')} role="status" aria-live="polite">
+                {isPreviewPending ? 'Идёт подготовка предпросмотра' : 'Идёт применение в черновик'}
+              </span>
+            )}
           </div>
 
           <PreviewResult preview={preview} previewIsCurrent={previewIsCurrent} fields={fields} places={data.places} />
@@ -428,7 +500,7 @@ function FillValueControl({
           step={1}
           value={numberValue}
           onChange={(event) => onNumberValueChange(event.target.value)}
-          className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className={inputClassName}
         />
       </label>
     );
@@ -441,7 +513,7 @@ function FillValueControl({
         <select
           value={genderValue}
           onChange={(event) => onGenderValueChange(event.target.value)}
-          className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className={inputClassName}
         >
           <option value="M">M</option>
           <option value="F">F</option>
@@ -458,7 +530,7 @@ function FillValueControl({
         <select
           value={placeValue}
           onChange={(event) => onPlaceValueChange(event.target.value)}
-          className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className={inputClassName}
         >
           <option value="">Выберите место</option>
           {places.map((place) => (
@@ -478,7 +550,7 @@ function FillValueControl({
         type="text"
         value={textValue}
         onChange={(event) => onTextValueChange(event.target.value)}
-        className="h-10 rounded border border-gray-300 bg-white px-3 text-sm text-gray-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+        className={inputClassName}
       />
     </label>
   );
@@ -503,15 +575,20 @@ function PreviewResult({
   const reasonEntries = Object.entries(preview.reasonCounts).filter(([, count]) => Number(count) > 0);
 
   return (
-    <div className="mt-5 border-t border-gray-200 pt-4">
+    <div className={cn(statusSurfaceClassName, 'mt-5 border-t border-gray-200 pt-4')} role="status" aria-live="polite">
+      <p
+        className={cn(
+          'mb-3 rounded-md border px-3 py-2 text-sm',
+          previewIsCurrent
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+            : 'border-amber-200 bg-amber-50 text-amber-800',
+        )}
+      >
+        {previewIsCurrent ? 'Предпросмотр актуален' : REASON_LABELS['stale-preview']}
+      </p>
       {!preview.valid && preview.validation.code && (
-        <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {REASON_LABELS[preview.validation.code]}
-        </p>
-      )}
-      {preview.valid && !previewIsCurrent && (
-        <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {REASON_LABELS['stale-preview']}
         </p>
       )}
       <div className="grid gap-2 text-sm text-gray-800 sm:grid-cols-4">
@@ -521,12 +598,12 @@ function PreviewResult({
         <span>Без изменений: {preview.counts.noop}</span>
       </div>
       {preview.valid && preview.counts.affected === 0 && (
-        <p className="mt-3 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+        <p className="mt-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
           Нет изменений для применения.
         </p>
       )}
       {dirtyOverwriteCount > 0 && (
-        <p className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Уже изменённых полей будет перезаписано: {dirtyOverwriteCount}
         </p>
       )}

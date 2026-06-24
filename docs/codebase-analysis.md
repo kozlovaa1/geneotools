@@ -19,13 +19,14 @@ GeneoTools уже прошёл базовую декомпозицию: `lib/sql
 | Rebuild safety | Экспорт использует `AtdbChangeSet`, preflight, transaction и post-build validation |
 | UI helpers | Поиск, фильтры, сортировка, draft, batch edit и table chrome вынесены в отдельные helpers/components |
 | Таблицы | `DataTable` стал router-wrapper, а рендер персон, родов, событий и мест разделён по entity-specific компонентам |
+| Interaction states | Загрузка, table refresh, batch preview/apply и экспорт имеют явные pending/disabled/status states |
 | Диагностика | Ошибки и проверки ориентированы на redacted context |
 
 ## Текущие риски
 
 ### 1. Табличный UI не виртуализирован
 
-Сценарий с большими базами может упереться в объём DOM-строк. Сейчас приоритетом была корректность write-safe flow и декомпозиция таблиц, а не производительность больших таблиц.
+Сценарий с большими базами может упереться в объём DOM-строк. Сейчас добавлены deferred query snapshot и pending-индикаторы, но полной виртуализации строк пока нет.
 
 Риск: на больших файлах поиск и переключение вкладок могут ощущаться медленными.
 
@@ -52,14 +53,14 @@ GeneoTools уже прошёл базовую декомпозицию: `lib/sql
 | Приоритет | Рекомендация | Критерий готовности |
 |-----------|--------------|---------------------|
 | Must | Держать `npm run lint` и `npx tsc --noEmit` обязательными gates | Проверки проходят перед merge |
-| Must | Держать `npm run test:atdb:table-components` рядом с изменениями таблиц | Component contract ловит regressions в table chrome и editor wiring |
+| Must | Держать `npm run test:atdb:table-components` рядом с изменениями таблиц | Component contract ловит regressions в table chrome, pending states и editor wiring |
 | Should | Добавить browser smoke для upload/edit/download | Проверяется полный пользовательский путь |
 | Should | Ввести виртуализацию или paging для больших таблиц | Большие базы не перегружают DOM |
 | Could | Расширять mapping только через invariant-правила | Новые write paths проходят preflight/post-build checks |
 
 ## Технический долг
 
-- Состояния selection, query и batch edit нужно регулярно проверять на независимость по вкладкам.
+- Состояния selection, query и batch edit нужно регулярно проверять на независимость по вкладкам; deferred table snapshot не должен расходиться с `visibleIds`.
 - Нет автоматической browser-проверки скачанного файла.
 - Документация по формату требует дисциплины redaction при каждом обновлении.
 

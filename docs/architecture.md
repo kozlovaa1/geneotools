@@ -30,7 +30,8 @@ geneotools/
 │   ├── FileUploader.tsx
 │   ├── Modal.tsx
 │   ├── ScrollableDataTable.tsx
-│   └── TableQueryToolbar.tsx
+│   ├── TableQueryToolbar.tsx
+│   └── uiStyles.ts
 ├── docs/
 │   ├── architecture.md
 │   ├── atdb_format.md
@@ -71,6 +72,7 @@ geneotools/
 |------|-------|-----------------|
 | App | `app/page.tsx`, `app/layout.tsx` | Загрузка файла, состояние сценария, ошибки, экспорт |
 | Components | `components/*`, `components/atdb-table/*` | Отображение, controls, таблицы, модальные окна |
+| UI styles | `components/uiStyles.ts`, `app/globals.css` | Shared hover/focus/disabled/status styles и reduced-motion transitions |
 | Domain helpers | `lib/atdbEditDraft.ts`, `lib/atdbBatchEdit.ts`, `lib/atdbTableView.ts` | Чистая логика draft, массовых операций, поиска и сортировки |
 | ATDB facade | `lib/sqlProcessor.ts`, `lib/parseAtdb.ts`, `lib/buildAtdb.ts` | Публичный parse/build API |
 | ATDB internals | `lib/atdb/*` | Readers, writers, mapping, validation, transaction helper |
@@ -91,6 +93,12 @@ FileUploader
   -> ScrollableDataTable / TableQueryToolbar / DataTable
   -> PersonTable / FamilyTable / EventTable / PlaceTable
 ```
+
+## Поток UI-состояний
+
+`app/page.tsx` владеет состояниями длительных действий: чтение файла, парсинг, подготовка экспорта, предпросмотр массового редактирования и применение в draft. Компоненты получают готовые флаги `busy`, `pending`, `disabled` и показывают status surfaces через общий набор классов из `components/uiStyles.ts`.
+
+Табличные query state обновляются через controlled state в `app/page.tsx`. Для отзывчивости больших таблиц используется deferred snapshot карты `tableQueries`; rendered query, `visibleIds`, sort state и selection controls должны оставаться согласованными. Пока deferred snapshot догоняет актуальный query, действия по видимым строкам и вход в массовое редактирование блокируются.
 
 ## Поток редактирования
 
@@ -141,6 +149,7 @@ No-op export не запускает сборку: пока `AtdbChangeSet` пу
 
 - `components/DataTable.tsx` остаётся совместимым router-wrapper для выбора entity-specific таблицы.
 - Entity-specific таблицы выделены в `components/atdb-table/`; общая механика заголовков, selection и empty state вынесена в shared primitives.
+- Shared interaction styles вынесены в `components/uiStyles.ts`, а motion/reduced-motion utilities — в `app/globals.css`.
 - Виртуализация больших таблиц не внедрена.
 - Write-safe scope ограничен update-only изменениями существующих записей.
 - Compatibility API `buildAtdb(parsed, original)` сохранён, но основной UI export использует явный `AtdbChangeSet`.

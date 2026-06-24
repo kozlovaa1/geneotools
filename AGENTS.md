@@ -37,7 +37,8 @@ geneotools/
 │   ├── FileUploader.tsx        # Drag-and-drop загрузка файлов
 │   ├── Modal.tsx               # Модальное окно
 │   ├── ScrollableDataTable.tsx # Вкладки, toolbar, selection и таблица
-│   └── TableQueryToolbar.tsx   # Поиск, фильтр и счётчик видимых строк
+│   ├── TableQueryToolbar.tsx   # Поиск, фильтр и счётчик видимых строк
+│   └── uiStyles.ts             # Shared interaction styles для controls/status surfaces
 ├── lib/                        # Работа с .atdb, sql.js, типы и утилиты
 │   ├── atdb/                   # Внутренние readers/writers/helpers .atdb-процессора
 │   │   ├── mapping.json        # Канонический машиночитаемый реестр правил формата
@@ -106,6 +107,7 @@ geneotools/
 | `components/atdb-table/useAtdbTableEditors.tsx` | Presentation helpers для draft-aware editable cells |
 | `components/EditableCell.tsx` | Переиспользуемые controls редактируемых ячеек |
 | `components/BulkEditDialog.tsx` | Предпросмотр и применение массового редактирования |
+| `components/uiStyles.ts` | Общие hover/focus/disabled/status классы |
 | `scripts/check-atdb-mapping.mjs` | Regression gate для канонического mapping |
 | `scripts/check-atdb-table-view.mjs` | Regression gate для query/filter/sort helper'ов |
 | `scripts/check-atdb-table-components.mjs` | Regression gate для component-level table contract |

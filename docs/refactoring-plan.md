@@ -22,6 +22,7 @@
 | Table query helpers | `lib/atdbTableView.ts` отвечает за поиск, фильтры, сортировку и visible IDs |
 | Batch edit helpers | `lib/atdbBatchEdit.ts` строит предпросмотр и применяет изменения только в draft |
 | Разделение таблиц | `components/DataTable.tsx` стал router-wrapper, entity-specific таблицы и table primitives вынесены в `components/atdb-table/` |
+| Полировка UX/UI-интеракций | Добавлены pending/status states, shared interaction styles и блокировка действий на stale table snapshot |
 
 ## Следующие этапы
 
@@ -32,6 +33,7 @@
 - Автоматизировать upload → edit → download на локальном тестовом файле пользователя или специально подготовленной безопасной базе.
 - Проверять, что no-op export остаётся отключённым.
 - Проверять, что скачивание появляется только после ненулевого `AtdbChangeSet`.
+- Проверять, что selection и bulk edit недоступны во время обновления table query snapshot.
 
 **Критерий готовности:**
 
