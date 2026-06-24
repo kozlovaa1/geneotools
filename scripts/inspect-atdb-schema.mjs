@@ -492,6 +492,10 @@ function assertGenericSnapshot(snapshot) {
 }
 
 function readSnapshot(inputPath) {
+  if (!fs.existsSync(inputPath)) {
+    throw new Error(`tracked snapshot missing: ${safeRelativePath(projectRoot, inputPath)}`);
+  }
+
   const content = fs.readFileSync(inputPath, 'utf8');
   return JSON.parse(content);
 }

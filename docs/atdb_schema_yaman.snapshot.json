@@ -1,0 +1,4256 @@
+{
+  "artifactVersion": 1,
+  "generatedBy": "scripts/inspect-atdb-schema.mjs",
+  "fixture": {
+    "label": "yaman",
+    "tracked": "tracked",
+    "snapshotMode": "tracked"
+  },
+  "safety": {
+    "redacted": true,
+    "excludes": [
+      "ValuesStr.vstr",
+      "Recs.guid",
+      "Global.guid",
+      "Global.params",
+      "document paths",
+      "source text",
+      "names",
+      "places",
+      "notes",
+      "private/debug/raw artifacts"
+    ]
+  },
+  "redactionPolicy": {
+    "mode": "structural-only",
+    "allowedFields": [
+      "table names",
+      "counts",
+      "rec_table",
+      "rec_id shape",
+      "f_id",
+      "datatype",
+      "link targets"
+    ],
+    "confidenceLabels": [
+      "confirmed",
+      "observed",
+      "needs more samples",
+      "unknown"
+    ]
+  },
+  "sections": [
+    "tables",
+    "globalMeta",
+    "recTableDistribution",
+    "valuesDistribution",
+    "valuesLinksTargets",
+    "eventTypes",
+    "eventRoles",
+    "eventUsage",
+    "fieldCatalog",
+    "orphanChecks"
+  ],
+  "tables": {
+    "DocumentDetails": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "d_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "d_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "rec_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 6,
+          "name": "ismain",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 7,
+          "name": "x1",
+          "type": "REAL",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 8,
+          "name": "y1",
+          "type": "REAL",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 9,
+          "name": "x2",
+          "type": "REAL",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 10,
+          "name": "y2",
+          "type": "REAL",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 11,
+          "name": "preview",
+          "type": "BLOB",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 12,
+          "name": "previewdate",
+          "type": "DATETIME",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 4
+    },
+    "Documents": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "path",
+          "type": "TEXT",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "preview",
+          "type": "BLOB",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "previewdate",
+          "type": "DATETIME",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "previewprop",
+          "type": "REAL",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 4
+    },
+    "EventDetails": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "p_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "e_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "er_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "e_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "p_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 1059
+    },
+    "EventRoles": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "et_id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "maxcount",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "roletype",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "ismain",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 41
+    },
+    "EventTypes": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "ord",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 38
+    },
+    "Events": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "et_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 665
+    },
+    "Families": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "color",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 11
+    },
+    "Fields": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "tablecode",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "datatype",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "area",
+          "type": "TEXT",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "defval",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "noautofill",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 6,
+          "name": "icon",
+          "type": "BLOB",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 7,
+          "name": "et_id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 8,
+          "name": "et_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 149
+    },
+    "Global": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "version",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "guid",
+          "type": "TEXT",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "srcguid",
+          "type": "TEXT",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "mainlang",
+          "type": "TEXT",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "params",
+          "type": "TEXT",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 1
+    },
+    "Log": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "action",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "moment",
+          "type": "DATETIME",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": "CURRENT_TIMESTAMP"
+        },
+        {
+          "cid": 5,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 139
+    },
+    "Persons": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "sex",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 294
+    },
+    "Places": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "parent_id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "group_id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "maskfull",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "maskshort",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "global_id",
+          "type": "BLOB",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 23
+    },
+    "Recs": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "guid",
+          "type": "BLOB",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": "RANDOMBLOB (16)"
+        },
+        {
+          "cid": 4,
+          "name": "di",
+          "type": "DATETIME",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": "CURRENT_TIMESTAMP"
+        },
+        {
+          "cid": 5,
+          "name": "de",
+          "type": "DATETIME",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 6,
+          "name": "lconf",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 7,
+          "name": "ltrust",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 8,
+          "name": "fav",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 2388
+    },
+    "SourceDetails": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "s_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "s_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "rec_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 298
+    },
+    "Sources": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "stype",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 12
+    },
+    "TaskDetails": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "t_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "t_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "rec_ord",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 0
+    },
+    "Tasks": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 0
+    },
+    "ValuesDates": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "f_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "d",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "m",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 6,
+          "name": "y",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 7,
+          "name": "d2",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 8,
+          "name": "m2",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 9,
+          "name": "y2",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 10,
+          "name": "calendar",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 11,
+          "name": "calendar2",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 12,
+          "name": "type",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 13,
+          "name": "sort",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 14,
+          "name": "sort2",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 15,
+          "name": "sort3",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 16,
+          "name": "sort4",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 17,
+          "name": "lconf",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 18,
+          "name": "ltrust",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 358
+    },
+    "ValuesLinks": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "f_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "vlink_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "vlink_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 6,
+          "name": "lconf",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 7,
+          "name": "ltrust",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 404
+    },
+    "ValuesNum": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "f_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "vnum",
+          "type": "REAL",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "vnum2",
+          "type": "REAL",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 6,
+          "name": "lconf",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 7,
+          "name": "ltrust",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 25
+    },
+    "ValuesStr": {
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 1,
+          "dflt_value": null
+        },
+        {
+          "cid": 1,
+          "name": "f_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 2,
+          "name": "rec_table",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 3,
+          "name": "rec_id",
+          "type": "INTEGER",
+          "notnull": 1,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 4,
+          "name": "lang",
+          "type": "TEXT",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 5,
+          "name": "vstr",
+          "type": "TEXT",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 6,
+          "name": "lconf",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        },
+        {
+          "cid": 7,
+          "name": "ltrust",
+          "type": "INTEGER",
+          "notnull": 0,
+          "pk": 0,
+          "dflt_value": null
+        }
+      ],
+      "rowCount": 1326
+    }
+  },
+  "globalMeta": {
+    "id": 1,
+    "version": 8,
+    "mainlang": "ru",
+    "guidHash": "f5b2799fba707432",
+    "srcGuidHash": "2cb5fdf772eaf2ab",
+    "paramsLength": null,
+    "paramsHash": null
+  },
+  "recTableDistribution": [
+    {
+      "rec_table": 3,
+      "count": 4,
+      "distinct_rec_ids": 4
+    },
+    {
+      "rec_table": 4,
+      "count": 4,
+      "distinct_rec_ids": 4
+    },
+    {
+      "rec_table": 5,
+      "count": 1059,
+      "distinct_rec_ids": 1059
+    },
+    {
+      "rec_table": 6,
+      "count": 3,
+      "distinct_rec_ids": 3
+    },
+    {
+      "rec_table": 7,
+      "count": 665,
+      "distinct_rec_ids": 665
+    },
+    {
+      "rec_table": 8,
+      "count": 1,
+      "distinct_rec_ids": 1
+    },
+    {
+      "rec_table": 9,
+      "count": 11,
+      "distinct_rec_ids": 11
+    },
+    {
+      "rec_table": 10,
+      "count": 14,
+      "distinct_rec_ids": 14
+    },
+    {
+      "rec_table": 13,
+      "count": 294,
+      "distinct_rec_ids": 294
+    },
+    {
+      "rec_table": 14,
+      "count": 23,
+      "distinct_rec_ids": 23
+    },
+    {
+      "rec_table": 15,
+      "count": 298,
+      "distinct_rec_ids": 298
+    },
+    {
+      "rec_table": 16,
+      "count": 12,
+      "distinct_rec_ids": 12
+    }
+  ],
+  "valuesDistribution": {
+    "ValuesStr": [
+      {
+        "rec_table": 4,
+        "f_id": 9,
+        "count": 4
+      },
+      {
+        "rec_table": 6,
+        "f_id": 132,
+        "count": 2
+      },
+      {
+        "rec_table": 7,
+        "f_id": 37,
+        "count": 12
+      },
+      {
+        "rec_table": 7,
+        "f_id": 38,
+        "count": 11
+      },
+      {
+        "rec_table": 9,
+        "f_id": 48,
+        "count": 11
+      },
+      {
+        "rec_table": 9,
+        "f_id": 49,
+        "count": 11
+      },
+      {
+        "rec_table": 9,
+        "f_id": 50,
+        "count": 11
+      },
+      {
+        "rec_table": 9,
+        "f_id": 52,
+        "count": 4
+      },
+      {
+        "rec_table": 10,
+        "f_id": 135,
+        "count": 2
+      },
+      {
+        "rec_table": 13,
+        "f_id": 64,
+        "count": 293
+      },
+      {
+        "rec_table": 13,
+        "f_id": 65,
+        "count": 62
+      },
+      {
+        "rec_table": 13,
+        "f_id": 66,
+        "count": 294
+      },
+      {
+        "rec_table": 13,
+        "f_id": 67,
+        "count": 202
+      },
+      {
+        "rec_table": 13,
+        "f_id": 73,
+        "count": 33
+      },
+      {
+        "rec_table": 13,
+        "f_id": 89,
+        "count": 243
+      },
+      {
+        "rec_table": 13,
+        "f_id": 155,
+        "count": 8
+      },
+      {
+        "rec_table": 14,
+        "f_id": 93,
+        "count": 23
+      },
+      {
+        "rec_table": 14,
+        "f_id": 94,
+        "count": 23
+      },
+      {
+        "rec_table": 14,
+        "f_id": 104,
+        "count": 2
+      },
+      {
+        "rec_table": 15,
+        "f_id": 105,
+        "count": 49
+      },
+      {
+        "rec_table": 16,
+        "f_id": 110,
+        "count": 12
+      },
+      {
+        "rec_table": 16,
+        "f_id": 115,
+        "count": 12
+      },
+      {
+        "rec_table": 16,
+        "f_id": 142,
+        "count": 2
+      }
+    ],
+    "ValuesNum": [
+      {
+        "rec_table": 4,
+        "f_id": 128,
+        "count": 1
+      },
+      {
+        "rec_table": 7,
+        "f_id": 204,
+        "count": 3
+      },
+      {
+        "rec_table": 13,
+        "f_id": 202,
+        "count": 12
+      },
+      {
+        "rec_table": 14,
+        "f_id": 97,
+        "count": 9
+      }
+    ],
+    "ValuesDates": [
+      {
+        "rec_table": 4,
+        "f_id": 10,
+        "count": 2
+      },
+      {
+        "rec_table": 7,
+        "f_id": 29,
+        "count": 334
+      },
+      {
+        "rec_table": 14,
+        "f_id": 95,
+        "count": 22
+      }
+    ],
+    "ValuesLinks": [
+      {
+        "rec_table": 7,
+        "f_id": 28,
+        "count": 28
+      },
+      {
+        "rec_table": 13,
+        "f_id": 63,
+        "count": 226
+      },
+      {
+        "rec_table": 13,
+        "f_id": 83,
+        "count": 150
+      }
+    ]
+  },
+  "valuesLinksTargets": [
+    {
+      "rec_table": 7,
+      "f_id": 28,
+      "vlink_table": 14,
+      "distinct_target_ids": 8,
+      "count": 28
+    },
+    {
+      "rec_table": 13,
+      "f_id": 63,
+      "vlink_table": 14,
+      "distinct_target_ids": 11,
+      "count": 226
+    },
+    {
+      "rec_table": 13,
+      "f_id": 83,
+      "vlink_table": 9,
+      "distinct_target_ids": 11,
+      "count": 150
+    }
+  ],
+  "eventTypes": [
+    {
+      "id": 1,
+      "ord": 200
+    },
+    {
+      "id": 2,
+      "ord": 400
+    },
+    {
+      "id": 3,
+      "ord": 300
+    },
+    {
+      "id": 4,
+      "ord": 300
+    },
+    {
+      "id": 5,
+      "ord": 300
+    },
+    {
+      "id": 6,
+      "ord": 300
+    },
+    {
+      "id": 7,
+      "ord": 300
+    },
+    {
+      "id": 8,
+      "ord": 300
+    },
+    {
+      "id": 9,
+      "ord": 300
+    },
+    {
+      "id": 10,
+      "ord": 300
+    },
+    {
+      "id": 11,
+      "ord": 300
+    },
+    {
+      "id": 12,
+      "ord": 300
+    },
+    {
+      "id": 13,
+      "ord": 300
+    },
+    {
+      "id": 14,
+      "ord": 300
+    },
+    {
+      "id": 15,
+      "ord": 300
+    },
+    {
+      "id": 16,
+      "ord": 300
+    },
+    {
+      "id": 17,
+      "ord": 300
+    },
+    {
+      "id": 18,
+      "ord": 300
+    },
+    {
+      "id": 19,
+      "ord": 300
+    },
+    {
+      "id": 20,
+      "ord": 300
+    },
+    {
+      "id": 21,
+      "ord": 300
+    },
+    {
+      "id": 22,
+      "ord": 300
+    },
+    {
+      "id": 23,
+      "ord": 300
+    },
+    {
+      "id": 24,
+      "ord": 300
+    },
+    {
+      "id": 25,
+      "ord": 300
+    },
+    {
+      "id": 26,
+      "ord": 300
+    },
+    {
+      "id": 27,
+      "ord": 300
+    },
+    {
+      "id": 28,
+      "ord": 300
+    },
+    {
+      "id": 29,
+      "ord": 300
+    },
+    {
+      "id": 30,
+      "ord": 300
+    },
+    {
+      "id": 31,
+      "ord": 300
+    },
+    {
+      "id": 32,
+      "ord": 300
+    },
+    {
+      "id": 33,
+      "ord": 300
+    },
+    {
+      "id": 34,
+      "ord": 500
+    },
+    {
+      "id": 35,
+      "ord": 500
+    },
+    {
+      "id": 36,
+      "ord": 300
+    },
+    {
+      "id": 37,
+      "ord": 300
+    },
+    {
+      "id": 200,
+      "ord": 0
+    }
+  ],
+  "eventRoles": [
+    {
+      "id": 1,
+      "et_id": 1,
+      "maxcount": null,
+      "ord": 1,
+      "roletype": 1,
+      "ismain": 1
+    },
+    {
+      "id": 2,
+      "et_id": 1,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 0
+    },
+    {
+      "id": 3,
+      "et_id": 1,
+      "maxcount": 1,
+      "ord": 3,
+      "roletype": 2,
+      "ismain": 0
+    },
+    {
+      "id": 4,
+      "et_id": 2,
+      "maxcount": null,
+      "ord": 1,
+      "roletype": 0,
+      "ismain": 1
+    },
+    {
+      "id": 5,
+      "et_id": 3,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 6,
+      "et_id": 3,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 7,
+      "et_id": 4,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 3,
+      "ismain": 1
+    },
+    {
+      "id": 8,
+      "et_id": 4,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 3,
+      "ismain": 1
+    },
+    {
+      "id": 9,
+      "et_id": 8,
+      "maxcount": null,
+      "ord": 1,
+      "roletype": 1,
+      "ismain": 1
+    },
+    {
+      "id": 10,
+      "et_id": 8,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 0
+    },
+    {
+      "id": 11,
+      "et_id": 8,
+      "maxcount": 1,
+      "ord": 3,
+      "roletype": 2,
+      "ismain": 0
+    },
+    {
+      "id": 12,
+      "et_id": 24,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 3,
+      "ismain": 1
+    },
+    {
+      "id": 13,
+      "et_id": 24,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 3,
+      "ismain": 1
+    },
+    {
+      "id": 14,
+      "et_id": 25,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 15,
+      "et_id": 25,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 16,
+      "et_id": 26,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 17,
+      "et_id": 26,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 18,
+      "et_id": 27,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 19,
+      "et_id": 27,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 20,
+      "et_id": 28,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 21,
+      "et_id": 28,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 22,
+      "et_id": 29,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 23,
+      "et_id": 29,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 24,
+      "et_id": 30,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 25,
+      "et_id": 30,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 26,
+      "et_id": null,
+      "maxcount": null,
+      "ord": null,
+      "roletype": 0,
+      "ismain": 0
+    },
+    {
+      "id": 27,
+      "et_id": null,
+      "maxcount": null,
+      "ord": null,
+      "roletype": 0,
+      "ismain": 0
+    },
+    {
+      "id": 28,
+      "et_id": 31,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 29,
+      "et_id": 31,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 30,
+      "et_id": 7,
+      "maxcount": null,
+      "ord": 1,
+      "roletype": 0,
+      "ismain": 1
+    },
+    {
+      "id": 31,
+      "et_id": 7,
+      "maxcount": null,
+      "ord": 2,
+      "roletype": 0,
+      "ismain": 0
+    },
+    {
+      "id": 32,
+      "et_id": 7,
+      "maxcount": null,
+      "ord": 3,
+      "roletype": 0,
+      "ismain": 0
+    },
+    {
+      "id": 36,
+      "et_id": 34,
+      "maxcount": null,
+      "ord": 1,
+      "roletype": 0,
+      "ismain": 1
+    },
+    {
+      "id": 37,
+      "et_id": 35,
+      "maxcount": null,
+      "ord": 1,
+      "roletype": 0,
+      "ismain": 1
+    },
+    {
+      "id": 38,
+      "et_id": 36,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 3,
+      "ismain": 1
+    },
+    {
+      "id": 39,
+      "et_id": 36,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 3,
+      "ismain": 1
+    },
+    {
+      "id": 40,
+      "et_id": 37,
+      "maxcount": 1,
+      "ord": 1,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 41,
+      "et_id": 37,
+      "maxcount": 1,
+      "ord": 2,
+      "roletype": 2,
+      "ismain": 1
+    },
+    {
+      "id": 200,
+      "et_id": null,
+      "maxcount": null,
+      "ord": null,
+      "roletype": null,
+      "ismain": null
+    },
+    {
+      "id": 210,
+      "et_id": 3,
+      "maxcount": null,
+      "ord": 6,
+      "roletype": 0,
+      "ismain": null
+    },
+    {
+      "id": 211,
+      "et_id": 3,
+      "maxcount": null,
+      "ord": 7,
+      "roletype": 0,
+      "ismain": null
+    }
+  ],
+  "eventUsage": {
+    "eventsByType": [
+      {
+        "et_id": 1,
+        "count": 294
+      },
+      {
+        "et_id": 2,
+        "count": 294
+      },
+      {
+        "et_id": 3,
+        "count": 67
+      },
+      {
+        "et_id": 34,
+        "count": 10
+      }
+    ],
+    "detailsByRole": [
+      {
+        "er_id": 1,
+        "count": 294
+      },
+      {
+        "er_id": 2,
+        "count": 182
+      },
+      {
+        "er_id": 3,
+        "count": 140
+      },
+      {
+        "er_id": 4,
+        "count": 294
+      },
+      {
+        "er_id": 5,
+        "count": 66
+      },
+      {
+        "er_id": 6,
+        "count": 59
+      },
+      {
+        "er_id": 36,
+        "count": 10
+      },
+      {
+        "er_id": 210,
+        "count": 8
+      },
+      {
+        "er_id": 211,
+        "count": 6
+      }
+    ],
+    "rolesByEventType": [
+      {
+        "id": 26,
+        "et_id": null,
+        "ord": null,
+        "roletype": 0,
+        "ismain": 0,
+        "maxcount": null,
+        "event_detail_count": 0
+      },
+      {
+        "id": 27,
+        "et_id": null,
+        "ord": null,
+        "roletype": 0,
+        "ismain": 0,
+        "maxcount": null,
+        "event_detail_count": 0
+      },
+      {
+        "id": 200,
+        "et_id": null,
+        "ord": null,
+        "roletype": null,
+        "ismain": null,
+        "maxcount": null,
+        "event_detail_count": 0
+      },
+      {
+        "id": 1,
+        "et_id": 1,
+        "ord": 1,
+        "roletype": 1,
+        "ismain": 1,
+        "maxcount": null,
+        "event_detail_count": 294
+      },
+      {
+        "id": 2,
+        "et_id": 1,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 0,
+        "maxcount": 1,
+        "event_detail_count": 182
+      },
+      {
+        "id": 3,
+        "et_id": 1,
+        "ord": 3,
+        "roletype": 2,
+        "ismain": 0,
+        "maxcount": 1,
+        "event_detail_count": 140
+      },
+      {
+        "id": 4,
+        "et_id": 2,
+        "ord": 1,
+        "roletype": 0,
+        "ismain": 1,
+        "maxcount": null,
+        "event_detail_count": 294
+      },
+      {
+        "id": 5,
+        "et_id": 3,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 66
+      },
+      {
+        "id": 6,
+        "et_id": 3,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 59
+      },
+      {
+        "id": 210,
+        "et_id": 3,
+        "ord": 6,
+        "roletype": 0,
+        "ismain": null,
+        "maxcount": null,
+        "event_detail_count": 8
+      },
+      {
+        "id": 211,
+        "et_id": 3,
+        "ord": 7,
+        "roletype": 0,
+        "ismain": null,
+        "maxcount": null,
+        "event_detail_count": 6
+      },
+      {
+        "id": 7,
+        "et_id": 4,
+        "ord": 1,
+        "roletype": 3,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 8,
+        "et_id": 4,
+        "ord": 2,
+        "roletype": 3,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 30,
+        "et_id": 7,
+        "ord": 1,
+        "roletype": 0,
+        "ismain": 1,
+        "maxcount": null,
+        "event_detail_count": 0
+      },
+      {
+        "id": 31,
+        "et_id": 7,
+        "ord": 2,
+        "roletype": 0,
+        "ismain": 0,
+        "maxcount": null,
+        "event_detail_count": 0
+      },
+      {
+        "id": 32,
+        "et_id": 7,
+        "ord": 3,
+        "roletype": 0,
+        "ismain": 0,
+        "maxcount": null,
+        "event_detail_count": 0
+      },
+      {
+        "id": 9,
+        "et_id": 8,
+        "ord": 1,
+        "roletype": 1,
+        "ismain": 1,
+        "maxcount": null,
+        "event_detail_count": 0
+      },
+      {
+        "id": 10,
+        "et_id": 8,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 0,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 11,
+        "et_id": 8,
+        "ord": 3,
+        "roletype": 2,
+        "ismain": 0,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 12,
+        "et_id": 24,
+        "ord": 1,
+        "roletype": 3,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 13,
+        "et_id": 24,
+        "ord": 2,
+        "roletype": 3,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 14,
+        "et_id": 25,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 15,
+        "et_id": 25,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 16,
+        "et_id": 26,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 17,
+        "et_id": 26,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 18,
+        "et_id": 27,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 19,
+        "et_id": 27,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 20,
+        "et_id": 28,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 21,
+        "et_id": 28,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 22,
+        "et_id": 29,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 23,
+        "et_id": 29,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 24,
+        "et_id": 30,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 25,
+        "et_id": 30,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 28,
+        "et_id": 31,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 29,
+        "et_id": 31,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 36,
+        "et_id": 34,
+        "ord": 1,
+        "roletype": 0,
+        "ismain": 1,
+        "maxcount": null,
+        "event_detail_count": 10
+      },
+      {
+        "id": 37,
+        "et_id": 35,
+        "ord": 1,
+        "roletype": 0,
+        "ismain": 1,
+        "maxcount": null,
+        "event_detail_count": 0
+      },
+      {
+        "id": 38,
+        "et_id": 36,
+        "ord": 1,
+        "roletype": 3,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 39,
+        "et_id": 36,
+        "ord": 2,
+        "roletype": 3,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 40,
+        "et_id": 37,
+        "ord": 1,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      },
+      {
+        "id": 41,
+        "et_id": 37,
+        "ord": 2,
+        "roletype": 2,
+        "ismain": 1,
+        "maxcount": 1,
+        "event_detail_count": 0
+      }
+    ]
+  },
+  "fieldCatalog": [
+    {
+      "id": 3,
+      "tablecode": 3,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 4,
+      "tablecode": 3,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 5,
+      "tablecode": 3,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 6,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 7,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 8,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 3,
+      "usage": []
+    },
+    {
+      "id": 9,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 1,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 4,
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 2,
+      "usage": [
+        {
+          "valueTable": "ValuesDates",
+          "rec_table": 4,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 5,
+      "usage": []
+    },
+    {
+      "id": 12,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 13,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 14,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 15,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 16,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 17,
+      "tablecode": 5,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 18,
+      "tablecode": 5,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 19,
+      "tablecode": 5,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 20,
+      "tablecode": 6,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 21,
+      "tablecode": 6,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 22,
+      "tablecode": 6,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 23,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 24,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 25,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 19,
+      "et_ord": 1,
+      "usage": []
+    },
+    {
+      "id": 26,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 27,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 28,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 2,
+      "usage": [
+        {
+          "valueTable": "ValuesLinks",
+          "rec_table": 7,
+          "count": 28
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 1,
+      "usage": [
+        {
+          "valueTable": "ValuesDates",
+          "rec_table": 7,
+          "count": 334
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 31,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 32,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 33,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 34,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 35,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 36,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 37,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 7,
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 2,
+      "et_ord": 1,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 7,
+          "count": 11
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 33,
+      "et_ord": 1,
+      "usage": []
+    },
+    {
+      "id": 40,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 33,
+      "et_ord": 2,
+      "usage": []
+    },
+    {
+      "id": 41,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 6,
+      "et_ord": 1,
+      "usage": []
+    },
+    {
+      "id": 42,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 6,
+      "et_ord": 2,
+      "usage": []
+    },
+    {
+      "id": 43,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 22,
+      "et_ord": 1,
+      "usage": []
+    },
+    {
+      "id": 44,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 22,
+      "et_ord": 2,
+      "usage": []
+    },
+    {
+      "id": 45,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 22,
+      "et_ord": 3,
+      "usage": []
+    },
+    {
+      "id": 46,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 18,
+      "et_ord": 1,
+      "usage": []
+    },
+    {
+      "id": 47,
+      "tablecode": 8,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 48,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 2,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 9,
+          "count": 11
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 3,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 9,
+          "count": 11
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 1,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 9,
+          "count": 11
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 52,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 9,
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 1,
+      "usage": []
+    },
+    {
+      "id": 55,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 56,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 57,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 58,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 59,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 60,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 61,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 62,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 63,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 2,
+      "usage": [
+        {
+          "valueTable": "ValuesLinks",
+          "rec_table": 13,
+          "count": 226
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 13,
+          "count": 293
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 13,
+          "count": 62
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 13,
+          "count": 294
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 13,
+          "count": 202
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 69,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 70,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 71,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 72,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 73,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 3,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 13,
+          "count": 33
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 75,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 76,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 77,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 78,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 79,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 80,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 81,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 82,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 83,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 1,
+      "usage": [
+        {
+          "valueTable": "ValuesLinks",
+          "rec_table": 13,
+          "count": 150
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 85,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 4,
+      "usage": []
+    },
+    {
+      "id": 86,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 5,
+      "usage": []
+    },
+    {
+      "id": 87,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 88,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 89,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 13,
+          "count": 243
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 91,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 92,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 3,
+      "usage": []
+    },
+    {
+      "id": 93,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 1,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 14,
+          "count": 23
+        }
+      ]
+    },
+    {
+      "id": 94,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 2,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 14,
+          "count": 23
+        }
+      ]
+    },
+    {
+      "id": 95,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 5,
+      "usage": [
+        {
+          "valueTable": "ValuesDates",
+          "rec_table": 14,
+          "count": 22
+        }
+      ]
+    },
+    {
+      "id": 96,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 97,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 4,
+      "usage": [
+        {
+          "valueTable": "ValuesNum",
+          "rec_table": 14,
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": 98,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 99,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 6,
+      "usage": []
+    },
+    {
+      "id": 100,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 101,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 102,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 103,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 104,
+      "tablecode": 14,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 14,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "tablecode": 15,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 15,
+          "count": 49
+        }
+      ]
+    },
+    {
+      "id": 106,
+      "tablecode": 15,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 107,
+      "tablecode": 15,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 108,
+      "tablecode": 15,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 109,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 3,
+      "usage": []
+    },
+    {
+      "id": 110,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 1,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 16,
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": 111,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 112,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 113,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 114,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 115,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 16,
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": 116,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 117,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 32,
+      "et_ord": 1,
+      "usage": []
+    },
+    {
+      "id": 118,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 32,
+      "et_ord": 2,
+      "usage": []
+    },
+    {
+      "id": 119,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": 32,
+      "et_ord": 3,
+      "usage": []
+    },
+    {
+      "id": 120,
+      "tablecode": 7,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 3,
+      "usage": []
+    },
+    {
+      "id": 124,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 125,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 126,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 128,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 4,
+      "usage": [
+        {
+          "valueTable": "ValuesNum",
+          "rec_table": 4,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": 129,
+      "tablecode": 4,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 130,
+      "tablecode": 9,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 131,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 132,
+      "tablecode": 6,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 6,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": 133,
+      "tablecode": 6,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 134,
+      "tablecode": 8,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 135,
+      "tablecode": 10,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 10,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": 136,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 137,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 138,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 5,
+      "usage": []
+    },
+    {
+      "id": 139,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 140,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 141,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 2,
+      "usage": []
+    },
+    {
+      "id": 142,
+      "tablecode": 16,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 4,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 16,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": 145,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 3,
+      "usage": []
+    },
+    {
+      "id": 146,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 2,
+      "usage": []
+    },
+    {
+      "id": 147,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 4,
+      "usage": []
+    },
+    {
+      "id": 148,
+      "tablecode": 21,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 149,
+      "tablecode": 21,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 150,
+      "tablecode": 21,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 151,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 5,
+      "usage": []
+    },
+    {
+      "id": 152,
+      "tablecode": 18,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 153,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": null,
+      "et_ord": 8,
+      "usage": []
+    },
+    {
+      "id": 154,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 6,
+      "usage": []
+    },
+    {
+      "id": 155,
+      "tablecode": 13,
+      "datatype": null,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": 7,
+      "usage": [
+        {
+          "valueTable": "ValuesStr",
+          "rec_table": 13,
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": 200,
+      "tablecode": 0,
+      "datatype": null,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": null,
+      "et_id": null,
+      "et_ord": null,
+      "usage": []
+    },
+    {
+      "id": 202,
+      "tablecode": 13,
+      "datatype": 5,
+      "area_present": 1,
+      "defval": null,
+      "noautofill": 0,
+      "et_id": null,
+      "et_ord": 10,
+      "usage": [
+        {
+          "valueTable": "ValuesNum",
+          "rec_table": 13,
+          "count": 12
+        }
+      ]
+    },
+    {
+      "id": 204,
+      "tablecode": 7,
+      "datatype": 5,
+      "area_present": 0,
+      "defval": null,
+      "noautofill": 1,
+      "et_id": 34,
+      "et_ord": 1,
+      "usage": [
+        {
+          "valueTable": "ValuesNum",
+          "rec_table": 7,
+          "count": 3
+        }
+      ]
+    }
+  ],
+  "orphanChecks": [
+    {
+      "table": "ValuesStr",
+      "missing_recs": 0
+    },
+    {
+      "table": "ValuesNum",
+      "missing_recs": 0
+    },
+    {
+      "table": "ValuesDates",
+      "missing_recs": 0
+    },
+    {
+      "table": "ValuesLinks",
+      "missing_recs": 0
+    }
+  ]
+}

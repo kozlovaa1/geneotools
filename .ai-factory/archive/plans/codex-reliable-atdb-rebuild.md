@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Надежная обратная сборка `.atdb`
 
 Branch: codex/reliable-atdb-rebuild

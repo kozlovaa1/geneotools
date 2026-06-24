@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Фильтрация и поиск по данным
 
 Branch: codex/data-filtering-search

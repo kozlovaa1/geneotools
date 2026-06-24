@@ -236,5 +236,6 @@ export async function parseAtdb(
 | UI/components | `npm run lint`, `npx tsc --noEmit`, ручной browser smoke |
 | Table components | `npm run test:atdb:table-components`, `npm run lint`, `npx tsc --noEmit` |
 | Draft/query/batch helpers | `npm run test:atdb:table-view`, `npm run test:atdb:edit-draft`, `npm run test:atdb:batch-edit` |
+| Parser/date/smoke contracts | `npm run test:atdb:dates`, `npm run test:atdb:parser-contract`, `npm run smoke:atdb:matrix`, `npm run test:atdb:fixtures:missing-local` |
 | Mapping/write/rebuild | `npm run mapping:atdb:check`, `npm run test:atdb:write-safety`, `npm run test:atdb:rebuild-contract` |
 | Документация | link check, `git diff --check`, `npm run lint` |

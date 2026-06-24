@@ -108,7 +108,15 @@ geneotools/
 | `components/EditableCell.tsx` | Переиспользуемые controls редактируемых ячеек |
 | `components/BulkEditDialog.tsx` | Предпросмотр и применение массового редактирования |
 | `components/uiStyles.ts` | Общие hover/focus/disabled/status классы |
+| `scripts/atdb-test-harness.mjs` | Общий helper временной компиляции `lib/**/*.ts` для ATDB script gates |
+| `scripts/atdb-roundtrip-invariants.mjs` | Safe aggregate invariants для parse/build/reparse smoke |
+| `scripts/atdb-fixtures.mjs` | Registry разрешённых fixture labels и snapshot modes |
+| `scripts/smoke-atdb.mjs` | Parse/build/reparse smoke для одного fixture label |
+| `scripts/check-atdb-fixtures.mjs` | Matrix gate для schema/diff/smoke/redaction |
+| `scripts/check-atdb-fixtures-regression.mjs` | Synthetic regression для missing fixtures и drift paths |
 | `scripts/check-atdb-mapping.mjs` | Regression gate для канонического mapping |
+| `scripts/check-atdb-dates.mjs` | Regression gate для ATDB date helpers |
+| `scripts/check-atdb-parser-contract.mjs` | Synthetic parser contract для ролей, дат и primary life-event мест |
 | `scripts/check-atdb-table-view.mjs` | Regression gate для query/filter/sort helper'ов |
 | `scripts/check-atdb-table-components.mjs` | Regression gate для component-level table contract |
 | `scripts/check-atdb-edit-draft.mjs` | Regression gate для UI draft/change-set helper'ов |

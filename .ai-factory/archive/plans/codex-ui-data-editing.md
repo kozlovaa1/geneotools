@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Редактирование данных в UI
 
 Branch: codex/ui-data-editing

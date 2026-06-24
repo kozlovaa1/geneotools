@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Массовое редактирование полей
 
 Branch: codex/bulk-field-editing

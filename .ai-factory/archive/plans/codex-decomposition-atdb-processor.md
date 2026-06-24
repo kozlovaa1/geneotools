@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Декомпозиция .atdb-процессора
 
 Branch: codex/decomposition-atdb-processor
