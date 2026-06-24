@@ -4,6 +4,11 @@ import type {
   AtdbTableSortConfig,
 } from '@/lib/atdbTableView';
 import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
+import { cn } from '@/lib/utils';
+import {
+  secondaryButtonClassName,
+  statusSurfaceClassName,
+} from '../uiStyles';
 
 export const ATDB_TABLE_CELL_CLASS_NAME = 'border-b px-4 py-2';
 export const ATDB_TABLE_ROW_CLASS_NAME = 'hover:bg-gray-50';
@@ -11,7 +16,11 @@ export const ATDB_TABLE_ROW_CLASS_NAME = 'hover:bg-gray-50';
 export interface AtdbTableSelectionContext {
   entityType: AtdbWritableEntity;
   selectedIds: readonly number[];
+  selectedIdSet: ReadonlySet<number>;
   visibleIds: readonly number[];
+  allVisibleSelected: boolean;
+  visibleSelectedCount: number;
+  disabled: boolean;
   onRowSelectionChange: (entityType: AtdbWritableEntity, id: number, selected: boolean) => void;
   onRenderedRowsSelectionChange: (
     entityType: AtdbWritableEntity,
@@ -102,9 +111,8 @@ export function SelectionHeaderCell({ context, entityType }: SelectionHeaderCell
   const selection = getSelectionForEntity(context, entityType);
   if (!selection) return null;
 
-  const selectedIdSet = new Set(selection.selectedIds);
   const rowIds = selection.visibleIds;
-  const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIdSet.has(id));
+  const allSelected = selection.allVisibleSelected;
 
   return (
     <th className="sticky left-0 z-40 w-12 min-w-12 border-b bg-gray-100 px-3 py-2 text-center">
@@ -112,7 +120,7 @@ export function SelectionHeaderCell({ context, entityType }: SelectionHeaderCell
         type="checkbox"
         aria-label="Выбрать все видимые строки"
         checked={allSelected}
-        disabled={rowIds.length === 0}
+        disabled={selection.disabled || rowIds.length === 0}
         onChange={(event) => selection.onRenderedRowsSelectionChange(entityType, rowIds, event.target.checked)}
         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
       />
@@ -124,13 +132,13 @@ export function SelectionCell({ context, entityType, id }: SelectionCellProps) {
   const selection = getSelectionForEntity(context, entityType);
   if (!selection) return null;
 
-  const selectedIdSet = new Set(selection.selectedIds);
   return (
     <td className="sticky left-0 z-20 w-12 min-w-12 border-b bg-white px-3 py-2 text-center">
       <input
         type="checkbox"
         aria-label={`Выбрать строку ID ${id}`}
-        checked={selectedIdSet.has(id)}
+        checked={selection.selectedIdSet.has(id)}
+        disabled={selection.disabled}
         onChange={(event) => selection.onRowSelectionChange(entityType, id, event.target.checked)}
         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
       />
@@ -140,17 +148,17 @@ export function SelectionCell({ context, entityType, id }: SelectionCellProps) {
 
 export function EmptyTableState({ emptyLabel, context }: EmptyTableStateProps) {
   if (context.totalCount === 0) {
-    return <p className="m-4 text-gray-500">{emptyLabel}</p>;
+    return <p className={cn(statusSurfaceClassName, 'm-4 text-gray-500')} role="status" aria-live="polite">{emptyLabel}</p>;
   }
 
   return (
-    <div className="m-4 flex flex-wrap items-center gap-3 text-gray-600">
+    <div className={cn(statusSurfaceClassName, 'm-4 flex flex-wrap items-center gap-3 text-gray-600')} role="status" aria-live="polite">
       <p>Нет строк по текущему поиску или фильтру.</p>
       {context.isQueryActive && (
         <button
           type="button"
           onClick={context.onClearQuery}
-          className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 transition hover:bg-gray-100"
+          className={cn(secondaryButtonClassName, 'px-3 py-1.5')}
         >
           Очистить
         </button>

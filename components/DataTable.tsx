@@ -31,6 +31,10 @@ interface DataTableProps {
   draft?: AtdbEditDraftState;
   sourceData?: ParsedAtdb;
   selectedIds?: readonly number[];
+  selectedIdSet?: ReadonlySet<number>;
+  allVisibleSelected?: boolean;
+  visibleSelectedCount?: number;
+  isSelectionDisabled?: boolean;
   isQueryActive: boolean;
   sortConfig: AtdbTableSortConfig | null;
   onSortChange: (sortConfig: AtdbTableSortConfig) => void;
@@ -48,6 +52,10 @@ const DataTable: React.FC<DataTableProps> = ({
   draft,
   sourceData,
   selectedIds = [],
+  selectedIdSet,
+  allVisibleSelected = false,
+  visibleSelectedCount = 0,
+  isSelectionDisabled = false,
   isQueryActive,
   sortConfig,
   onSortChange,
@@ -61,7 +69,11 @@ const DataTable: React.FC<DataTableProps> = ({
   const selection = createSelectionContext({
     selectableEntityType,
     selectedIds,
+    selectedIdSet,
     visibleIds: tableQueryResult.visibleIds,
+    allVisibleSelected,
+    visibleSelectedCount,
+    disabled: isSelectionDisabled,
     onRowSelectionChange,
     onRenderedRowsSelectionChange,
   });
@@ -113,13 +125,21 @@ function narrowRows<Row extends AtdbTableRow>(rows: AtdbTableRow[]): Row[] {
 function createSelectionContext({
   selectableEntityType,
   selectedIds,
+  selectedIdSet,
   visibleIds,
+  allVisibleSelected,
+  visibleSelectedCount,
+  disabled,
   onRowSelectionChange,
   onRenderedRowsSelectionChange,
 }: {
   selectableEntityType: AtdbWritableEntity | null;
   selectedIds: readonly number[];
+  selectedIdSet?: ReadonlySet<number>;
   visibleIds: readonly number[];
+  allVisibleSelected: boolean;
+  visibleSelectedCount: number;
+  disabled: boolean;
   onRowSelectionChange?: (entityType: AtdbWritableEntity, id: number, selected: boolean) => void;
   onRenderedRowsSelectionChange?: (
     entityType: AtdbWritableEntity,
@@ -134,7 +154,11 @@ function createSelectionContext({
   return {
     entityType: selectableEntityType,
     selectedIds,
+    selectedIdSet: selectedIdSet ?? new Set(selectedIds),
     visibleIds,
+    allVisibleSelected,
+    visibleSelectedCount,
+    disabled,
     onRowSelectionChange,
     onRenderedRowsSelectionChange,
   };

@@ -60,6 +60,11 @@ export interface AtdbTableQueryResult<Row extends AtdbTableRow = AtdbTableRow> {
   filterableColumns: readonly AtdbTableColumn[];
 }
 
+interface AtdbTableQueryContext {
+  placeById: ReadonlyMap<number, Place>;
+  cellValueCache: Map<string, Map<string, AtdbTableCellValue>>;
+}
+
 const TABLE_FILTER_OPERATORS = new Set<AtdbTableFilterOperator>([
   'contains',
   'equals',
@@ -209,24 +214,29 @@ export function queryAtdbTableRows(
   const sourceRows = getAtdbTableRows(data, entity);
   const quickSearch = normalizeSearchText(query.quickSearch);
   const activeFilter = normalizeFilter(query.filter, filterableColumns);
+  const context = createAtdbTableQueryContext(data);
 
   let rows = [...sourceRows];
   if (quickSearch.length > 0) {
     rows = rows.filter((row) =>
-      searchableColumns.some((column) => getSearchText(getAtdbTableCellValue(data, draft, entity, row, column.key)).includes(quickSearch)),
+      searchableColumns.some((column) =>
+        getSearchText(getCachedAtdbTableCellValue(context, data, draft, entity, row, column.key)).includes(quickSearch),
+      ),
     );
   }
 
   if (activeFilter) {
-    rows = rows.filter((row) => matchesFilter(getAtdbTableCellValue(data, draft, entity, row, activeFilter.field), activeFilter));
+    rows = rows.filter((row) =>
+      matchesFilter(getCachedAtdbTableCellValue(context, data, draft, entity, row, activeFilter.field), activeFilter),
+    );
   }
 
   const sort = query.sort;
   const sortColumn = sort ? columns.find((column) => column.key === sort.key && column.sortable) : undefined;
   if (sortColumn && sort) {
     rows = stableSortRows(rows, (left, right) => {
-      const leftValue = getAtdbTableCellValue(data, draft, entity, left, sortColumn.key);
-      const rightValue = getAtdbTableCellValue(data, draft, entity, right, sortColumn.key);
+      const leftValue = getCachedAtdbTableCellValue(context, data, draft, entity, left, sortColumn.key);
+      const rightValue = getCachedAtdbTableCellValue(context, data, draft, entity, right, sortColumn.key);
       return compareCellValues(leftValue, rightValue, sort.direction);
     });
   }
@@ -257,7 +267,50 @@ export function getAtdbTableCellValue(
   row: AtdbTableRow,
   columnKey: string,
 ): AtdbTableCellValue {
-  if (entity === 'persons') return getPersonCellValue(data, draft, row as Person, columnKey);
+  return resolveAtdbTableCellValue(createAtdbTableQueryContext(data), data, draft, entity, row, columnKey);
+}
+
+function createAtdbTableQueryContext(data: ParsedAtdb): AtdbTableQueryContext {
+  return {
+    placeById: new Map(data.places.map((place) => [place.id, place])),
+    cellValueCache: new Map(),
+  };
+}
+
+function getCachedAtdbTableCellValue(
+  context: AtdbTableQueryContext,
+  data: ParsedAtdb,
+  draft: AtdbEditDraftState | null | undefined,
+  entity: AtdbTableEntity,
+  row: AtdbTableRow,
+  columnKey: string,
+): AtdbTableCellValue {
+  const rowCacheKey = `${entity}:${row.id}`;
+  const existingRowCache = context.cellValueCache.get(rowCacheKey);
+  const rowCache = existingRowCache ?? new Map<string, AtdbTableCellValue>();
+
+  if (!existingRowCache) {
+    context.cellValueCache.set(rowCacheKey, rowCache);
+  }
+
+  if (rowCache.has(columnKey)) {
+    return rowCache.get(columnKey);
+  }
+
+  const value = resolveAtdbTableCellValue(context, data, draft, entity, row, columnKey);
+  rowCache.set(columnKey, value);
+  return value;
+}
+
+function resolveAtdbTableCellValue(
+  context: AtdbTableQueryContext,
+  data: ParsedAtdb,
+  draft: AtdbEditDraftState | null | undefined,
+  entity: AtdbTableEntity,
+  row: AtdbTableRow,
+  columnKey: string,
+): AtdbTableCellValue {
+  if (entity === 'persons') return getPersonCellValue(context, data, draft, row as Person, columnKey);
   if (entity === 'families') return getFamilyCellValue(data, draft, row as Family, columnKey);
   if (entity === 'events') return getEventCellValue(row as Event, columnKey);
   return getPlaceCellValue(data, draft, row as Place, columnKey);
@@ -283,17 +336,18 @@ function createColumn(
 }
 
 function getPersonCellValue(
+  context: AtdbTableQueryContext,
   data: ParsedAtdb,
   draft: AtdbEditDraftState | null | undefined,
   person: Person,
   columnKey: string,
 ): AtdbTableCellValue {
   if (columnKey === 'birthPlace') {
-    return getDraftAwarePlaceLinkLabel(data, draft, person, 'birthPlaceId', person.birthPlace);
+    return getDraftAwarePlaceLinkLabel(context, data, draft, person, 'birthPlaceId', person.birthPlace);
   }
 
   if (columnKey === 'deathPlace') {
-    return getDraftAwarePlaceLinkLabel(data, draft, person, 'deathPlaceId', person.deathPlace);
+    return getDraftAwarePlaceLinkLabel(context, data, draft, person, 'deathPlaceId', person.deathPlace);
   }
 
   if (isPersonDraftField(columnKey)) {
@@ -342,6 +396,7 @@ function getPlaceCellValue(
 }
 
 function getDraftAwarePlaceLinkLabel(
+  context: AtdbTableQueryContext,
   data: ParsedAtdb,
   draft: AtdbEditDraftState | null | undefined,
   person: Person,
@@ -350,16 +405,17 @@ function getDraftAwarePlaceLinkLabel(
 ): string {
   const draftValue = getDraftAwareValue(data, draft, 'person', person.id, field, person[field]);
   if (draftValue === null) return '';
-  if (typeof draftValue === 'number') return getDraftAwarePlaceLabel(data, draft, draftValue);
+  if (typeof draftValue === 'number') return getDraftAwarePlaceLabel(context, data, draft, draftValue);
   return fallback ?? '';
 }
 
 function getDraftAwarePlaceLabel(
+  context: AtdbTableQueryContext,
   data: ParsedAtdb,
   draft: AtdbEditDraftState | null | undefined,
   placeId: number,
 ): string {
-  const place = data.places.find((candidate) => candidate.id === placeId);
+  const place = context.placeById.get(placeId);
   if (!place) return `ID ${placeId}`;
 
   const name = getDraftAwareValue(data, draft, 'place', place.id, 'name', place.name);
