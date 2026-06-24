@@ -9,6 +9,7 @@ import {
   resolveFixtureByLabel,
   safeRelativePath,
 } from './atdb-fixtures.mjs';
+import { roundtripInvariantKeys } from './atdb-roundtrip-invariants.mjs';
 
 const projectRoot = process.cwd();
 const args = process.argv.slice(2);
@@ -110,6 +111,16 @@ function hasSnapshotFile(fixture) {
   return fs.existsSync(fixture.defaultSnapshotPath);
 }
 
+function snapshotLabel(fixture) {
+  return `fixture ${fixture.label} snapshot ${fixture.defaultSnapshotRelativePath}`;
+}
+
+function requireSnapshotFile(fixture) {
+  if (!hasSnapshotFile(fixture)) {
+    throw new Error(`tracked snapshot missing for ${snapshotLabel(fixture)}`);
+  }
+}
+
 function shouldSkipMissingLocalFixture(fixture) {
   return !fixture.tracked && !hasFixtureFile(fixture) && !hasSnapshotFile(fixture);
 }
@@ -128,6 +139,20 @@ function formatDriftSummary(summary) {
     .join(',');
 }
 
+function formatAggregateDriftSummary(summary) {
+  return roundtripInvariantKeys
+    .map((key) => `deltaAggregate-${key}:${summary?.get(`drift-aggregate-${key}`) ?? 'n/a'}`)
+    .join(',');
+}
+
+function assertSmokeSummaryComplete(fixture, summary) {
+  for (const key of roundtripInvariantKeys) {
+    if (!summary.has(`drift-aggregate-${key}`)) {
+      throw new Error(`smoke output missing aggregate key ${key} for fixture ${fixture.label}`);
+    }
+  }
+}
+
 function runSchemaMatrix() {
   safeLog('mode: schema');
   ensureLocalArtifactDir();
@@ -143,9 +168,7 @@ function runSchemaMatrix() {
 
 function runDiffMatrix() {
   safeLog('mode: diff');
-  if (!hasSnapshotFile(baseline)) {
-    throw new Error(`baseline snapshot missing for fixture ${baseline.label}`);
-  }
+  requireSnapshotFile(baseline);
 
   for (const fixture of fixtures.filter((entry) => entry.label !== baseline.label)) {
     if (!hasSnapshotFile(fixture)) {
@@ -153,7 +176,7 @@ function runDiffMatrix() {
         warnSkipFixture(fixture, 'local fixture and snapshot missing');
         continue;
       }
-      throw new Error(`snapshot missing for fixture ${fixture.label}`);
+      throw new Error(`snapshot missing for ${snapshotLabel(fixture)}`);
     }
 
     safeLog(`diff-pair: ${baseline.label}->${fixture.label}`);
@@ -174,7 +197,7 @@ function runSmokeMatrix() {
   for (const fixture of fixtures) {
     if (!hasFixtureFile(fixture) && !fixture.tracked) {
       warnSkipFixture(fixture, 'local fixture missing');
-      rows.push(`${fixture.label}=parse:skipped,build:skipped,reparse:skipped,${formatDriftSummary()}`);
+      rows.push(`${fixture.label}=parse:skipped,build:skipped,reparse:skipped,${formatDriftSummary()},${formatAggregateDriftSummary()}`);
       continue;
     }
 
@@ -184,8 +207,9 @@ function runSmokeMatrix() {
       throw new Error(`smoke failed for fixture ${fixture.label}`);
     }
     const summary = parseSafeOutput(result.stdout);
+    assertSmokeSummaryComplete(fixture, summary);
     rows.push(
-      `${fixture.label}=parse:${summary.get('parse')},build:${summary.get('build')},reparse:${summary.get('reparse')},${formatDriftSummary(summary)}`,
+      `${fixture.label}=parse:${summary.get('parse')},build:${summary.get('build')},reparse:${summary.get('reparse')},${formatDriftSummary(summary)},${formatAggregateDriftSummary(summary)}`,
     );
   }
   safeLog(`smoke-matrix: ${rows.join(' | ')}`);
@@ -200,7 +224,7 @@ function summarizeSnapshots() {
         rows.push(`${fixture.label}=skipped`);
         continue;
       }
-      throw new Error(`snapshot missing for fixture ${fixture.label}`);
+      throw new Error(`snapshot missing for ${snapshotLabel(fixture)}`);
     }
 
     const snapshot = JSON.parse(fs.readFileSync(fixture.defaultSnapshotPath, 'utf8'));
@@ -215,14 +239,24 @@ function summarizeSnapshots() {
 function verifyArtifactRedaction() {
   safeLog('mode: redaction-check');
   debugLog(`redaction markers: ${requiredSnapshotExclusions.join(',')}`);
+  requireSnapshotFile(baseline);
   const artifacts = [
-    path.join(projectRoot, 'docs/atdb_schema_yaman.snapshot.json'),
-    path.join(projectRoot, 'docs/atdb_multi_fixture_schema.md'),
-    path.join(projectRoot, 'docs/atdb_format.md'),
-    path.join(projectRoot, 'docs/getting-started.md'),
+    { path: baseline.defaultSnapshotPath, required: true },
+    { path: path.join(projectRoot, 'docs/atdb_multi_fixture_schema.md'), required: false },
+    { path: path.join(projectRoot, 'docs/atdb_format.md'), required: true },
+    { path: path.join(projectRoot, 'docs/getting-started.md'), required: true },
   ];
 
-  for (const artifactPath of artifacts) {
+  for (const artifact of artifacts) {
+    const artifactPath = artifact.path;
+    if (!fs.existsSync(artifactPath)) {
+      if (artifact.required) {
+        throw new Error(`redaction artifact missing: ${safeRelativePath(projectRoot, artifactPath)}`);
+      }
+      debugLog(`redaction artifact skipped: ${safeRelativePath(projectRoot, artifactPath)}`);
+      continue;
+    }
+
     const content = fs.readFileSync(artifactPath, 'utf8');
     for (const { label, pattern } of forbiddenPublicContentPatterns) {
       if (pattern.test(content)) {
@@ -231,7 +265,7 @@ function verifyArtifactRedaction() {
     }
   }
 
-  const snapshot = JSON.parse(fs.readFileSync(path.join(projectRoot, 'docs/atdb_schema_yaman.snapshot.json'), 'utf8'));
+  const snapshot = JSON.parse(fs.readFileSync(baseline.defaultSnapshotPath, 'utf8'));
   if (snapshot.safety?.redacted !== true) {
     throw new Error('tracked snapshot is not marked redacted');
   }

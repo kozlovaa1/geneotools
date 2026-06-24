@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Эксперименты по неопределённым ATDB-сущностям
 
 Branch: codex/eksperimenty-po-neopredelyonnym-atdb-sushchnostyam

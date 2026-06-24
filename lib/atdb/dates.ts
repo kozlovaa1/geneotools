@@ -1,4 +1,8 @@
 export function formatAtdbDate(year: number, month: number, day: number): string | null {
+  if (!isValidAtdbDateParts(year, month, day)) {
+    return null;
+  }
+
   if (year && month && day) {
     return year.toString().padStart(4, '0') + '-' + month.toString().padStart(2, '0') + '-' + day.toString().padStart(2, '0');
   }
@@ -15,10 +19,19 @@ export function formatAtdbDate(year: number, month: number, day: number): string
 }
 
 export function splitAtdbDate(date: string): [number, number, number] | null {
-  const [year, month, day] = date.split('-').map(Number);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) {
     return null;
   }
+
+  const [, yearPart, monthPart, dayPart] = match;
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+  const day = Number(dayPart);
+  if (!isValidAtdbDateParts(year, month, day)) {
+    return null;
+  }
+
   return [year, month, day];
 }
 
@@ -42,4 +55,20 @@ export function isNewDateMoreHistoricallyAccurate(currentDate: string, newDate: 
   }
 
   return false;
+}
+
+function isValidAtdbDateParts(year: number, month: number, day: number): boolean {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return false;
+  }
+
+  if (year <= 0 || month < 0 || month > 12 || day < 0 || day > 31) {
+    return false;
+  }
+
+  if (month === 0 && day !== 0) {
+    return false;
+  }
+
+  return true;
 }

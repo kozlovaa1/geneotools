@@ -69,12 +69,17 @@ npm run lint
 npx tsc --noEmit
 npm run build
 npm run mapping:atdb:check
+npm run test:atdb:dates
+npm run test:atdb:parser-contract
 npm run test:atdb:table-view
 npm run test:atdb:table-components
 npm run test:atdb:edit-draft
 npm run test:atdb:batch-edit
 npm run test:atdb:write-safety
 npm run test:atdb:rebuild-contract
+npm run smoke:atdb:matrix
+npm run schema:atdb:fixtures:check
+npm run test:atdb:fixtures:missing-local
 ```
 
 | Команда | Что проверяет |
@@ -83,12 +88,17 @@ npm run test:atdb:rebuild-contract
 | `npx tsc --noEmit` | Типы без генерации сборочных файлов |
 | `npm run build` | Production-сборку Next.js |
 | `npm run mapping:atdb:check` | Канонический `lib/atdb/mapping.json` и отсутствие конфликтующих кодов |
+| `npm run test:atdb:dates` | Форматирование и разбор поддержанных ATDB date forms |
+| `npm run test:atdb:parser-contract` | Synthetic parser contract для ролей родителей, дат и primary life-event мест |
 | `npm run test:atdb:table-view` | Поиск, фильтры, сортировку, visible IDs и labels |
 | `npm run test:atdb:table-components` | Контракты таблиц, selection lookup, pending/status surfaces и dialog accessibility |
 | `npm run test:atdb:edit-draft` | Локальный draft state и сборку `AtdbChangeSet` |
 | `npm run test:atdb:batch-edit` | Предпросмотр и применение массового редактирования |
 | `npm run test:atdb:write-safety` | Защиту неизвестных `Values*` и недопустимых write paths |
 | `npm run test:atdb:rebuild-contract` | Success/failure paths strict rebuild API |
+| `npm run smoke:atdb:matrix` | Parse/build/reparse smoke matrix с count и aggregate deltas |
+| `npm run schema:atdb:fixtures:check` | Schema, diff, smoke и redaction gate для разрешённых structural artifacts |
+| `npm run test:atdb:fixtures:missing-local` | Synthetic regression для skip/failure поведения fixture gates |
 
 ## Что проверить вручную
 

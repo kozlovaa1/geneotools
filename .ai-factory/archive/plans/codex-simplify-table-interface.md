@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Упрощение табличного интерфейса
 
 Branch: codex/simplify-table-interface

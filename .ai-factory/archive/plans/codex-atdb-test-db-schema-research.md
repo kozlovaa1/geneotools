@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Исследование тестовой базы ATDB
 
 Branch: codex/atdb-test-db-schema-research

@@ -19,6 +19,8 @@
     "schema:atdb:fixtures:diff": "node scripts/check-atdb-fixtures.mjs diff",
     "schema:atdb:fixtures:check": "node scripts/check-atdb-fixtures.mjs gate",
     "test:atdb:fixtures:missing-local": "node scripts/check-atdb-fixtures-regression.mjs",
+    "test:atdb:dates": "node scripts/check-atdb-dates.mjs",
+    "test:atdb:parser-contract": "node scripts/check-atdb-parser-contract.mjs",
     "test:atdb:table-view": "node scripts/check-atdb-table-view.mjs",
     "test:atdb:table-components": "node scripts/check-atdb-table-components.mjs",
     "test:atdb:edit-draft": "node scripts/check-atdb-edit-draft.mjs",

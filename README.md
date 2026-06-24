@@ -61,12 +61,17 @@ npm run lint
 npx tsc --noEmit
 npm run build
 npm run mapping:atdb:check
+npm run test:atdb:dates
+npm run test:atdb:parser-contract
 npm run test:atdb:table-view
 npm run test:atdb:table-components
 npm run test:atdb:edit-draft
 npm run test:atdb:batch-edit
 npm run test:atdb:write-safety
 npm run test:atdb:rebuild-contract
+npm run smoke:atdb:matrix
+npm run schema:atdb:fixtures:check
+npm run test:atdb:fixtures:missing-local
 ```
 
 Для ручной проверки используйте только локальную копию `.atdb` и не добавляйте пользовательские базы в git. Если нужно исследовать новый вариант структуры, публикуйте только обобщённые structural counts, коды таблиц, `f_id`, link targets и confidence labels.

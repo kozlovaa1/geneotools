@@ -1,3 +1,7 @@
+---
+archived: 2026-06-24
+---
+
 # Implementation Plan: Проверка схемы на нескольких ATDB-fixtures
 
 Branch: codex/proverka-skhemy-na-neskolkikh-atdb-fixtures

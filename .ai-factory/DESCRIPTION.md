@@ -16,7 +16,7 @@
 - Отображение данных в таблицах с сортировкой.
 - Экспорт текущих данных обратно в `.atdb` на основе исходного буфера.
 - Работа без внешних API и без сохранения пользовательских данных на сервере.
-- Regression-проверки mapping, table-view, draft, batch edit, write-safety и strict rebuild contract.
+- Regression-проверки mapping, date helpers, parser contract, table-view, draft, batch edit, write-safety, strict rebuild contract и parse/build smoke matrix.
 - Контейнерный запуск через `Dockerfile` и `docker-compose.yml`.
 
 ## Tech Stack
