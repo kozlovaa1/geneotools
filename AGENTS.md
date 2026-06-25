@@ -13,7 +13,7 @@
 - **UI:** React 19, Tailwind CSS 4, Lucide React
 - **SQLite:** `sql.js`
 - **ORM:** отсутствует
-- **Runtime:** Node.js 20
+- **Runtime:** Node.js 22
 
 ## Структура проекта
 
@@ -70,7 +70,8 @@ geneotools/
 ├── .codex/                     # Локальная конфигурация Codex и MCP
 ├── Dockerfile                  # Контейнерная сборка приложения
 ├── docker-compose.yml          # Compose-конфигурация для запуска
-└── package.json                # npm-скрипты и зависимости
+├── .nvmrc                      # Проектная major-линия Node.js
+└── package.json                # npm-скрипты, зависимости и контракт окружения
 ```
 
 ## Ключевые точки входа
@@ -79,6 +80,8 @@ geneotools/
 |------|------------|
 | `app/page.tsx` | Главный пользовательский сценарий: загрузка, draft, ошибки, экспорт |
 | `app/layout.tsx` | Корневой layout приложения |
+| `.nvmrc` | Проектная major-линия Node.js для `nvm use` |
+| `package.json` | npm-скрипты, зависимости, `engines` и `packageManager` |
 | `lib/sqlProcessor.ts` | Публичный фасад чтения и сборки SQLite/.atdb |
 | `lib/parseAtdb.ts` | Совместимый экспорт парсинга `.atdb` |
 | `lib/buildAtdb.ts` | Совместимый экспорт strict build API |

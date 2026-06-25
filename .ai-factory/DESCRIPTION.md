@@ -26,7 +26,7 @@
 - **UI:** React 19, Tailwind CSS 4, Lucide React
 - **SQLite:** `sql.js` для обработки `.atdb` в браузере
 - **ORM:** отсутствует, используются прямые SQL-запросы через `sql.js`
-- **Runtime:** Node.js 20 для сборки и Next.js runtime
+- **Runtime:** Node.js 22 для сборки и Next.js runtime
 
 ## Архитектурные заметки
 

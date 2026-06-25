@@ -8,13 +8,14 @@ GeneoTools — клиентское Next.js приложение для лока
 
 ## Требования
 
-- Node.js 20+
-- npm
+- Node.js 22.x
+- npm 10.x
 - Современный браузер с поддержкой `ArrayBuffer`, `Blob` и `FileReader`
 
 ## Установка
 
 ```bash
+nvm use
 npm install
 ```
 
@@ -25,6 +26,12 @@ npm run dev
 ```
 
 После запуска откройте `http://localhost:3000`.
+
+## Docker и CI
+
+`Dockerfile` использует `node:22-alpine` на стадиях builder и runner. Это намеренная фиксация major-линии: контейнер остаётся на Node.js 22 и получает patch-обновления базового образа при пересборке.
+
+CI pipeline в репозитории пока отсутствует. Этот этап не добавляет `.github/workflows`; поставочный контур ведётся как отдельная задача дорожной карты.
 
 ## Основной сценарий
 
@@ -65,6 +72,7 @@ npm run dev
 ## Полезные команды
 
 ```bash
+nvm use
 npm run lint
 npx tsc --noEmit
 npm run build
