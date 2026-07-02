@@ -1,7 +1,9 @@
 import {
   getDraftValue,
+  type AtdbSelectableEntity,
   type AtdbEditDraftState,
 } from './atdbEditDraft';
+import { formatAtdbPlaceLabel, formatAtdbPlaceParentPath } from './atdbPlaceLabels';
 import type { AtdbFieldName, AtdbWritableEntity } from './sqlProcessor';
 import type { Event, Family, ParsedAtdb, Person, Place } from './types';
 import { getEventTypeName } from './utils';
@@ -78,6 +80,10 @@ const PERSON_COLUMNS = [
     sourceField: 'lastName',
     writableEntity: 'person',
   }),
+  createColumn('persons', 'birthLastName', 'Фамилия при рождении', 'text', {
+    sourceField: 'birthLastName',
+    writableEntity: 'person',
+  }),
   createColumn('persons', 'firstName', 'Имя', 'text', {
     sourceField: 'firstName',
     writableEntity: 'person',
@@ -90,8 +96,14 @@ const PERSON_COLUMNS = [
     sourceField: 'gender',
     writableEntity: 'person',
   }),
-  createColumn('persons', 'birthDate', 'Дата рождения', 'text'),
-  createColumn('persons', 'deathDate', 'Дата смерти', 'text'),
+  createColumn('persons', 'birthDate', 'Дата рождения', 'text', {
+    sourceField: 'birthDate',
+    writableEntity: 'person',
+  }),
+  createColumn('persons', 'deathDate', 'Дата смерти', 'text', {
+    sourceField: 'deathDate',
+    writableEntity: 'person',
+  }),
   createColumn('persons', 'birthPlace', 'Место рождения', 'place-link', {
     sourceField: 'birthPlaceId',
     writableEntity: 'person',
@@ -135,7 +147,10 @@ const EVENT_COLUMNS = [
   createColumn('events', 'personId', 'ID персоны', 'number'),
   createColumn('events', 'eventType', 'Тип события', 'event-type'),
   createColumn('events', 'date', 'Дата', 'text'),
-  createColumn('events', 'place', 'Место', 'text'),
+  createColumn('events', 'place', 'Место', 'place-link', {
+    sourceField: 'placeId',
+    writableEntity: 'event',
+  }),
   createColumn('events', 'description', 'Описание', 'text'),
 ] as const satisfies readonly AtdbTableColumn[];
 
@@ -149,6 +164,12 @@ const PLACE_COLUMNS = [
     sourceField: 'shortName',
     writableEntity: 'place',
   }),
+  createColumn('places', 'placeNamingDate', 'Дата именования', 'text'),
+  createColumn('places', 'parentPlace', 'Родительское место', 'place-link', {
+    sourceField: 'parentId',
+    writableEntity: 'place',
+  }),
+  createColumn('places', 'parentPath', 'Путь родительских мест', 'text'),
   createColumn('places', 'comment', 'Комментарий', 'text', {
     sourceField: 'comment',
     writableEntity: 'place',
@@ -166,7 +187,7 @@ export function isAtdbTableEntity(value: unknown): value is AtdbTableEntity {
   return value === 'persons' || value === 'families' || value === 'events' || value === 'places';
 }
 
-export function getWritableEntityForAtdbTableEntity(entity: AtdbTableEntity): AtdbWritableEntity | null {
+export function getWritableEntityForAtdbTableEntity(entity: AtdbTableEntity): AtdbSelectableEntity | null {
   if (entity === 'persons') return 'person';
   if (entity === 'families') return 'family';
   if (entity === 'places') return 'place';
@@ -312,7 +333,7 @@ function resolveAtdbTableCellValue(
 ): AtdbTableCellValue {
   if (entity === 'persons') return getPersonCellValue(context, data, draft, row as Person, columnKey);
   if (entity === 'families') return getFamilyCellValue(data, draft, row as Family, columnKey);
-  if (entity === 'events') return getEventCellValue(row as Event, columnKey);
+  if (entity === 'events') return getEventCellValue(data, draft, row as Event, columnKey);
   return getPlaceCellValue(data, draft, row as Place, columnKey);
 }
 
@@ -370,13 +391,25 @@ function getFamilyCellValue(
   return getRecordValue(family, columnKey);
 }
 
-function getEventCellValue(event: Event, columnKey: string): AtdbTableCellValue {
+function getEventCellValue(
+  data: ParsedAtdb,
+  draft: AtdbEditDraftState | null | undefined,
+  event: Event,
+  columnKey: string,
+): AtdbTableCellValue {
   if (columnKey === 'personId') {
     return event.personIds?.[0];
   }
 
   if (columnKey === 'eventType') {
     return getEventTypeName(event.eventType);
+  }
+
+  if (columnKey === 'place') {
+    const draftValue = getDraftAwareValue(data, draft, 'event', event.id, 'placeId', event.placeId);
+    if (draftValue === null) return '';
+    if (typeof draftValue === 'number') return formatAtdbPlaceLabel(data, draftValue, { draft });
+    return event.place ?? '';
   }
 
   return getRecordValue(event, columnKey);
@@ -388,6 +421,21 @@ function getPlaceCellValue(
   place: Place,
   columnKey: string,
 ): AtdbTableCellValue {
+  if (columnKey === 'parentPlace') {
+    const draftValue = getDraftAwareValue(data, draft, 'place', place.id, 'parentId', place.parentId);
+    if (draftValue === null) return '';
+    if (typeof draftValue === 'number') return formatAtdbPlaceLabel(data, draftValue, { draft });
+    return '';
+  }
+
+  if (columnKey === 'parentPath') {
+    return formatAtdbPlaceParentPath(data, place.id, { draft });
+  }
+
+  if (columnKey === 'placeNamingDate') {
+    return place.placeNamingDateInfo?.display || place.placeNamingDate;
+  }
+
   if (isPlaceDraftField(columnKey)) {
     return getDraftAwareValue(data, draft, 'place', place.id, columnKey, place[columnKey]);
   }
@@ -415,12 +463,7 @@ function getDraftAwarePlaceLabel(
   draft: AtdbEditDraftState | null | undefined,
   placeId: number,
 ): string {
-  const place = context.placeById.get(placeId);
-  if (!place) return `ID ${placeId}`;
-
-  const name = getDraftAwareValue(data, draft, 'place', place.id, 'name', place.name);
-  const shortName = getDraftAwareValue(data, draft, 'place', place.id, 'shortName', place.shortName);
-  return getDisplayText(name) || getDisplayText(shortName) || `ID ${place.id}`;
+  return formatAtdbPlaceLabel(data, placeId, { draft });
 }
 
 function getDraftAwareValue(
@@ -435,11 +478,14 @@ function getDraftAwareValue(
   return getDraftValue(draft, data, { entityType, id, field });
 }
 
-function isPersonDraftField(field: string): field is 'firstName' | 'lastName' | 'patronymic' | 'gender' | 'birthPlaceId' | 'deathPlaceId' {
+function isPersonDraftField(field: string): field is 'firstName' | 'lastName' | 'birthLastName' | 'patronymic' | 'gender' | 'birthDate' | 'deathDate' | 'birthPlaceId' | 'deathPlaceId' {
   return field === 'firstName'
     || field === 'lastName'
+    || field === 'birthLastName'
     || field === 'patronymic'
     || field === 'gender'
+    || field === 'birthDate'
+    || field === 'deathDate'
     || field === 'birthPlaceId'
     || field === 'deathPlaceId';
 }
@@ -452,8 +498,8 @@ function isFamilyDraftField(field: string): field is 'familyName' | 'husbandLast
     || field === 'color';
 }
 
-function isPlaceDraftField(field: string): field is 'name' | 'shortName' | 'comment' {
-  return field === 'name' || field === 'shortName' || field === 'comment';
+function isPlaceDraftField(field: string): field is 'name' | 'shortName' | 'comment' | 'parentId' {
+  return field === 'name' || field === 'shortName' || field === 'comment' || field === 'parentId';
 }
 
 function getRecordValue(record: AtdbTableRow, key: string): AtdbTableCellValue {

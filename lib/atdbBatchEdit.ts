@@ -4,19 +4,19 @@ import {
   ATDB_EDITABLE_PLACE_FIELDS,
   ATDB_GENDER_VALUES,
   getDraftValue,
-  isAtdbEditableEntityType,
   isAtdbEditableField,
+  isAtdbSelectableEntityType,
   isFieldDirty,
   setDraftField,
   type AtdbDraftFieldKey,
   type AtdbDraftFieldValue,
   type AtdbEditDraftState,
+  type AtdbSelectableEntity,
 } from './atdbEditDraft';
 import { parseAtdbIntegerInput } from './atdbIntegerInput';
 import type {
   AtdbFieldName,
   AtdbFieldValue,
-  AtdbWritableEntity,
   ParsedAtdb,
 } from './sqlProcessor';
 
@@ -42,7 +42,7 @@ export type AtdbBatchPreviewReason =
   | 'stale-preview';
 
 export interface AtdbBatchEditableField {
-  entityType: AtdbWritableEntity;
+  entityType: AtdbSelectableEntity;
   field: AtdbFieldName;
   label: string;
   valueKind: AtdbBatchEditableValueKind;
@@ -72,7 +72,7 @@ export type AtdbBatchEditScope =
     };
 
 export interface AtdbBatchEditOperation {
-  entityType: AtdbWritableEntity;
+  entityType: AtdbSelectableEntity;
   field: AtdbFieldName;
   action: AtdbBatchEditAction;
   scope: AtdbBatchEditScope;
@@ -91,7 +91,7 @@ export interface AtdbBatchEditValidation {
 }
 
 export interface AtdbBatchEditPreviewRow {
-  entityType: AtdbWritableEntity;
+  entityType: AtdbSelectableEntity;
   id: number;
   field: AtdbFieldName;
   status: AtdbBatchPreviewStatus;
@@ -136,6 +136,7 @@ type FieldMetadataRecord<Field extends AtdbFieldName> = Record<
 const PERSON_FIELD_METADATA: FieldMetadataRecord<(typeof ATDB_EDITABLE_PERSON_FIELDS)[number]> = {
   firstName: createTextMetadata('Имя'),
   lastName: createTextMetadata('Фамилия'),
+  birthLastName: createTextMetadata('Фамилия при рождении'),
   patronymic: createTextMetadata('Отчество'),
   gender: {
     label: 'Пол',
@@ -144,6 +145,8 @@ const PERSON_FIELD_METADATA: FieldMetadataRecord<(typeof ATDB_EDITABLE_PERSON_FI
     supportsClear: true,
     supportsReplace: false,
   },
+  birthDate: createTextMetadata('Дата рождения'),
+  deathDate: createTextMetadata('Дата смерти'),
   birthPlaceId: createPlaceLinkMetadata('Место рождения'),
   deathPlaceId: createPlaceLinkMetadata('Место смерти'),
 };
@@ -166,12 +169,18 @@ const PLACE_FIELD_METADATA: FieldMetadataRecord<(typeof ATDB_EDITABLE_PLACE_FIEL
   name: createTextMetadata('Название места'),
   shortName: createTextMetadata('Краткое название места'),
   comment: createTextMetadata('Комментарий места'),
+  parentId: createPlaceLinkMetadata('Родительское место'),
 };
 
+const ATDB_BATCH_EDITABLE_PERSON_FIELDS = ATDB_EDITABLE_PERSON_FIELDS.filter(
+  (field) => field !== 'birthDate' && field !== 'deathDate',
+);
+const ATDB_BATCH_EDITABLE_PLACE_FIELDS = ATDB_EDITABLE_PLACE_FIELDS.filter((field) => field !== 'parentId');
+
 export const ATDB_BATCH_EDITABLE_FIELDS: readonly AtdbBatchEditableField[] = [
-  ...ATDB_EDITABLE_PERSON_FIELDS.map((field) => createEditableField('person', field, PERSON_FIELD_METADATA[field])),
+  ...ATDB_BATCH_EDITABLE_PERSON_FIELDS.map((field) => createEditableField('person', field, PERSON_FIELD_METADATA[field])),
   ...ATDB_EDITABLE_FAMILY_FIELDS.map((field) => createEditableField('family', field, FAMILY_FIELD_METADATA[field])),
-  ...ATDB_EDITABLE_PLACE_FIELDS.map((field) => createEditableField('place', field, PLACE_FIELD_METADATA[field])),
+  ...ATDB_BATCH_EDITABLE_PLACE_FIELDS.map((field) => createEditableField('place', field, PLACE_FIELD_METADATA[field])),
 ];
 
 const EDITABLE_FIELD_BY_KEY = new Map(
@@ -206,7 +215,7 @@ function createPlaceLinkMetadata(label: string): Omit<AtdbBatchEditableField, 'e
 }
 
 function createEditableField<Field extends AtdbFieldName>(
-  entityType: AtdbWritableEntity,
+  entityType: AtdbSelectableEntity,
   field: Field,
   metadata: Omit<AtdbBatchEditableField, 'entityType' | 'field'>,
 ): AtdbBatchEditableField {
@@ -217,12 +226,12 @@ function createEditableField<Field extends AtdbFieldName>(
   };
 }
 
-export function getAtdbBatchEditableFields(entityType?: AtdbWritableEntity): AtdbBatchEditableField[] {
+export function getAtdbBatchEditableFields(entityType?: AtdbSelectableEntity): AtdbBatchEditableField[] {
   return ATDB_BATCH_EDITABLE_FIELDS.filter((metadata) => !entityType || metadata.entityType === entityType);
 }
 
 export function getAtdbBatchEditableField(
-  entityType: AtdbWritableEntity,
+  entityType: AtdbSelectableEntity,
   field: AtdbFieldName,
 ): AtdbBatchEditableField | null {
   return EDITABLE_FIELD_BY_KEY.get(createMetadataKey(entityType, field)) ?? null;
@@ -333,7 +342,7 @@ export function createAtdbBatchEditFingerprint(
 }
 
 function validateOperation(data: ParsedAtdb, operation: AtdbBatchEditOperation): AtdbBatchEditValidation {
-  if (!isAtdbEditableEntityType(operation.entityType)) {
+  if (!isAtdbSelectableEntityType(operation.entityType)) {
     return { ok: false, code: 'unsupported-entity', entityType: String(operation.entityType ?? 'unknown') };
   }
 
@@ -521,7 +530,7 @@ function getNextValue(
 function matchesPredicate(
   data: ParsedAtdb,
   draft: AtdbEditDraftState,
-  entityType: AtdbWritableEntity,
+  entityType: AtdbSelectableEntity,
   id: number,
   predicate: AtdbBatchEditPredicate,
 ): boolean {
@@ -583,7 +592,7 @@ function createPreview(
 }
 
 function createPreviewRow(
-  entityType: AtdbWritableEntity,
+  entityType: AtdbSelectableEntity,
   id: number,
   field: AtdbFieldName,
   status: AtdbBatchPreviewStatus,
@@ -679,22 +688,25 @@ function valueToPredicateText(value: AtdbDraftFieldValue, caseSensitive = false)
   return caseSensitive ? text : text.toLocaleLowerCase();
 }
 
-function getRows(data: ParsedAtdb, entityType: AtdbWritableEntity): EntityRow[] {
+function getRows(data: ParsedAtdb, entityType: AtdbSelectableEntity): EntityRow[] {
   if (entityType === 'person') return data.persons;
   if (entityType === 'family') return data.families;
   return data.places;
 }
 
-function getRow(data: ParsedAtdb, entityType: AtdbWritableEntity, id: number): EntityRow | undefined {
+function getRow(data: ParsedAtdb, entityType: AtdbSelectableEntity, id: number): EntityRow | undefined {
   return getRows(data, entityType).find((row) => row.id === id);
 }
 
 function getOriginalValue(data: ParsedAtdb, key: AtdbDraftFieldKey): AtdbDraftFieldValue {
+  if (!isAtdbSelectableEntityType(key.entityType)) {
+    return undefined;
+  }
   const row = getRow(data, key.entityType, key.id) as Record<string, AtdbDraftFieldValue> | undefined;
   return row?.[key.field];
 }
 
-function createDraftKey(entityType: AtdbWritableEntity, id: number, field: AtdbFieldName): AtdbDraftFieldKey {
+function createDraftKey(entityType: AtdbSelectableEntity, id: number, field: AtdbFieldName): AtdbDraftFieldKey {
   return {
     entityType,
     id,
@@ -702,7 +714,7 @@ function createDraftKey(entityType: AtdbWritableEntity, id: number, field: AtdbF
   };
 }
 
-function createMetadataKey(entityType: AtdbWritableEntity, field: AtdbFieldName): string {
+function createMetadataKey(entityType: AtdbSelectableEntity, field: AtdbFieldName): string {
   return `${entityType}:${field}`;
 }
 

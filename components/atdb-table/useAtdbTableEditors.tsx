@@ -6,9 +6,14 @@ import {
   type AtdbEditDraftState,
 } from '@/lib/atdbEditDraft';
 import { parseAtdbIntegerInput } from '@/lib/atdbIntegerInput';
+import {
+  formatAtdbPlaceLabel,
+  getAtdbPlaceDescendantIds,
+} from '@/lib/atdbPlaceLabels';
 import type { AtdbFieldName, AtdbWritableEntity } from '@/lib/sqlProcessor';
 import type { ParsedAtdb, Person, Place } from '@/lib/types';
 import {
+  EditableDateCell,
   EditableNumberCell,
   EditableSelectCell,
   EditableTextCell,
@@ -38,11 +43,26 @@ export interface AtdbTableEditors {
     ariaLabel: string,
     fallback: unknown,
   ) => React.ReactNode;
+  renderDateEditor: (
+    entityType: AtdbWritableEntity,
+    id: number,
+    field: AtdbFieldName,
+    ariaLabel: string,
+    fallback: unknown,
+    editable: boolean,
+  ) => React.ReactNode;
   renderGenderEditor: (person: Person) => React.ReactNode;
   renderPlaceLinkEditor: (
-    person: Person,
-    field: 'birthPlaceId' | 'deathPlaceId',
+    entityType: AtdbWritableEntity,
+    id: number,
+    field: AtdbFieldName,
     label: string,
+    currentPlaceId: number | null | undefined,
+    fallback: unknown,
+    options?: {
+      editable?: boolean;
+      excludeSelfAndDescendantsOf?: number;
+    },
   ) => React.ReactNode;
   formatReadOnlyValue: (value: unknown) => string;
 }
@@ -67,16 +87,22 @@ export function useAtdbTableEditors({
   onDraftFieldReset,
 }: UseAtdbTableEditorsOptions): AtdbTableEditors {
   const canEdit = Boolean(draft && sourceData && onDraftFieldChange && onDraftFieldReset);
-  const placeOptions = React.useMemo<EditableSelectOption[]>(
-    () => [
+  const createPlaceOptions = React.useCallback((excludeSelfAndDescendantsOf?: number): EditableSelectOption[] => {
+    const excludedIds =
+      sourceData && typeof excludeSelfAndDescendantsOf === 'number'
+        ? new Set([excludeSelfAndDescendantsOf, ...getAtdbPlaceDescendantIds(sourceData, excludeSelfAndDescendantsOf, draft)])
+        : new Set<number>();
+
+    return [
       { value: '', label: 'Очистить' },
-      ...allPlaces.map((place) => ({
-        value: String(place.id),
-        label: formatPlaceLabel(place, draft, sourceData),
-      })),
-    ],
-    [allPlaces, draft, sourceData],
-  );
+      ...allPlaces
+        .filter((place) => !excludedIds.has(place.id))
+        .map((place) => ({
+          value: String(place.id),
+          label: sourceData ? formatAtdbPlaceLabel(sourceData, place.id, { draft }) : formatPlaceLabel(place),
+        })),
+    ];
+  }, [allPlaces, draft, sourceData]);
 
   const getDraftAwareValue = React.useCallback((key: AtdbDraftFieldKey): unknown => {
     if (!draft || !sourceData) return undefined;
@@ -149,6 +175,31 @@ export function useAtdbTableEditors({
     );
   };
 
+  const renderDateEditor: AtdbTableEditors['renderDateEditor'] = (
+    entityType,
+    id,
+    field,
+    ariaLabel,
+    fallback,
+    editable,
+  ) => {
+    const key = createDraftKey(entityType, id, field);
+    if (!canEdit || !editable) {
+      return formatReadOnlyValue(fallback);
+    }
+
+    const value = getDraftAwareValue(key);
+    return (
+      <EditableDateCell
+        value={typeof value === 'string' ? value : ''}
+        dirty={dirty(key)}
+        ariaLabel={ariaLabel}
+        onChange={(nextValue) => updateField(key, nextValue)}
+        onReset={() => resetField(key)}
+      />
+    );
+  };
+
   const renderGenderEditor = (person: Person) => {
     const key = createDraftKey('person', person.id, 'gender');
     if (!canEdit) {
@@ -161,9 +212,9 @@ export function useAtdbTableEditors({
         value={value === null ? '' : String(value ?? person.gender)}
         options={[
           { value: '', label: 'Очистить' },
-          { value: 'M', label: 'M' },
-          { value: 'F', label: 'F' },
-          { value: 'Unknown', label: 'Unknown' },
+          { value: 'M', label: 'М' },
+          { value: 'F', label: 'Ж' },
+          { value: 'Unknown', label: 'Неизвестно' },
         ]}
         dirty={dirty(key)}
         ariaLabel="Пол"
@@ -173,26 +224,29 @@ export function useAtdbTableEditors({
     );
   };
 
-  const renderPlaceLinkEditor: AtdbTableEditors['renderPlaceLinkEditor'] = (person, field, label) => {
-    const originalPlaceId = person[field];
-    if (typeof originalPlaceId !== 'number') {
-      return formatReadOnlyValue(field === 'birthPlaceId' ? person.birthPlace : person.deathPlace);
-    }
-
-    if (!canEdit) {
-      return formatReadOnlyValue(field === 'birthPlaceId' ? person.birthPlace : person.deathPlace);
+  const renderPlaceLinkEditor: AtdbTableEditors['renderPlaceLinkEditor'] = (
+    entityType,
+    id,
+    field,
+    label,
+    currentPlaceId,
+    fallback,
+    options = {},
+  ) => {
+    if (!canEdit || options.editable === false) {
+      return formatReadOnlyValue(fallback);
     }
 
     if (allPlaces.length === 0) {
       return <span className="text-amber-700">Список мест недоступен</span>;
     }
 
-    const key = createDraftKey('person', person.id, field);
+    const key = createDraftKey(entityType, id, field);
     const value = getDraftAwareValue(key);
     return (
       <EditableSelectCell
-        value={value === null ? '' : String(value ?? originalPlaceId)}
-        options={placeOptions}
+        value={value === null ? '' : String(value ?? currentPlaceId ?? '')}
+        options={createPlaceOptions(options.excludeSelfAndDescendantsOf)}
         dirty={dirty(key)}
         ariaLabel={label}
         onChange={(nextValue) => {
@@ -206,23 +260,13 @@ export function useAtdbTableEditors({
   return {
     renderTextEditor,
     renderNumberEditor,
+    renderDateEditor,
     renderGenderEditor,
     renderPlaceLinkEditor,
     formatReadOnlyValue,
   };
 }
 
-function formatPlaceLabel(place: Place, draft?: AtdbEditDraftState, sourceData?: ParsedAtdb): string {
-  if (!draft || !sourceData) {
-    return place.name || place.shortName || `ID ${place.id}`;
-  }
-
-  const name = getDraftValue(draft, sourceData, createDraftKey('place', place.id, 'name'));
-  const shortName = getDraftValue(draft, sourceData, createDraftKey('place', place.id, 'shortName'));
-  return formatOptionText(name) || formatOptionText(shortName) || `ID ${place.id}`;
-}
-
-function formatOptionText(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  return String(value);
+function formatPlaceLabel(place: Place): string {
+  return place.name || place.shortName || `ID ${place.id}`;
 }

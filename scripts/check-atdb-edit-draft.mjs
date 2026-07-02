@@ -40,9 +40,14 @@ function syntheticParsedData() {
         id: 1,
         firstName: 'SyntheticFirst',
         lastName: 'SyntheticLast',
+        birthLastName: 'SyntheticBirthLast',
         gender: 'M',
+        birthDate: '1901-02-03',
+        deathDate: '1950-00-00',
         birthPlaceId: 10,
         deathPlaceId: 11,
+        birthEventId: 100,
+        deathEventId: 101,
       },
       {
         id: 2,
@@ -57,7 +62,13 @@ function syntheticParsedData() {
         color: 3,
       },
     ],
-    events: [],
+    events: [
+      {
+        id: 100,
+        eventType: 'EventType1',
+        placeId: 10,
+      },
+    ],
     places: [
       {
         id: 10,
@@ -65,6 +76,7 @@ function syntheticParsedData() {
       },
       {
         id: 11,
+        parentId: 10,
       },
     ],
     metadata: {},
@@ -83,9 +95,13 @@ try {
   const editDraft = requireFromScript(path.join(tempDir, 'lib/atdbEditDraft.js'));
   const data = syntheticParsedData();
   const personFirstName = { entityType: 'person', id: 1, field: 'firstName' };
+  const personBirthLastName = { entityType: 'person', id: 1, field: 'birthLastName' };
+  const personBirthDate = { entityType: 'person', id: 1, field: 'birthDate' };
   const personLastName = { entityType: 'person', id: 1, field: 'lastName' };
   const familyName = { entityType: 'family', id: 20, field: 'familyName' };
   const familyColor = { entityType: 'family', id: 20, field: 'color' };
+  const eventPlace = { entityType: 'event', id: 100, field: 'placeId' };
+  const placeParent = { entityType: 'place', id: 11, field: 'parentId' };
   const placeShortName = { entityType: 'place', id: 11, field: 'shortName' };
 
   let draft = editDraft.createEmptyAtdbEditDraft();
@@ -153,6 +169,28 @@ try {
   changeSet = editDraft.buildAtdbChangeSet(data, draft);
   assert.equal(countFields(changeSet), 1, 'Unknown gender clear should stay no-op');
   safeLog('gender-clear: ok');
+
+  draft = editDraft.createEmptyAtdbEditDraft();
+  draft = editDraft.setDraftField(draft, data, personBirthLastName, 'SyntheticUpdatedBirthLast');
+  draft = editDraft.setDraftField(draft, data, personBirthDate, '1902-03-04');
+  draft = editDraft.setDraftField(draft, data, { entityType: 'person', id: 1, field: 'deathDate' }, null);
+  draft = editDraft.setDraftField(draft, data, eventPlace, 11);
+  draft = editDraft.setDraftField(draft, data, placeParent, null);
+  changeSet = editDraft.buildAtdbChangeSet(data, draft);
+  assert.deepEqual(
+    changeSet.changes.map((entityChange) => [
+      entityChange.entityType,
+      entityChange.id,
+      entityChange.fields.map((fieldChange) => fieldChange.field),
+    ]),
+    [
+      ['person', 1, ['birthLastName', 'birthDate', 'deathDate']],
+      ['event', 100, ['placeId']],
+      ['place', 11, ['parentId']],
+    ],
+    'new inline field order mismatch',
+  );
+  safeLog('new-inline-fields: ok');
 
   draft = editDraft.createEmptyAtdbEditDraft();
   draft = editDraft.setDraftField(draft, data, { entityType: 'place', id: 11, field: 'name' }, 'SyntheticUpdatedPlace');

@@ -38,6 +38,9 @@ export default function PlaceTable({ rows, context, editors }: PlaceTableProps) 
           <SortableHeaderCell columnKey="id" label={label('id', 'ID')} context={context} className={getStickyIdHeaderClassName(hasSelection)} />
           <SortableHeaderCell columnKey="name" label={label('name', 'Название')} context={context} />
           <SortableHeaderCell columnKey="shortName" label={label('shortName', 'Краткое название')} context={context} />
+          <SortableHeaderCell columnKey="placeNamingDate" label={label('placeNamingDate', 'Дата именования')} context={context} />
+          <SortableHeaderCell columnKey="parentPlace" label={label('parentPlace', 'Родительское место')} context={context} />
+          <SortableHeaderCell columnKey="parentPath" label={label('parentPath', 'Путь родительских мест')} context={context} />
           <SortableHeaderCell columnKey="comment" label={label('comment', 'Комментарий')} context={context} />
         </tr>
       </thead>
@@ -48,6 +51,19 @@ export default function PlaceTable({ rows, context, editors }: PlaceTableProps) 
             <td className={getStickyIdCellClassName(hasSelection)}>{place.id}</td>
             <td className={ATDB_TABLE_CELL_CLASS_NAME}>{editors.renderTextEditor('place', place.id, 'name', 'Название места', place.name)}</td>
             <td className={ATDB_TABLE_CELL_CLASS_NAME}>{editors.renderTextEditor('place', place.id, 'shortName', 'Краткое название места', place.shortName)}</td>
+            <td className={ATDB_TABLE_CELL_CLASS_NAME}>{place.placeNamingDateInfo?.display || place.placeNamingDate || '-'}</td>
+            <td className={ATDB_TABLE_CELL_CLASS_NAME}>
+              {editors.renderPlaceLinkEditor(
+                'place',
+                place.id,
+                'parentId',
+                label('parentPlace', 'Родительское место'),
+                place.parentId,
+                place.parentPath,
+                { excludeSelfAndDescendantsOf: place.id },
+              )}
+            </td>
+            <td className={ATDB_TABLE_CELL_CLASS_NAME}>{place.parentPath || '-'}</td>
             <td className={ATDB_TABLE_CELL_CLASS_NAME}>{editors.renderTextEditor('place', place.id, 'comment', 'Комментарий места', place.comment)}</td>
           </tr>
         ))}

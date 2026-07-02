@@ -26,7 +26,7 @@ geneotools/
 ├── components/                 # React-компоненты интерфейса
 │   ├── atdb-table/             # Entity-specific таблицы и общие primitives таблиц
 │   │   ├── AtdbTablePrimitives.tsx # Table frame, sortable headers, selection и empty state
-│   │   ├── EventTable.tsx      # Read-only таблица событий
+│   │   ├── EventTable.tsx      # Таблица событий с inline-редактированием места
 │   │   ├── FamilyTable.tsx     # Таблица родов
 │   │   ├── PersonTable.tsx     # Таблица персон
 │   │   ├── PlaceTable.tsx      # Таблица мест
@@ -105,7 +105,7 @@ geneotools/
 | `components/atdb-table/AtdbTablePrimitives.tsx` | Общие table frame, sort headers, selection cells и empty state |
 | `components/atdb-table/PersonTable.tsx` | Entity-specific таблица персон |
 | `components/atdb-table/FamilyTable.tsx` | Entity-specific таблица родов |
-| `components/atdb-table/EventTable.tsx` | Read-only entity-specific таблица событий |
+| `components/atdb-table/EventTable.tsx` | Entity-specific таблица событий с inline-редактированием места |
 | `components/atdb-table/PlaceTable.tsx` | Entity-specific таблица мест |
 | `components/atdb-table/useAtdbTableEditors.tsx` | Presentation helpers для draft-aware editable cells |
 | `components/EditableCell.tsx` | Переиспользуемые controls редактируемых ячеек |
@@ -195,8 +195,10 @@ geneotools/
 
 ### Правила write-safe scope
 
-- Разрешены только update-only изменения существующих персон, родов и мест.
-- События, даты, участники событий, `Global`, `Fields`, `Recs`, `EventRoles`, custom fields и unknown `Values*` остаются read-only.
+- Разрешены только update-only изменения существующих персон, родов, событий и мест.
+- Для событий разрешён только `placeId`; остальные поля событий и участники событий остаются read-only.
+- Даты рождения/смерти разрешены только через primary life-event и только для simple `ValuesDates`; non-simple metadata дат и `placeNamingDate` остаются read-only.
+- `Global`, `Fields`, `Recs`, `EventRoles`, custom fields и unknown `Values*` остаются read-only.
 - `Person.gender = null` или `undefined` нормализуется в `Unknown` (`Persons.sex = 0`).
 - Ошибки и diagnostics должны быть redacted: код, счётчики и безопасный контекст без raw rows.
 

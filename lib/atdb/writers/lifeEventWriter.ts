@@ -1,5 +1,6 @@
 import type { Person } from '../../types';
 import { EVENT_TYPE_IDS } from '../constants';
+import { splitAtdbDate } from '../dates';
 import type { SqlJsDatabase } from '../dbTypes';
 import type { AtdbChangeSet } from '../rebuildContract';
 import type { AtdbSchemaContext } from '../schemaContext';
@@ -109,4 +110,54 @@ export function writeLifeEventPlaceLinkChanges(
   }
 
   context.logger({ level: 'DEBUG', code: 'rebuild.life-event.places.applied', details: { changes: applied } });
+}
+
+export function writeLifeEventDateChanges(
+  db: SqlJsDatabase,
+  changeSet: AtdbChangeSet,
+  context: AtdbSchemaContext,
+): void {
+  if (!hasLifeEventTables(db) || !tableExists(db, 'ValuesDates')) {
+    context.logger({ level: 'WARN', code: 'rebuild.life-event.date-tables-missing' });
+    return;
+  }
+
+  const rule = context.resolveFieldRule('eventDate', 'write');
+  if (!rule) {
+    context.logger({ level: 'WARN', code: 'rebuild.life-event.date-field-missing' });
+    return;
+  }
+
+  const eventTable = context.tableCode('events', 'write');
+  let applied = 0;
+
+  for (const entityChange of changeSet.changes) {
+    if (entityChange.entityType !== 'person') continue;
+
+    for (const fieldChange of entityChange.fields) {
+      if (fieldChange.field !== 'birthDate' && fieldChange.field !== 'deathDate') continue;
+
+      const eventTypeId = fieldChange.field === 'birthDate' ? EVENT_TYPE_IDS.birth : EVENT_TYPE_IDS.death;
+      const primaryRole =
+        eventTypeId === EVENT_TYPE_IDS.birth
+          ? context.resolveMappedEventRole('bornPerson')
+          : context.resolvePrimaryEventRole(eventTypeId);
+      if (!primaryRole) {
+        context.logger({ level: 'WARN', code: 'rebuild.life-event.date-role-missing', details: { eventTypeId } });
+        continue;
+      }
+
+      const eventId = findLifeEvent(db, entityChange.id, primaryRole.id);
+      if (eventId === null) {
+        context.logger({ level: 'WARN', code: 'rebuild.life-event.date-event-missing', details: { eventTypeId } });
+        continue;
+      }
+
+      const parts = typeof fieldChange.value === 'string' ? splitAtdbDate(fieldChange.value) : null;
+      replaceOwnedValue(db, rule, eventTable, eventId, parts ? parts : null, context.logger);
+      applied++;
+    }
+  }
+
+  context.logger({ level: 'DEBUG', code: 'rebuild.life-event.dates.applied', details: { changes: applied } });
 }

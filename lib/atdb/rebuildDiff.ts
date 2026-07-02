@@ -4,6 +4,7 @@ import {
   type AtdbBuildIssue,
   type AtdbChangeSet,
   type AtdbEntityChange,
+  type AtdbEventField,
   type AtdbFamilyField,
   type AtdbFieldName,
   type AtdbFieldValue,
@@ -22,8 +23,11 @@ export interface AtdbCompatibilityDiff {
 const PERSON_FIELDS: AtdbPersonField[] = [
   'firstName',
   'lastName',
+  'birthLastName',
   'patronymic',
   'gender',
+  'birthDate',
+  'deathDate',
   'birthPlaceId',
   'deathPlaceId',
 ];
@@ -36,11 +40,10 @@ const FAMILY_FIELDS: AtdbFamilyField[] = [
   'color',
 ];
 
-const PLACE_FIELDS: AtdbPlaceField[] = ['name', 'shortName', 'comment'];
+const PLACE_FIELDS: AtdbPlaceField[] = ['name', 'shortName', 'comment', 'parentId'];
+const EVENT_FIELDS: AtdbEventField[] = ['placeId'];
 
 const PERSON_UNSUPPORTED_FIELDS = [
-  'birthDate',
-  'deathDate',
   'birthPlace',
   'deathPlace',
   'notes',
@@ -48,7 +51,6 @@ const PERSON_UNSUPPORTED_FIELDS = [
   'motherId',
   'spouseIds',
   'occupation',
-  'motherLastName',
 ] as const;
 
 const FAMILY_UNSUPPORTED_FIELDS = [
@@ -66,6 +68,11 @@ const EVENT_UNSUPPORTED_FIELDS = [
   'place',
   'description',
   'personIds',
+] as const;
+
+const PLACE_UNSUPPORTED_FIELDS = [
+  'parentPath',
+  'placeNamingDate',
 ] as const;
 
 function normalizeValue(value: unknown): unknown {
@@ -295,12 +302,19 @@ function diffPlaces(
     const diff = diffSupportedFields('place', originalPlace, targetPlace, PLACE_FIELDS);
     if (diff.entityChange) changes.push(diff.entityChange);
     noopChanges += diff.noopChanges;
+    checkUnsupportedFields('place', originalPlace, targetPlace, PLACE_UNSUPPORTED_FIELDS, issues);
   }
 
   return { changes, noopChanges };
 }
 
-function checkEvents(original: Event[], target: Event[], issues: AtdbBuildIssue[]): void {
+function diffEvents(
+  original: Event[],
+  target: Event[],
+  issues: AtdbBuildIssue[],
+): { changes: AtdbEntityChange[]; noopChanges: number } {
+  const changes: AtdbEntityChange[] = [];
+  let noopChanges = 0;
   const originalById = mapById(original, 'event', issues);
   const targetById = mapById(target, 'event', issues);
   addCollectionIssues('event', original, target, originalById, targetById, issues);
@@ -308,8 +322,13 @@ function checkEvents(original: Event[], target: Event[], issues: AtdbBuildIssue[
   for (const [id, originalEvent] of originalById) {
     const targetEvent = targetById.get(id);
     if (!targetEvent) continue;
+    const diff = diffSupportedFields('event', originalEvent, targetEvent, EVENT_FIELDS);
+    if (diff.entityChange) changes.push(diff.entityChange);
+    noopChanges += diff.noopChanges;
     checkUnsupportedFields('event', originalEvent, targetEvent, EVENT_UNSUPPORTED_FIELDS, issues);
   }
+
+  return { changes, noopChanges };
 }
 
 export function createCompatibilityChangeSet(
@@ -331,7 +350,9 @@ export function createCompatibilityChangeSet(
   changes.push(...familyDiff.changes);
   noopChanges += familyDiff.noopChanges;
 
-  checkEvents(original.events, target.events, issues);
+  const eventDiff = diffEvents(original.events, target.events, issues);
+  changes.push(...eventDiff.changes);
+  noopChanges += eventDiff.noopChanges;
 
   const placeDiff = diffPlaces(original.places, target.places, issues);
   changes.push(...placeDiff.changes);

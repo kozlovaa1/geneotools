@@ -109,6 +109,8 @@ DataTable / entity-specific tables / EditableCell
   -> счетчик изменённых полей и записей
 ```
 
+Inline-редактирование покрывает все поля из `AtdbChangeSet`, включая даты рождения/смерти, привязку места у события и `Place.parentId`. Табличные компоненты не пишут SQL напрямую: они передают draft-aware значения через helpers и получают отображаемые labels для мест из `lib/atdbPlaceLabels.ts`.
+
 Массовое редактирование использует тот же draft:
 
 ```text
@@ -118,6 +120,8 @@ BulkEditDialog
   -> atdbBatchEdit.applyAtdbBatchEdit
   -> local edit draft state
 ```
+
+Массовое редактирование намеренно уже inline-редактирования: оно не включает события, даты и иерархию мест, потому что для них нужен контекст конкретной строки и дополнительные проверки.
 
 ## Поток экспорта
 
@@ -151,7 +155,7 @@ No-op export не запускает сборку: пока `AtdbChangeSet` пу
 - Entity-specific таблицы выделены в `components/atdb-table/`; общая механика заголовков, selection и empty state вынесена в shared primitives.
 - Shared interaction styles вынесены в `components/uiStyles.ts`, а motion/reduced-motion utilities — в `app/globals.css`.
 - Виртуализация больших таблиц не внедрена.
-- Write-safe scope ограничен update-only изменениями существующих записей.
+- Write-safe scope ограничен update-only изменениями существующих записей; события поддерживают только `placeId`, а даты записываются только для простых primary life-event дат.
 - Compatibility API `buildAtdb(parsed, original)` сохранён, но основной UI export использует явный `AtdbChangeSet`.
 
 ## См. также

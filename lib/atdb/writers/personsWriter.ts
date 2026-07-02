@@ -7,6 +7,7 @@ import { replaceOwnedValue } from './valueWriter';
 const PERSON_STRING_RULES: Partial<Record<AtdbPersonField, string>> = {
   firstName: 'personFirstName',
   lastName: 'personLastName',
+  birthLastName: 'personBirthLastName',
   patronymic: 'personPatronymic',
 };
 
@@ -25,6 +26,7 @@ export function writePersons(db: SqlJsDatabase, persons: Person[], context: Atdb
   const fields = [
     ['personFirstName', (person: Person) => person.firstName],
     ['personLastName', (person: Person) => person.lastName],
+    ['personBirthLastName', (person: Person) => person.birthLastName],
     ['personPatronymic', (person: Person) => person.patronymic],
   ] as const;
   for (const person of persons) {
@@ -46,7 +48,12 @@ export function writePersonChanges(db: SqlJsDatabase, changeSet: AtdbChangeSet, 
     if (entityChange.entityType !== 'person') continue;
 
     for (const fieldChange of entityChange.fields) {
-      if (fieldChange.field === 'birthPlaceId' || fieldChange.field === 'deathPlaceId') continue;
+      if (
+        fieldChange.field === 'birthDate'
+        || fieldChange.field === 'deathDate'
+        || fieldChange.field === 'birthPlaceId'
+        || fieldChange.field === 'deathPlaceId'
+      ) continue;
 
       if (fieldChange.field === 'gender') {
         db.run('UPDATE Persons SET sex = ? WHERE id = ?', [genderValue(fieldChange.value), entityChange.id]);

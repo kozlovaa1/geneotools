@@ -1,4 +1,5 @@
 import type { ParsedAtdb } from '../types';
+import { readAtdbDateValue, splitAtdbDate } from './dates';
 import { ATDB_MAPPING } from './mapping';
 import type { AtdbEntity, ValuesTable } from './mappingTypes';
 import { EVENT_TYPE_IDS } from './constants';
@@ -28,8 +29,11 @@ const PROTECTED_TABLES = ['Global', 'Fields', 'Recs', 'EventRoles'] as const;
 const PERSON_FIELDS = new Set<AtdbFieldName>([
   'firstName',
   'lastName',
+  'birthLastName',
   'patronymic',
   'gender',
+  'birthDate',
+  'deathDate',
   'birthPlaceId',
   'deathPlaceId',
 ]);
@@ -42,15 +46,20 @@ const FAMILY_FIELDS = new Set<AtdbFieldName>([
   'color',
 ]);
 
-const PLACE_FIELDS = new Set<AtdbFieldName>(['name', 'shortName', 'comment']);
-const WRITABLE_ENTITY_TYPES = new Set<AtdbWritableEntity>(['person', 'family', 'place']);
+const EVENT_FIELDS = new Set<AtdbFieldName>(['placeId']);
+const PLACE_FIELDS = new Set<AtdbFieldName>(['name', 'shortName', 'comment', 'parentId']);
+const WRITABLE_ENTITY_TYPES = new Set<AtdbWritableEntity>(['person', 'family', 'event', 'place']);
 
 const FIELD_RULE_NAMES: Partial<Record<AtdbFieldName, string>> = {
   firstName: 'personFirstName',
   lastName: 'personLastName',
+  birthLastName: 'personBirthLastName',
   patronymic: 'personPatronymic',
+  birthDate: 'eventDate',
+  deathDate: 'eventDate',
   birthPlaceId: 'eventPlaceLink',
   deathPlaceId: 'eventPlaceLink',
+  placeId: 'eventPlaceLink',
   familyName: 'familyName',
   husbandLastName: 'familyHusbandLastName',
   wifeLastName: 'familyWifeLastName',
@@ -62,6 +71,7 @@ const FIELD_RULE_NAMES: Partial<Record<AtdbFieldName, string>> = {
 const STRING_FIELDS = new Set<AtdbFieldName>([
   'firstName',
   'lastName',
+  'birthLastName',
   'patronymic',
   'familyName',
   'husbandLastName',
@@ -71,7 +81,9 @@ const STRING_FIELDS = new Set<AtdbFieldName>([
   'shortName',
 ]);
 
-const PLACE_LINK_FIELDS = new Set<AtdbFieldName>(['birthPlaceId', 'deathPlaceId']);
+const LIFE_EVENT_PLACE_LINK_FIELDS = new Set<AtdbFieldName>(['birthPlaceId', 'deathPlaceId']);
+const DATE_FIELDS = new Set<AtdbFieldName>(['birthDate', 'deathDate']);
+const PLACE_ID_FIELDS = new Set<AtdbFieldName>(['birthPlaceId', 'deathPlaceId', 'placeId', 'parentId']);
 
 type Row = Record<string, SqlValue | undefined>;
 
@@ -86,24 +98,28 @@ function isWritableEntityType(entityType: unknown): entityType is AtdbWritableEn
 function tableForEntity(entityType: AtdbEntityChange['entityType']): string {
   if (entityType === 'person') return 'Persons';
   if (entityType === 'family') return 'Families';
+  if (entityType === 'event') return 'Events';
   return 'Places';
 }
 
 function allowedFieldsForEntity(entityType: AtdbEntityChange['entityType']): Set<AtdbFieldName> {
   if (entityType === 'person') return PERSON_FIELDS;
   if (entityType === 'family') return FAMILY_FIELDS;
+  if (entityType === 'event') return EVENT_FIELDS;
   return PLACE_FIELDS;
 }
 
 function entityTableCode(entityType: AtdbEntityChange['entityType']): number {
   if (entityType === 'person') return ATDB_MAPPING.tableCodes.persons.code;
   if (entityType === 'family') return ATDB_MAPPING.tableCodes.families.code;
+  if (entityType === 'event') return ATDB_MAPPING.tableCodes.events.code;
   return ATDB_MAPPING.tableCodes.places.code;
 }
 
 function mappingEntity(entityType: AtdbEntityChange['entityType']): AtdbEntity {
   if (entityType === 'person') return 'persons';
   if (entityType === 'family') return 'families';
+  if (entityType === 'event') return 'events';
   return 'places';
 }
 
@@ -125,8 +141,93 @@ function recordExists(db: SqlJsDatabase, tableName: string, id: number): boolean
   return value === 1;
 }
 
+function placesParentColumnExists(db: SqlJsDatabase): boolean {
+  const result = db.exec('PRAGMA table_info(Places)');
+  const nameIndex = result[0]?.columns.indexOf('name') ?? -1;
+  if (nameIndex === -1) return false;
+  return result[0].values.some((row) => row[nameIndex] === 'parent_id');
+}
+
+function readPlaceParentMap(db: SqlJsDatabase): Map<number, number | null> {
+  const parents = new Map<number, number | null>();
+  if (!tableExists(db, 'Places')) return parents;
+  const hasParentColumn = placesParentColumnExists(db);
+  const result = db.exec(`SELECT id${hasParentColumn ? ', parent_id' : ''} FROM Places`);
+  if (!result[0]) return parents;
+  for (const values of result[0].values) {
+    const id = values[0];
+    const parentId = hasParentColumn ? values[1] : null;
+    if (typeof id === 'number') {
+      parents.set(id, typeof parentId === 'number' ? parentId : null);
+    }
+  }
+  return parents;
+}
+
+function wouldCreatePlaceParentCycle(db: SqlJsDatabase, placeId: number, parentId: number): boolean {
+  const parents = readPlaceParentMap(db);
+  parents.set(placeId, parentId);
+  const seen = new Set<number>();
+  let current: number | null | undefined = parentId;
+  let depth = 0;
+
+  while (typeof current === 'number' && depth <= parents.size) {
+    if (current === placeId || seen.has(current)) return true;
+    seen.add(current);
+    current = parents.get(current);
+    depth++;
+  }
+
+  return false;
+}
+
+function validateCombinedPlaceParentChanges(
+  db: SqlJsDatabase,
+  changeSet: AtdbChangeSet,
+  issues: AtdbBuildIssue[],
+  logger: AtdbSchemaContext['logger'],
+): void {
+  if (issues.some((entry) => entry.code === 'preflight.place_parent_cycle' || entry.code === 'preflight.place_parent_self')) {
+    return;
+  }
+
+  const parents = readPlaceParentMap(db);
+  const changedPlaceIds: number[] = [];
+  for (const entityChange of changeSet.changes) {
+    if (entityChange.entityType !== 'place') continue;
+    for (const fieldChange of entityChange.fields) {
+      if (fieldChange.field !== 'parentId') continue;
+      parents.set(entityChange.id, typeof fieldChange.value === 'number' ? fieldChange.value : null);
+      changedPlaceIds.push(entityChange.id);
+    }
+  }
+
+  for (const placeId of changedPlaceIds) {
+    const seen = new Set<number>();
+    let current = parents.get(placeId);
+    let depth = 0;
+    while (typeof current === 'number' && depth <= parents.size) {
+      if (current === placeId || seen.has(current)) {
+        issues.push(issue('preflight.place_parent_cycle', 'Родительское место создаёт цикл иерархии', {
+          entityType: 'place',
+          field: 'parentId',
+        }));
+        logger({ level: 'WARN', code: 'place.parent.cycle', details: { count: changedPlaceIds.length, depth } });
+        return;
+      }
+      seen.add(current);
+      current = parents.get(current);
+      depth++;
+    }
+  }
+}
+
 function hasRequiredLifeEventTables(db: SqlJsDatabase): boolean {
   return tableExists(db, 'Events') && tableExists(db, 'EventDetails') && tableExists(db, 'EventRoles') && tableExists(db, 'ValuesLinks');
+}
+
+function hasRequiredLifeEventDateTables(db: SqlJsDatabase): boolean {
+  return tableExists(db, 'Events') && tableExists(db, 'EventDetails') && tableExists(db, 'EventRoles') && tableExists(db, 'ValuesDates');
 }
 
 function findLifeEvent(db: SqlJsDatabase, personId: number, eventRoleId: number): number | null {
@@ -143,7 +244,7 @@ function resolveLifeEventId(
   personId: number,
   field: AtdbFieldName,
 ): number | null {
-  const eventTypeId = field === 'birthPlaceId' ? EVENT_TYPE_IDS.birth : EVENT_TYPE_IDS.death;
+  const eventTypeId = field === 'birthPlaceId' || field === 'birthDate' ? EVENT_TYPE_IDS.birth : EVENT_TYPE_IDS.death;
   const role =
     eventTypeId === EVENT_TYPE_IDS.birth
       ? context.resolveMappedEventRole('bornPerson')
@@ -199,7 +300,50 @@ function validateFieldValue(
     }));
   }
 
-  if (!PLACE_LINK_FIELDS.has(field)) {
+  if (DATE_FIELDS.has(field)) {
+    if (value !== null && value !== undefined && (typeof value !== 'string' || splitAtdbDate(value) === null)) {
+      issues.push(issue('preflight.invalid_date_value', 'Дата должна использовать формат YYYY-MM-DD, YYYY-MM-00, YYYY-00-00, null или undefined', {
+        entityType: entityChange.entityType,
+        field,
+      }));
+      return;
+    }
+
+    if (!hasRequiredLifeEventDateTables(db)) {
+      issues.push(issue('preflight.life_event_date_tables_missing', 'Таблицы событий недоступны для изменения даты', {
+        entityType: entityChange.entityType,
+        field,
+      }));
+      return;
+    }
+
+    const eventId = resolveLifeEventId(db, context, entityChange.id, field);
+    if (eventId === null) {
+      issues.push(issue('preflight.life_event_not_found', 'Событие рождения или смерти не найдено для изменения даты', {
+        entityType: entityChange.entityType,
+        field,
+      }));
+      return;
+    }
+
+    const dateRule = context.resolveFieldRule('eventDate', 'write');
+    if (dateRule) {
+      const currentDate = readAtdbDateValue(db, {
+        fieldId: dateRule.id,
+        recTable: context.tableCode('events', 'write'),
+        recId: eventId,
+        logger: context.logger,
+      });
+      if (currentDate && !currentDate.isSimple && value !== currentDate.value) {
+        issues.push(issue('preflight.non_simple_date_edit', 'Неточная дата требует отдельного редактора типа даты', {
+          entityType: entityChange.entityType,
+          field,
+        }));
+      }
+    }
+  }
+
+  if (!PLACE_ID_FIELDS.has(field)) {
     return;
   }
 
@@ -208,6 +352,7 @@ function validateFieldValue(
       entityType: entityChange.entityType,
       field,
     }));
+    return;
   }
 
   if (typeof value === 'number' && !recordExists(db, 'Places', value)) {
@@ -215,6 +360,46 @@ function validateFieldValue(
       entityType: entityChange.entityType,
       field,
     }));
+  }
+
+  if (field === 'parentId') {
+    if (!placesParentColumnExists(db)) {
+      issues.push(issue('preflight.place_parent_column_missing', 'Колонка Places.parent_id недоступна для изменения родительского места', {
+        entityType: entityChange.entityType,
+        field,
+      }));
+      return;
+    }
+
+    if (typeof value === 'number' && value === entityChange.id) {
+      issues.push(issue('preflight.place_parent_self', 'Место не может быть своим родителем', {
+        entityType: entityChange.entityType,
+        field,
+      }));
+    }
+
+    if (typeof value === 'number' && wouldCreatePlaceParentCycle(db, entityChange.id, value)) {
+      issues.push(issue('preflight.place_parent_cycle', 'Родительское место создаёт цикл иерархии', {
+        entityType: entityChange.entityType,
+        field,
+      }));
+      context.logger({ level: 'WARN', code: 'place.parent.cycle', details: { count: 1, depth: 0 } });
+    }
+    return;
+  }
+
+  if (field === 'placeId') {
+    if (!tableExists(db, 'ValuesLinks')) {
+      issues.push(issue('preflight.event_place_tables_missing', 'Таблица ссылок недоступна для изменения места события', {
+        entityType: entityChange.entityType,
+        field,
+      }));
+    }
+    return;
+  }
+
+  if (!LIFE_EVENT_PLACE_LINK_FIELDS.has(field)) {
+    return;
   }
 
   if (!hasRequiredLifeEventTables(db)) {
@@ -286,6 +471,8 @@ export function validateAtdbChangeSetPreflight(
       validateFieldValue(db, context, entityChange, fieldChange, issues);
     }
   }
+
+  validateCombinedPlaceParentChanges(db, changeSet, issues, context.logger);
 
   const report = createAtdbBuildReport({
     changes: summary.changes,
@@ -377,12 +564,31 @@ function collectTouchedOwnedValueKeys(
       const field = fieldChange.field;
       if (field === 'gender' || field === 'color') continue;
 
-      if (PLACE_LINK_FIELDS.has(field)) {
+      if (LIFE_EVENT_PLACE_LINK_FIELDS.has(field)) {
         const rule = context.resolveFieldRule('eventPlaceLink', 'write');
         const eventId = resolveLifeEventId(db, context, entityChange.id, field);
         if (rule && eventId !== null) {
           touched.add(
             `ValuesLinks:${ATDB_MAPPING.tableCodes.events.code}:${rule.id}:${eventId}:${ATDB_MAPPING.tableCodes.places.code}`,
+          );
+        }
+        continue;
+      }
+
+      if (DATE_FIELDS.has(field)) {
+        const rule = context.resolveFieldRule('eventDate', 'write');
+        const eventId = resolveLifeEventId(db, context, entityChange.id, field);
+        if (rule && eventId !== null) {
+          touched.add(`ValuesDates:${ATDB_MAPPING.tableCodes.events.code}:${rule.id}:${eventId}`);
+        }
+        continue;
+      }
+
+      if (entityChange.entityType === 'event' && field === 'placeId') {
+        const rule = context.resolveFieldRule('eventPlaceLink', 'write');
+        if (rule) {
+          touched.add(
+            `ValuesLinks:${ATDB_MAPPING.tableCodes.events.code}:${rule.id}:${entityChange.id}:${ATDB_MAPPING.tableCodes.places.code}`,
           );
         }
         continue;
@@ -460,6 +666,7 @@ function expectedValueMatches(field: AtdbFieldName, actual: unknown, expected: u
 function entityMap(parsed: ParsedAtdb, entityType: AtdbEntityChange['entityType']): Map<number, { id: number }> {
   if (entityType === 'person') return indexById(parsed.persons);
   if (entityType === 'family') return indexById(parsed.families);
+  if (entityType === 'event') return indexById(parsed.events);
   return indexById(parsed.places);
 }
 

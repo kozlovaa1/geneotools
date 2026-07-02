@@ -3,7 +3,7 @@ import type {
   AtdbTableColumn,
   AtdbTableSortConfig,
 } from '@/lib/atdbTableView';
-import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
+import type { AtdbSelectableEntity } from '@/lib/atdbEditDraft';
 import { cn } from '@/lib/utils';
 import {
   secondaryButtonClassName,
@@ -14,16 +14,16 @@ export const ATDB_TABLE_CELL_CLASS_NAME = 'border-b px-4 py-2';
 export const ATDB_TABLE_ROW_CLASS_NAME = 'hover:bg-gray-50';
 
 export interface AtdbTableSelectionContext {
-  entityType: AtdbWritableEntity;
+  entityType: AtdbSelectableEntity;
   selectedIds: readonly number[];
   selectedIdSet: ReadonlySet<number>;
   visibleIds: readonly number[];
   allVisibleSelected: boolean;
   visibleSelectedCount: number;
   disabled: boolean;
-  onRowSelectionChange: (entityType: AtdbWritableEntity, id: number, selected: boolean) => void;
+  onRowSelectionChange: (entityType: AtdbSelectableEntity, id: number, selected: boolean) => void;
   onRenderedRowsSelectionChange: (
-    entityType: AtdbWritableEntity,
+    entityType: AtdbSelectableEntity,
     ids: readonly number[],
     selected: boolean,
   ) => void;
@@ -53,7 +53,7 @@ interface SortableHeaderCellProps {
 
 interface SelectionHeaderCellProps {
   context: AtdbTableRenderContext;
-  entityType: AtdbWritableEntity;
+  entityType: AtdbSelectableEntity;
 }
 
 interface SelectionCellProps extends SelectionHeaderCellProps {
@@ -175,7 +175,7 @@ export function getColumnLabel(
   return columns.find((column) => column.key === key)?.label ?? fallback;
 }
 
-export function hasSelectionColumn(context: AtdbTableRenderContext, entityType: AtdbWritableEntity): boolean {
+export function hasSelectionColumn(context: AtdbTableRenderContext, entityType: AtdbSelectableEntity): boolean {
   return context.selection?.entityType === entityType;
 }
 
@@ -189,7 +189,7 @@ export function getStickyIdCellClassName(hasSelection: boolean): string {
 
 function getSelectionForEntity(
   context: AtdbTableRenderContext,
-  entityType: AtdbWritableEntity,
+  entityType: AtdbSelectableEntity,
 ): AtdbTableSelectionContext | null {
   return context.selection?.entityType === entityType ? context.selection : null;
 }

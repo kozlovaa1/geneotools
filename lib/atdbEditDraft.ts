@@ -1,6 +1,7 @@
 import type {
   AtdbChangeSet,
   AtdbEntityChange,
+  AtdbEventField,
   AtdbFamilyField,
   AtdbFieldName,
   AtdbFieldChange,
@@ -11,11 +12,16 @@ import type {
   ParsedAtdb,
 } from './sqlProcessor';
 
+export type AtdbSelectableEntity = Exclude<AtdbWritableEntity, 'event'>;
+
 export const ATDB_EDITABLE_PERSON_FIELDS = [
   'firstName',
   'lastName',
+  'birthLastName',
   'patronymic',
   'gender',
+  'birthDate',
+  'deathDate',
   'birthPlaceId',
   'deathPlaceId',
 ] as const satisfies readonly AtdbPersonField[];
@@ -32,11 +38,17 @@ export const ATDB_EDITABLE_PLACE_FIELDS = [
   'name',
   'shortName',
   'comment',
+  'parentId',
 ] as const satisfies readonly AtdbPlaceField[];
+
+export const ATDB_EDITABLE_EVENT_FIELDS = [
+  'placeId',
+] as const satisfies readonly AtdbEventField[];
 
 export const ATDB_EDITABLE_FIELDS = {
   person: ATDB_EDITABLE_PERSON_FIELDS,
   family: ATDB_EDITABLE_FAMILY_FIELDS,
+  event: ATDB_EDITABLE_EVENT_FIELDS,
   place: ATDB_EDITABLE_PLACE_FIELDS,
 } as const satisfies Record<AtdbWritableEntity, readonly AtdbFieldName[]>;
 
@@ -85,10 +97,15 @@ const FIELD_SORT_ORDER = new Map<string, number>(
 const ENTITY_SORT_ORDER: Record<AtdbWritableEntity, number> = {
   person: 0,
   family: 1,
-  place: 2,
+  event: 2,
+  place: 3,
 };
 
 export function isAtdbEditableEntityType(entityType: unknown): entityType is AtdbWritableEntity {
+  return entityType === 'person' || entityType === 'family' || entityType === 'event' || entityType === 'place';
+}
+
+export function isAtdbSelectableEntityType(entityType: unknown): entityType is AtdbSelectableEntity {
   return entityType === 'person' || entityType === 'family' || entityType === 'place';
 }
 
@@ -112,7 +129,7 @@ export function isAtdbDraftFieldValue(field: AtdbFieldName, value: unknown): val
     return isAtdbEditableGender(value);
   }
 
-  if (field === 'color' || field === 'birthPlaceId' || field === 'deathPlaceId') {
+  if (field === 'color' || field === 'birthPlaceId' || field === 'deathPlaceId' || field === 'placeId' || field === 'parentId') {
     return typeof value === 'number' && Number.isInteger(value);
   }
 
@@ -279,7 +296,7 @@ function normalizeAtdbDraftValue(field: AtdbFieldName, value: unknown): AtdbDraf
     return isAtdbEditableGender(value) ? value : undefined;
   }
 
-  if (field === 'color' || field === 'birthPlaceId' || field === 'deathPlaceId') {
+  if (field === 'color' || field === 'birthPlaceId' || field === 'deathPlaceId' || field === 'placeId' || field === 'parentId') {
     return typeof value === 'number' && Number.isInteger(value) ? value : undefined;
   }
 
@@ -302,6 +319,11 @@ function getOriginalField(
   if (key.entityType === 'family') {
     const family = data.families.find((row) => row.id === key.id);
     return family ? { found: true, value: family[key.field as AtdbFamilyField] } : { found: false };
+  }
+
+  if (key.entityType === 'event') {
+    const event = data.events.find((row) => row.id === key.id);
+    return event ? { found: true, value: event[key.field as AtdbEventField] } : { found: false };
   }
 
   const place = data.places.find((row) => row.id === key.id);

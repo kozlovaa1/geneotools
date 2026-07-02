@@ -42,6 +42,13 @@ function scalar(db, sql, params = []) {
   return db.exec(sql, params)[0]?.values[0]?.[0];
 }
 
+function columnExists(db, tableName, columnName) {
+  const result = db.exec(`PRAGMA table_info(${tableName})`);
+  const nameIndex = result[0]?.columns.indexOf('name') ?? -1;
+  if (nameIndex === -1) return false;
+  return result[0].values.some((row) => row[nameIndex] === columnName);
+}
+
 function cloneParsed(parsed) {
   return structuredClone(parsed);
 }
@@ -102,21 +109,41 @@ try {
   assert.ok(ownedLink, 'fixture has no primary life-event place link');
   const replacementPlaceId = scalar(db, 'SELECT id FROM Places WHERE id <> ? LIMIT 1', [ownedLink[3]]);
   assert.equal(typeof replacementPlaceId, 'number', 'fixture has no replacement place');
+  const ownedDateType = scalar(
+    db,
+    'SELECT type FROM ValuesDates WHERE rec_table = ? AND rec_id = ? AND f_id = ? LIMIT 1',
+    [mapping.tableCodes.events.code, ownedLink[1], mapping.fields.eventDate.id],
+  );
+  const ownedDateRowExists = scalar(
+    db,
+    'SELECT COUNT(*) FROM ValuesDates WHERE rec_table = ? AND rec_id = ? AND f_id = ?',
+    [mapping.tableCodes.events.code, ownedLink[1], mapping.fields.eventDate.id],
+  ) === 1;
+  const canRunDateMetadataBlock = ownedDateRowExists && columnExists(db, 'ValuesDates', 'calendar');
+  const canChangeOwnedDate = ownedDateType === undefined || ownedDateType === null || ownedDateType === 0;
   db.close();
 
   const personId = parsed.persons[0].id;
   const familyId = parsed.families[0].id;
   const placeId = parsed.places[0].id;
   const placeLinkField = ownedLink[2] === mapping.eventTypes.birth.id ? 'birthPlaceId' : 'deathPlaceId';
+  const lifeEventDateField = ownedLink[2] === mapping.eventTypes.birth.id ? 'birthDate' : 'deathDate';
+  const syntheticDate = '1801-02-03';
+  const personFields = [
+    { field: 'firstName', value: syntheticText },
+    { field: 'birthLastName', value: `${syntheticText}Birth` },
+    { field: 'gender', value: 'Unknown' },
+  ];
+  const ownedLinkPersonFields = [{ field: placeLinkField, value: replacementPlaceId }];
+  if (canChangeOwnedDate) {
+    ownedLinkPersonFields.push({ field: lifeEventDateField, value: syntheticDate });
+  }
   const changeSet = {
     changes: [
       {
         entityType: 'person',
         id: personId,
-        fields: [
-          { field: 'firstName', value: syntheticText },
-          { field: 'gender', value: 'Unknown' },
-        ],
+        fields: personFields,
       },
       {
         entityType: 'family',
@@ -132,12 +159,18 @@ try {
         fields: [
           { field: 'name', value: syntheticText },
           { field: 'shortName', value: '' },
+          { field: 'parentId', value: null },
         ],
+      },
+      {
+        entityType: 'event',
+        id: ownedLink[1],
+        fields: [{ field: 'placeId', value: replacementPlaceId }],
       },
       {
         entityType: 'person',
         id: ownedLink[0],
-        fields: [{ field: placeLinkField, value: replacementPlaceId }],
+        fields: ownedLinkPersonFields,
       },
     ],
   };
@@ -158,12 +191,18 @@ try {
   }
   const changedParsed = await processor.parseAtdb(changed);
   assert.equal(changedParsed.persons.find((person) => person.id === personId)?.firstName, syntheticText);
+  assert.equal(changedParsed.persons.find((person) => person.id === personId)?.birthLastName, `${syntheticText}Birth`);
   assert.equal(changedParsed.persons.find((person) => person.id === personId)?.gender, 'Unknown');
   assert.equal(changedParsed.families.find((family) => family.id === familyId)?.familyName, syntheticText);
   assert.equal(changedParsed.families.find((family) => family.id === familyId)?.color, 7);
   assert.equal(changedParsed.places.find((place) => place.id === placeId)?.name, syntheticText);
   assert.equal(changedParsed.places.find((place) => place.id === placeId)?.shortName, '');
+  assert.equal(changedParsed.places.find((place) => place.id === placeId)?.parentId, undefined);
+  assert.equal(changedParsed.events.find((event) => event.id === ownedLink[1])?.placeId, replacementPlaceId);
   assert.equal(changedParsed.persons.find((person) => person.id === ownedLink[0])?.[placeLinkField], replacementPlaceId);
+  if (canChangeOwnedDate) {
+    assert.equal(changedParsed.persons.find((person) => person.id === ownedLink[0])?.[lifeEventDateField], syntheticDate);
+  }
   safeLog('explicit-change-set: ok');
 
   const genderPerson = parsed.persons.find((person) => person.gender !== 'Unknown') ?? parsed.persons[0];
@@ -235,6 +274,29 @@ try {
     candidate.persons[0].gender = 'invalid';
     await processor.buildAtdb(candidate, original);
   });
+
+  if (canRunDateMetadataBlock) {
+    await expectBuildFailure('date-metadata-edit', async () => {
+      const metadataDb = new SQL.Database(original);
+      metadataDb.run(
+        'UPDATE ValuesDates SET calendar = ? WHERE rec_table = ? AND rec_id = ? AND f_id = ?',
+        [1, mapping.tableCodes.events.code, ownedLink[1], mapping.fields.eventDate.id],
+      );
+      const metadataBuffer = metadataDb.export();
+      metadataDb.close();
+      await processor.applyAtdbChanges(metadataBuffer, {
+        changes: [
+          {
+            entityType: 'person',
+            id: ownedLink[0],
+            fields: [{ field: lifeEventDateField, value: syntheticDate }],
+          },
+        ],
+      });
+    });
+  } else {
+    safeLog('date-metadata-edit: skipped');
+  }
 
   await expectBuildFailure('duplicate-ids', async () => {
     const candidate = cloneParsed(parsed);

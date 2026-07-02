@@ -1,5 +1,5 @@
 import type { Event } from '../../types';
-import { formatAtdbDate } from '../dates';
+import { readAtdbDateValue } from '../dates';
 import type { SqlJsDatabase } from '../dbTypes';
 import type { AtdbSchemaContext } from '../schemaContext';
 import { tableExists } from '../sqlHelpers';
@@ -40,13 +40,14 @@ export function readEvents(db: SqlJsDatabase, context: AtdbSchemaContext): Event
       }
 
       if (hasDates && eventDateField) {
-        const dates = db.prepare('SELECT y, m, d FROM ValuesDates WHERE f_id = ? AND rec_table = ? AND rec_id = ?');
-        dates.bind([eventDateField.id, eventTable, eventId]);
-        if (dates.step()) {
-          const date = dates.getAsObject();
-          event.date = formatAtdbDate(date.y as number, date.m as number, date.d as number) ?? undefined;
-        }
-        dates.free();
+        const dateValue = readAtdbDateValue(db, {
+          fieldId: eventDateField.id,
+          recTable: eventTable,
+          recId: eventId,
+          logger: context.logger,
+        });
+        event.date = dateValue?.value;
+        event.dateInfo = dateValue ?? undefined;
       }
 
       if (hasLinks && eventPlaceFieldIds.length > 0) {
@@ -58,12 +59,15 @@ export function readEvents(db: SqlJsDatabase, context: AtdbSchemaContext): Event
            ORDER BY CASE WHEN f_id = ? THEN 0 ELSE 1 END`,
         );
         links.bind([...eventPlaceFieldIds, eventTable, eventId, placeTable, eventPlaceField?.id ?? -1]);
-        if (links.step() && placeNameField && hasStrings) {
+        if (links.step()) {
           const placeId = links.getAsObject().vlink_id as number;
-          const placeName = db.prepare('SELECT vstr FROM ValuesStr WHERE f_id = ? AND rec_table = ? AND rec_id = ?');
-          placeName.bind([placeNameField.id, placeTable, placeId]);
-          if (placeName.step()) event.place = placeName.getAsObject().vstr as string;
-          placeName.free();
+          event.placeId = placeId;
+          if (placeNameField && hasStrings) {
+            const placeName = db.prepare('SELECT vstr FROM ValuesStr WHERE f_id = ? AND rec_table = ? AND rec_id = ?');
+            placeName.bind([placeNameField.id, placeTable, placeId]);
+            if (placeName.step()) event.place = placeName.getAsObject().vstr as string;
+            placeName.free();
+          }
         }
         links.free();
       }

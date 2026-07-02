@@ -10,6 +10,7 @@ import type { Event, Family, ParsedAtdb, Person, Place } from '@/lib/types';
 import type {
   AtdbDraftFieldKey,
   AtdbEditDraftState,
+  AtdbSelectableEntity,
 } from '@/lib/atdbEditDraft';
 import {
   getWritableEntityForAtdbTableEntity,
@@ -18,7 +19,6 @@ import {
   type AtdbTableRow,
   type AtdbTableSortConfig,
 } from '@/lib/atdbTableView';
-import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
 import type {
   AtdbTableRenderContext,
   AtdbTableSelectionContext,
@@ -39,8 +39,8 @@ interface DataTableProps {
   sortConfig: AtdbTableSortConfig | null;
   onSortChange: (sortConfig: AtdbTableSortConfig) => void;
   onClearQuery: () => void;
-  onRowSelectionChange?: (entityType: AtdbWritableEntity, id: number, selected: boolean) => void;
-  onRenderedRowsSelectionChange?: (entityType: AtdbWritableEntity, ids: readonly number[], selected: boolean) => void;
+  onRowSelectionChange?: (entityType: AtdbSelectableEntity, id: number, selected: boolean) => void;
+  onRenderedRowsSelectionChange?: (entityType: AtdbSelectableEntity, ids: readonly number[], selected: boolean) => void;
   onDraftFieldChange?: (key: AtdbDraftFieldKey, value: unknown) => void;
   onDraftFieldReset?: (key: AtdbDraftFieldKey) => void;
 }
@@ -104,7 +104,7 @@ const DataTable: React.FC<DataTableProps> = ({
   }
 
   if (activeEntity === 'events') {
-    return <EventTable rows={narrowRows<Event>(tableQueryResult.rows)} context={context} />;
+    return <EventTable rows={narrowRows<Event>(tableQueryResult.rows)} context={context} editors={editors} />;
   }
 
   if (activeEntity === 'places') {
@@ -133,16 +133,16 @@ function createSelectionContext({
   onRowSelectionChange,
   onRenderedRowsSelectionChange,
 }: {
-  selectableEntityType: AtdbWritableEntity | null;
+  selectableEntityType: AtdbSelectableEntity | null;
   selectedIds: readonly number[];
   selectedIdSet?: ReadonlySet<number>;
   visibleIds: readonly number[];
   allVisibleSelected: boolean;
   visibleSelectedCount: number;
   disabled: boolean;
-  onRowSelectionChange?: (entityType: AtdbWritableEntity, id: number, selected: boolean) => void;
+  onRowSelectionChange?: (entityType: AtdbSelectableEntity, id: number, selected: boolean) => void;
   onRenderedRowsSelectionChange?: (
-    entityType: AtdbWritableEntity,
+    entityType: AtdbSelectableEntity,
     ids: readonly number[],
     selected: boolean,
   ) => void;

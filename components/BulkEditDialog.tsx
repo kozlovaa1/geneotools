@@ -16,8 +16,8 @@ import {
   type AtdbBatchPredicateOperator,
   type AtdbBatchPreviewReason,
 } from '@/lib/atdbBatchEdit';
-import type { AtdbEditDraftState } from '@/lib/atdbEditDraft';
-import type { AtdbFieldName, AtdbWritableEntity } from '@/lib/sqlProcessor';
+import type { AtdbEditDraftState, AtdbSelectableEntity } from '@/lib/atdbEditDraft';
+import type { AtdbFieldName } from '@/lib/sqlProcessor';
 import type { ParsedAtdb, Place } from '@/lib/types';
 import {
   checkboxClassName,
@@ -31,7 +31,7 @@ import {
 
 interface BulkEditDialogProps {
   isOpen: boolean;
-  activeEntity: AtdbWritableEntity;
+  activeEntity: AtdbSelectableEntity;
   data: ParsedAtdb;
   draft: AtdbEditDraftState;
   selectedIds: readonly number[];
@@ -44,7 +44,7 @@ interface BulkEditDialogProps {
   onClose: () => void;
 }
 
-const ENTITY_LABELS: Record<AtdbWritableEntity, string> = {
+const ENTITY_LABELS: Record<AtdbSelectableEntity, string> = {
   person: 'Персоны',
   family: 'Роды',
   place: 'Места',
@@ -515,9 +515,9 @@ function FillValueControl({
           onChange={(event) => onGenderValueChange(event.target.value)}
           className={inputClassName}
         >
-          <option value="M">M</option>
-          <option value="F">F</option>
-          <option value="Unknown">Unknown</option>
+          <option value="M">М</option>
+          <option value="F">Ж</option>
+          <option value="Unknown">Неизвестно</option>
         </select>
       </label>
     );

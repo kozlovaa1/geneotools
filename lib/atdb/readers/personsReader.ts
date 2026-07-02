@@ -1,6 +1,6 @@
 import type { Person } from '../../types';
 import { EVENT_TYPE_IDS } from '../constants';
-import { formatAtdbDate } from '../dates';
+import { readAtdbDateValue } from '../dates';
 import type { SqlJsDatabase } from '../dbTypes';
 import type { FieldRule } from '../mappingTypes';
 import type { AtdbSchemaContext } from '../schemaContext';
@@ -9,6 +9,7 @@ import { tableExists } from '../sqlHelpers';
 interface PersonStringRules {
   firstName: FieldRule | null;
   lastName: FieldRule | null;
+  birthLastName: FieldRule | null;
   patronymic: FieldRule | null;
   occupation: FieldRule | null;
   notes: FieldRule | null;
@@ -17,6 +18,7 @@ interface PersonStringRules {
 function setStringField(person: Person, rules: PersonStringRules, fieldId: number, value: string): void {
   if (fieldId === rules.firstName?.id) person.firstName ??= value;
   else if (fieldId === rules.lastName?.id) person.lastName ??= value;
+  else if (fieldId === rules.birthLastName?.id) person.birthLastName ??= value;
   else if (fieldId === rules.patronymic?.id) person.patronymic ??= value;
   else if (fieldId === rules.occupation?.id) person.occupation ??= value;
   else if (fieldId === rules.notes?.id) person.notes ??= value;
@@ -55,16 +57,24 @@ function readLifeEvents(
     const role = context.eventRoles.get(row.er_id as number);
     if (!role || primaryRoleIds.get(role.eventTypeId) !== role.id) continue;
 
+    if (role.eventTypeId === EVENT_TYPE_IDS.birth) person.birthEventId ??= eventId;
+    if (role.eventTypeId === EVENT_TYPE_IDS.death) person.deathEventId ??= eventId;
+
     if (hasDates && eventDateField) {
-      const dateStatement = db.prepare('SELECT y, m, d FROM ValuesDates WHERE f_id = ? AND rec_table = ? AND rec_id = ?');
-      dateStatement.bind([eventDateField.id, eventTable, eventId]);
-      if (dateStatement.step()) {
-        const date = dateStatement.getAsObject();
-        const formatted = formatAtdbDate(date.y as number, date.m as number, date.d as number);
-        if (formatted && role.eventTypeId === EVENT_TYPE_IDS.birth) person.birthDate ??= formatted;
-        if (formatted && role.eventTypeId === EVENT_TYPE_IDS.death) person.deathDate ??= formatted;
+      const dateValue = readAtdbDateValue(db, {
+        fieldId: eventDateField.id,
+        recTable: eventTable,
+        recId: eventId,
+        logger: context.logger,
+      });
+      if (dateValue && role.eventTypeId === EVENT_TYPE_IDS.birth) {
+        if (dateValue.value) person.birthDate ??= dateValue.value;
+        person.birthDateInfo ??= dateValue;
       }
-      dateStatement.free();
+      if (dateValue && role.eventTypeId === EVENT_TYPE_IDS.death) {
+        if (dateValue.value) person.deathDate ??= dateValue.value;
+        person.deathDateInfo ??= dateValue;
+      }
     }
 
     if (hasLinks && eventPlaceFieldIds.length > 0) {
@@ -126,6 +136,7 @@ export function readPersons(db: SqlJsDatabase, context: AtdbSchemaContext): Pers
   const stringRules: PersonStringRules = {
     firstName: context.resolveFieldRule('personFirstName', 'read'),
     lastName: context.resolveFieldRule('personLastName', 'read'),
+    birthLastName: context.resolveFieldRule('personBirthLastName', 'read'),
     patronymic: context.resolveFieldRule('personPatronymic', 'read'),
     occupation: context.resolveFieldRule('personOccupation', 'read'),
     notes: context.resolveFieldRule('personNotes', 'read'),
