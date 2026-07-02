@@ -1,6 +1,7 @@
 import React from 'react';
 import { getEventTypeName } from '@/lib/utils';
 import type { Event } from '@/lib/types';
+import type { AtdbTableEditors } from './useAtdbTableEditors';
 import {
   ATDB_TABLE_CELL_CLASS_NAME,
   ATDB_TABLE_ROW_CLASS_NAME,
@@ -14,9 +15,10 @@ import {
 interface EventTableProps {
   rows: readonly Event[];
   context: AtdbTableRenderContext;
+  editors: AtdbTableEditors;
 }
 
-export default function EventTable({ rows, context }: EventTableProps) {
+export default function EventTable({ rows, context, editors }: EventTableProps) {
   if (rows.length === 0) {
     return <EmptyTableState emptyLabel="Нет доступных данных о событиях" context={context} />;
   }
@@ -41,8 +43,17 @@ export default function EventTable({ rows, context }: EventTableProps) {
             <td className="sticky left-0 z-10 border-b bg-white px-4 py-2">{event.id}</td>
             <td className={ATDB_TABLE_CELL_CLASS_NAME}>{event.personIds ? event.personIds.join(', ') : '-'}</td>
             <td className={ATDB_TABLE_CELL_CLASS_NAME}>{getEventTypeName(event.eventType)}</td>
-            <td className={ATDB_TABLE_CELL_CLASS_NAME}>{event.date || '-'}</td>
-            <td className={ATDB_TABLE_CELL_CLASS_NAME}>{event.place || '-'}</td>
+            <td className={ATDB_TABLE_CELL_CLASS_NAME}>{event.dateInfo?.display || event.date || '-'}</td>
+            <td className={ATDB_TABLE_CELL_CLASS_NAME}>
+              {editors.renderPlaceLinkEditor(
+                'event',
+                event.id,
+                'placeId',
+                label('place', 'Место'),
+                event.placeId,
+                event.place,
+              )}
+            </td>
             <td className={ATDB_TABLE_CELL_CLASS_NAME}>{event.description || '-'}</td>
           </tr>
         ))}

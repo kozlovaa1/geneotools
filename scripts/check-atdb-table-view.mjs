@@ -40,6 +40,7 @@ function syntheticParsedData() {
         id: 1,
         firstName: 'SyntheticAlpha',
         lastName: 'SyntheticFamily10',
+        birthLastName: 'SyntheticBirthFamily10',
         patronymic: 'SyntheticMiddle',
         gender: 'M',
         birthDate: '1901',
@@ -64,6 +65,7 @@ function syntheticParsedData() {
         id: 3,
         firstName: 'SyntheticGamma',
         lastName: 'SyntheticFamily2',
+        birthLastName: 'SyntheticBirthFamily2',
         gender: 'F',
         birthDate: '1903',
         birthPlaceId: 101,
@@ -99,6 +101,7 @@ function syntheticParsedData() {
         eventType: 'EventType1',
         date: '1900',
         place: 'SyntheticTown',
+        placeId: 100,
         description: 'SyntheticStart',
       },
       {
@@ -107,6 +110,7 @@ function syntheticParsedData() {
         eventType: 'EventType2',
         date: '1905',
         place: 'SyntheticVillage',
+        placeId: 101,
         description: '',
       },
       {
@@ -130,12 +134,20 @@ function syntheticParsedData() {
         name: 'SyntheticVillage',
         shortName: 'SyntheticVillageShort',
         comment: 'SyntheticVillageComment',
+        parentId: 100,
       },
       {
         id: 102,
         name: '',
         shortName: 'SyntheticHarbor',
         comment: 'SyntheticHarborComment',
+        parentId: 101,
+      },
+      {
+        id: 103,
+        name: 'SyntheticAnchor',
+        shortName: '',
+        comment: '',
       },
     ],
     metadata: {},
@@ -184,8 +196,8 @@ try {
     'table query should keep a per-query cell value cache',
   );
   assert.ok(
-    tableViewSource.includes('context.placeById.get(placeId)'),
-    'draft-aware place labels should use query-level place lookup',
+    tableViewSource.includes('formatAtdbPlaceLabel(data, placeId'),
+    'draft-aware place labels should use shared place label helper',
   );
   safeLog('query-cache-contract: ok');
 
@@ -198,6 +210,7 @@ try {
   assert.deepEqual(ids(query(tableView, data, draft, 'events', { quickSearch: 'syntheticstart' })), [30], 'event quick search mismatch');
   assert.deepEqual(ids(query(tableView, data, draft, 'places', { quickSearch: 'harbor' })), [102], 'place quick search mismatch');
   assert.deepEqual(ids(query(tableView, data, draft, 'persons', { quickSearch: 'delta' })), [3], 'multi-column person search mismatch');
+  assert.deepEqual(ids(query(tableView, data, draft, 'persons', { quickSearch: 'birthfamily2' })), [3], 'birth last name search mismatch');
   safeLog('quick-search: ok');
 
   for (const [operator, value, expected] of [
@@ -278,13 +291,13 @@ try {
 
   draft = editDraft.setDraftField(draft, data, { entityType: 'person', id: 3, field: 'birthPlaceId' }, 100);
   assert.deepEqual(
-    ids(query(tableView, data, draft, 'persons', { filter: { field: 'birthPlace', operator: 'equals', value: 'SyntheticTown' } })),
-    [1, 3],
+    ids(query(tableView, data, draft, 'persons', { filter: { field: 'birthPlace', operator: 'contains', value: 'SyntheticTown' } })),
+    [1, 2, 3],
     'draft-aware birth place link mismatch',
   );
   draft = editDraft.setDraftField(draft, data, { entityType: 'person', id: 1, field: 'deathPlaceId' }, 102);
   assert.deepEqual(
-    ids(query(tableView, data, draft, 'persons', { filter: { field: 'deathPlace', operator: 'equals', value: 'SyntheticHarbor' } })),
+    ids(query(tableView, data, draft, 'persons', { filter: { field: 'deathPlace', operator: 'contains', value: 'SyntheticHarbor' } })),
     [1, 3],
     'draft-aware death place link mismatch',
   );
@@ -293,7 +306,7 @@ try {
   draft = editDraft.setDraftField(draft, data, { entityType: 'place', id: 100, field: 'name' }, 'SyntheticRenamedTown');
   assert.deepEqual(
     ids(query(tableView, data, draft, 'persons', { quickSearch: 'renamedtown' })),
-    [1, 3],
+    [1, 2, 3],
     'draft-aware linked place name mismatch',
   );
   draft = editDraft.setDraftField(draft, data, { entityType: 'place', id: 102, field: 'shortName' }, 'SyntheticRenamedHarbor');
@@ -303,6 +316,26 @@ try {
     'draft-aware linked place short name mismatch',
   );
   safeLog('draft-linked-place-labels: ok');
+
+  draft = editDraft.setDraftField(draft, data, { entityType: 'person', id: 1, field: 'birthDate' }, '1888-01-02');
+  assert.deepEqual(
+    ids(query(tableView, data, draft, 'persons', { filter: { field: 'birthDate', operator: 'equals', value: '1888-01-02' } })),
+    [1],
+    'draft-aware birth date mismatch',
+  );
+  draft = editDraft.setDraftField(draft, data, { entityType: 'event', id: 31, field: 'placeId' }, 102);
+  assert.deepEqual(
+    ids(query(tableView, data, draft, 'events', { quickSearch: 'renamedharbor' })),
+    [31],
+    'draft-aware event place mismatch',
+  );
+  draft = editDraft.setDraftField(draft, data, { entityType: 'place', id: 101, field: 'parentId' }, 103);
+  assert.deepEqual(
+    ids(query(tableView, data, draft, 'places', { filter: { field: 'parentPlace', operator: 'equals', value: 'SyntheticAnchor' } })),
+    [101],
+    'draft-aware place parent mismatch',
+  );
+  safeLog('new-draft-fields: ok');
 
   assert.deepEqual(
     ids(query(tableView, data, draft, 'events', { sort: { key: 'personId', direction: 'ascending' } })),

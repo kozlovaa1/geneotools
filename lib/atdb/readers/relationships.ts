@@ -1,4 +1,5 @@
-import type { Family, Person, Place } from '../../types';
+import { formatAtdbPlaceLabel, formatAtdbPlaceParentPath } from '../../atdbPlaceLabels';
+import type { Event, Family, ParsedAtdb, Person, Place } from '../../types';
 
 export function populateSpouseRelationships(persons: Person[], families: Family[]): void {
   for (const family of families) {
@@ -27,19 +28,45 @@ export function populateSpouseRelationships(persons: Person[], families: Family[
 }
 
 export function populatePersonPlaceNames(persons: Person[], places: Place[]): void {
+  const data = createRelationshipData(persons, [], [], places);
   for (const person of persons) {
     if (person.birthPlaceId !== undefined) {
-      const birthPlace = places.find(p => p.id === person.birthPlaceId);
-      if (birthPlace && birthPlace.name) {
-        person.birthPlace = birthPlace.name;
-      }
+      person.birthPlace = formatAtdbPlaceLabel(data, person.birthPlaceId);
     }
 
     if (person.deathPlaceId !== undefined) {
-      const deathPlace = places.find(p => p.id === person.deathPlaceId);
-      if (deathPlace && deathPlace.name) {
-        person.deathPlace = deathPlace.name;
-      }
+      person.deathPlace = formatAtdbPlaceLabel(data, person.deathPlaceId);
     }
   }
+}
+
+export function populateEventPlaceNames(events: Event[], places: Place[]): void {
+  const data = createRelationshipData([], [], events, places);
+  for (const event of events) {
+    if (event.placeId !== undefined) {
+      event.place = formatAtdbPlaceLabel(data, event.placeId);
+    }
+  }
+}
+
+export function populatePlaceParentPaths(places: Place[]): void {
+  const data = createRelationshipData([], [], [], places);
+  for (const place of places) {
+    place.parentPath = formatAtdbPlaceParentPath(data, place.id);
+  }
+}
+
+function createRelationshipData(
+  persons: Person[],
+  families: Family[],
+  events: Event[],
+  places: Place[],
+): ParsedAtdb {
+  return {
+    persons,
+    families,
+    events,
+    places,
+    metadata: {},
+  };
 }

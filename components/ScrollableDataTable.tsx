@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useId, useMemo } from 'react';
 import DataTable from './DataTable';
 import TableQueryToolbar from './TableQueryToolbar';
 import type { ParsedAtdb } from '@/lib/types';
-import type { AtdbDraftFieldKey, AtdbEditDraftState } from '@/lib/atdbEditDraft';
+import type { AtdbDraftFieldKey, AtdbEditDraftState, AtdbSelectableEntity } from '@/lib/atdbEditDraft';
 import {
   createEmptyAtdbTableQueryState,
   getWritableEntityForAtdbTableEntity,
@@ -12,7 +12,6 @@ import {
   type AtdbTableQueryResult,
   type AtdbTableQueryState,
 } from '@/lib/atdbTableView';
-import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
 import { cn } from '@/lib/utils';
 import {
   secondaryButtonClassName,
@@ -35,12 +34,12 @@ interface ScrollableDataTableProps {
   renderedTableQuery: AtdbTableQueryState;
   draft: AtdbEditDraftState;
   sourceData: ParsedAtdb;
-  selectedRows: Record<AtdbWritableEntity, number[]>;
+  selectedRows: Record<AtdbSelectableEntity, number[]>;
   selectedIdSet: ReadonlySet<number>;
   onTableQueryChange: (entity: AtdbTableEntity, query: AtdbTableQueryState) => void;
-  onRowSelectionChange: (entityType: AtdbWritableEntity, id: number, selected: boolean) => void;
-  onRenderedRowsSelectionChange: (entityType: AtdbWritableEntity, ids: readonly number[], selected: boolean) => void;
-  onClearSelection: (entityType: AtdbWritableEntity) => void;
+  onRowSelectionChange: (entityType: AtdbSelectableEntity, id: number, selected: boolean) => void;
+  onRenderedRowsSelectionChange: (entityType: AtdbSelectableEntity, ids: readonly number[], selected: boolean) => void;
+  onClearSelection: (entityType: AtdbSelectableEntity) => void;
   onDraftFieldChange: (key: AtdbDraftFieldKey, value: unknown) => void;
   onDraftFieldReset: (key: AtdbDraftFieldKey) => void;
 }
@@ -178,7 +177,7 @@ const ScrollableDataTable: React.FC<ScrollableDataTableProps> = ({
         )}
         {activeEntity === 'events' && (
           <div className={cn(statusSurfaceClassName, 'border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-600')} role="status" aria-live="polite">
-            События доступны только для просмотра.
+            У событий можно редактировать только привязку места; остальные поля доступны для просмотра.
           </div>
         )}
         {/* Table content (scrollable), including header and body in one scrollable area */}

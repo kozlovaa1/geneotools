@@ -1,12 +1,15 @@
 import type { AtdbDiagnosticLogger } from './diagnostics';
 
-export type AtdbWritableEntity = 'person' | 'family' | 'place';
+export type AtdbWritableEntity = 'person' | 'family' | 'event' | 'place';
 
 export type AtdbPersonField =
   | 'firstName'
   | 'lastName'
+  | 'birthLastName'
   | 'patronymic'
   | 'gender'
+  | 'birthDate'
+  | 'deathDate'
   | 'birthPlaceId'
   | 'deathPlaceId';
 
@@ -17,9 +20,10 @@ export type AtdbFamilyField =
   | 'comment'
   | 'color';
 
-export type AtdbPlaceField = 'name' | 'shortName' | 'comment';
+export type AtdbPlaceField = 'name' | 'shortName' | 'comment' | 'parentId';
+export type AtdbEventField = 'placeId';
 
-export type AtdbFieldName = AtdbPersonField | AtdbFamilyField | AtdbPlaceField;
+export type AtdbFieldName = AtdbPersonField | AtdbFamilyField | AtdbEventField | AtdbPlaceField;
 export type AtdbFieldValue = string | number | null | undefined;
 
 export interface AtdbFieldChange<FieldName extends AtdbFieldName = AtdbFieldName> {

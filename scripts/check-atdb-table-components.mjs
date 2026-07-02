@@ -101,6 +101,7 @@ try {
   assertContains(scrollableDataTable, 'visibleSelectedCount = useMemo', 'visible selected count should be memoized once per render');
   assertContains(scrollableDataTable, 'allVisibleSelected', 'ScrollableDataTable should compute all visible selected once');
   assertContains(scrollableDataTable, 'isSelectionDisabled={isTableRefreshing}', 'selection controls should be disabled while rendered rows refresh');
+  assertContains(scrollableDataTable, 'У событий можно редактировать только привязку места', 'events status should describe inline-only place editing');
   assertNotContains(scrollableDataTable, '.includes(id)).length', 'visible selected count should not use repeated includes lookup');
   safeLog('selection-lookup-contract: ok');
 
@@ -159,9 +160,10 @@ try {
     assertContains(source, 'SortableHeaderCell', `${name} should use sortable headers`);
     assertContains(source, 'EmptyTableState', `${name} should use shared empty state`);
   }
-  assertNotContains(eventTable, 'SelectionHeaderCell', 'EventTable should stay read-only without selection header');
-  assertNotContains(eventTable, 'SelectionCell', 'EventTable should stay read-only without selection cells');
-  assertNotContains(eventTable, 'Editable', 'EventTable should stay read-only without editable controls');
+  assertNotContains(eventTable, 'SelectionHeaderCell', 'EventTable should stay inline-only without selection header');
+  assertNotContains(eventTable, 'SelectionCell', 'EventTable should stay inline-only without selection cells');
+  assertContains(eventTable, "editors.renderPlaceLinkEditor(\n                'event'", 'EventTable should expose inline-only event place editor');
+  assertContains(eventTable, 'event.dateInfo?.display', 'EventTable should show formatted non-simple date metadata');
   assertContains(eventTable, 'getEventTypeName', 'EventTable should preserve event type display formatting');
   safeLog('entity-tables: ok');
 
@@ -171,8 +173,16 @@ try {
   const batchEdit = readProjectFile('lib/atdbBatchEdit.ts');
 
   assertContains(editableCell, 'parseAtdbIntegerInput', 'EditableNumberCell should use shared integer parser');
+  assertContains(editableCell, 'export function EditableDateCell', 'EditableDateCell should expose date input control');
+  assertContains(editableCell, 'aria-invalid={!isValid}', 'EditableDateCell should mark invalid partial input');
   assertContains(tableEditors, 'parseAtdbIntegerInput', 'place-link editor should use shared integer parser');
+  assertContains(tableEditors, 'formatAtdbPlaceLabel', 'place-link editor should use full place labels');
+  assertContains(tableEditors, 'getAtdbPlaceDescendantIds', 'place parent editor should exclude descendants');
+  assertContains(tableEditors, "{ value: 'M', label: 'М' }", 'gender editor should use Russian male label');
+  assertContains(tableEditors, "{ value: 'F', label: 'Ж' }", 'gender editor should use Russian female label');
   assertContains(batchEdit, 'return parseAtdbIntegerInput(value)', 'batch parser wrapper should delegate to shared helper');
+  assertContains(batchEdit, "field !== 'birthDate' && field !== 'deathDate'", 'batch fields should exclude date edits');
+  assertContains(batchEdit, "field !== 'parentId'", 'batch fields should exclude place parent edits');
   assertContains(integerHelper, 'Number.isSafeInteger', 'shared integer parser should reject unsafe integers');
 
   for (const [relativePath, source] of [

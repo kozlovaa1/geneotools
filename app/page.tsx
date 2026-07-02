@@ -15,6 +15,7 @@ import {
   setDraftField,
   type AtdbDraftFieldKey,
   type AtdbEditDraftState,
+  type AtdbSelectableEntity,
 } from '@/lib/atdbEditDraft';
 import {
   applyAtdbBatchEdit,
@@ -31,7 +32,6 @@ import {
   type AtdbTableQueryResult,
   type AtdbTableQueryState,
 } from '@/lib/atdbTableView';
-import type { AtdbWritableEntity } from '@/lib/sqlProcessor';
 import Image from 'next/image';
 import { Download, RotateCcw, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,7 +47,7 @@ type ImportPhase = 'idle' | 'reading' | 'parsing' | 'ready' | 'error';
 type ExportPhase = 'idle' | 'preparing' | 'ready' | 'error';
 type BulkPreviewPhase = 'idle' | 'previewing' | 'ready' | 'error';
 type BulkApplyPhase = 'idle' | 'applying' | 'ready' | 'error';
-type SelectionState = Record<AtdbWritableEntity, number[]>;
+type SelectionState = Record<AtdbSelectableEntity, number[]>;
 type TableQueryStateByEntity = Record<AtdbTableEntity, AtdbTableQueryState>;
 
 const EMPTY_SELECTED_IDS: readonly number[] = [];
@@ -229,7 +229,7 @@ export default function Home() {
     setSuccess(null);
   };
 
-  const handleRowSelectionChange = (entityType: AtdbWritableEntity, id: number, selected: boolean) => {
+  const handleRowSelectionChange = (entityType: AtdbSelectableEntity, id: number, selected: boolean) => {
     if (isTableRefreshing) {
       return;
     }
@@ -245,7 +245,7 @@ export default function Home() {
   };
 
   const handleRenderedRowsSelectionChange = (
-    entityType: AtdbWritableEntity,
+    entityType: AtdbSelectableEntity,
     ids: readonly number[],
     selected: boolean,
   ) => {
@@ -265,7 +265,7 @@ export default function Home() {
     setBulkPreviewPhase('idle');
   };
 
-  const handleClearSelection = (entityType: AtdbWritableEntity) => {
+  const handleClearSelection = (entityType: AtdbSelectableEntity) => {
     setSelectedRows((currentSelection) => ({
       ...currentSelection,
       [entityType]: [],

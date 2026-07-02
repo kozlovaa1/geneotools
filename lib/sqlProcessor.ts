@@ -6,7 +6,12 @@ import { readFamilies } from './atdb/readers/familiesReader';
 import { readMetadata } from './atdb/readers/metadataReader';
 import { readPersons } from './atdb/readers/personsReader';
 import { readPlaces } from './atdb/readers/placesReader';
-import { populatePersonPlaceNames, populateSpouseRelationships } from './atdb/readers/relationships';
+import {
+  populateEventPlaceNames,
+  populatePersonPlaceNames,
+  populatePlaceParentPaths,
+  populateSpouseRelationships,
+} from './atdb/readers/relationships';
 import { createAtdbSchemaContext } from './atdb/schemaContext';
 import { silentAtdbLogger, type AtdbDiagnosticLogger } from './atdb/diagnostics';
 import { validateSqliteHeader } from './atdb/sqlHelpers';
@@ -23,8 +28,9 @@ import {
   validateAtdbPostBuild,
 } from './atdb/rebuildValidation';
 import { runAtdbTransaction } from './atdb/transaction';
+import { writeEventChanges } from './atdb/writers/eventsWriter';
 import { writeFamilyChanges } from './atdb/writers/familiesWriter';
-import { writeLifeEventPlaceLinkChanges } from './atdb/writers/lifeEventWriter';
+import { writeLifeEventDateChanges, writeLifeEventPlaceLinkChanges } from './atdb/writers/lifeEventWriter';
 import { writePersonChanges } from './atdb/writers/personsWriter';
 import { writePlaceChanges } from './atdb/writers/placesWriter';
 import type { SqlJsDatabase } from './atdb/dbTypes';
@@ -37,6 +43,7 @@ export type {
   AtdbBuildReport,
   AtdbChangeSet,
   AtdbEntityChange,
+  AtdbEventField,
   AtdbFamilyField,
   AtdbFieldName,
   AtdbFieldChange,
@@ -60,7 +67,9 @@ function readParsedAtdbFromDb(db: SqlJsDatabase, logger: AtdbDiagnosticLogger): 
   const events = readEvents(db, schema);
   populateSpouseRelationships(persons, families);
   const places = readPlaces(db, schema);
+  populatePlaceParentPaths(places);
   populatePersonPlaceNames(persons, places);
+  populateEventPlaceNames(events, places);
 
   return {
     persons,
@@ -118,7 +127,9 @@ export async function applyAtdbChanges(
     await runAtdbTransaction(db, 'strict-rebuild', logger, async () => {
       writePersonChanges(db, changeSet, schema);
       writeFamilyChanges(db, changeSet, schema);
+      writeEventChanges(db, changeSet, schema);
       writePlaceChanges(db, changeSet, schema);
+      writeLifeEventDateChanges(db, changeSet, schema);
       writeLifeEventPlaceLinkChanges(db, changeSet, schema);
     });
 

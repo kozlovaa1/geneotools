@@ -116,6 +116,8 @@ EditableCell / entity-specific tables
   -> buildAtdbChangeSet only before export
 ```
 
+Inline editors покрывают полный write-safe scope: базовые поля персон/родов/мест, даты primary life-event, привязку места у события и родительское место. Draft-aware labels и ancestor paths для мест строятся через `lib/atdbPlaceLabels.ts`.
+
 ### Массовое редактирование
 
 ```text
@@ -125,6 +127,8 @@ BulkEditDialog
   -> lib/atdbBatchEdit.applyAtdbBatchEdit
   -> updated local draft
 ```
+
+Bulk edit остаётся уже inline editing: события, даты и `Place.parentId` не входят в массовый контракт.
 
 ### Экспорт
 
@@ -212,8 +216,9 @@ export async function parseAtdb(
 3. Добавить draft handling в lib/atdbEditDraft.ts.
 4. Добавить writer logic в соответствующий lib/atdb/writers/* модуль.
 5. Добавить preflight и post-build validation.
-6. Добавить regression coverage в scripts/check-atdb-*.mjs.
-7. Обновить docs/atdb_format.md и AGENTS.md при изменении публичного контракта.
+6. Для `ValuesDates` и `ValuesLinks` проверить сохранение metadata, существование target record и protected fingerprints.
+7. Добавить regression coverage в scripts/check-atdb-*.mjs.
+8. Обновить docs/atdb_format.md и AGENTS.md при изменении публичного контракта.
 ```
 
 ## Антипаттерны

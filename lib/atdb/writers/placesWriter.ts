@@ -38,6 +38,15 @@ export function writePlaceChanges(db: SqlJsDatabase, changeSet: AtdbChangeSet, c
     if (entityChange.entityType !== 'place') continue;
 
     for (const fieldChange of entityChange.fields) {
+      if (fieldChange.field === 'parentId') {
+        db.run('UPDATE Places SET parent_id = ? WHERE id = ?', [
+          typeof fieldChange.value === 'number' ? fieldChange.value : null,
+          entityChange.id,
+        ]);
+        applied++;
+        continue;
+      }
+
       const ruleName = PLACE_STRING_RULES[fieldChange.field as AtdbPlaceField];
       const rule = ruleName ? context.resolveFieldRule(ruleName, 'write') : null;
       if (rule) {

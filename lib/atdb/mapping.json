@@ -20,6 +20,7 @@
   },
   "fields": {
     "personLastName": { "id": 64, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "personBirthLastName": { "id": 65, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
     "personFirstName": { "id": 66, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
     "personPatronymic": { "id": 67, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
     "personOccupation": { "id": 73, "entity": "persons", "valueTable": "ValuesStr", "datatype": null, "confidence": "fixture-specific", "read": true, "write": false },
@@ -31,8 +32,9 @@
     "familyComment": { "id": 52, "entity": "families", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
     "placeName": { "id": 93, "entity": "places", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
     "placeShortName": { "id": 94, "entity": "places", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
+    "placeNamingDate": { "id": 95, "entity": "places", "valueTable": "ValuesDates", "datatype": null, "confidence": "invariant", "read": true, "write": false },
     "placeComment": { "id": 104, "entity": "places", "valueTable": "ValuesStr", "datatype": null, "confidence": "invariant", "read": true, "write": true },
-    "eventDate": { "id": 29, "entity": "events", "valueTable": "ValuesDates", "datatype": null, "confidence": "invariant", "read": true, "write": false },
+    "eventDate": { "id": 29, "entity": "events", "valueTable": "ValuesDates", "datatype": null, "confidence": "invariant", "read": true, "write": true },
     "eventPlaceLink": { "id": 28, "entity": "events", "valueTable": "ValuesLinks", "datatype": null, "linkTarget": "places", "confidence": "invariant", "read": true, "write": true },
     "eventPlaceLinkAlternate": { "id": 25, "entity": "events", "valueTable": "ValuesLinks", "datatype": null, "linkTarget": "places", "confidence": "fixture-specific", "read": true, "write": false }
   }

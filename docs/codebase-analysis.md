@@ -19,6 +19,7 @@ GeneoTools уже прошёл базовую декомпозицию: `lib/sql
 | Rebuild safety | Экспорт использует `AtdbChangeSet`, preflight, transaction и post-build validation |
 | UI helpers | Поиск, фильтры, сортировка, draft, batch edit и table chrome вынесены в отдельные helpers/components |
 | Таблицы | `DataTable` стал router-wrapper, а рендер персон, родов, событий и мест разделён по entity-specific компонентам |
+| Иерархия мест | Draft-aware labels мест строятся централизованно и учитывают родительский путь |
 | Interaction states | Загрузка, table refresh, batch preview/apply и экспорт имеют явные pending/disabled/status states |
 | Диагностика | Ошибки и проверки ориентированы на redacted context |
 
@@ -38,7 +39,7 @@ GeneoTools уже прошёл базовую декомпозицию: `lib/sql
 
 ### 3. Поддержка формата шире текущего UI
 
-`.atdb` содержит больше сущностей и типов значений, чем редактирует приложение. Strict rebuild намеренно запрещает custom fields, события, роли и metadata, но readers всё равно должны сохранять терпимость к вариативности структуры.
+`.atdb` содержит больше сущностей и типов значений, чем редактирует приложение. Strict rebuild намеренно запрещает custom fields, неподдержанные поля событий, роли, metadata и non-simple даты, но readers всё равно должны сохранять терпимость к вариативности структуры.
 
 Риск: расширение write scope без mapping/validation слоя может повредить неизвестные данные.
 

@@ -40,6 +40,8 @@ function syntheticParsedData() {
         id: 1,
         firstName: 'SyntheticAlpha',
         lastName: 'SyntheticFamily',
+        birthLastName: 'SyntheticBirthFamily',
+        birthDate: '1901-02-03',
         patronymic: '',
         gender: 'M',
         birthPlaceId: 10,
@@ -84,6 +86,7 @@ function syntheticParsedData() {
       {
         id: 12,
         name: 'SyntheticHarbor',
+        parentId: 10,
       },
     ],
     metadata: {},
@@ -118,6 +121,23 @@ try {
   const editDraft = requireFromScript(path.join(tempDir, 'lib/atdbEditDraft.js'));
   const integerInput = requireFromScript(path.join(tempDir, 'lib/atdbIntegerInput.js'));
   const data = syntheticParsedData();
+  const batchFields = batchEdit.getAtdbBatchEditableFields();
+  assert.ok(
+    batchFields.some((field) => field.entityType === 'person' && field.field === 'birthLastName'),
+    'birthLastName should be bulk-editable text',
+  );
+  assert.equal(
+    batchFields.some((field) => field.field === 'birthDate' || field.field === 'deathDate'),
+    false,
+    'date fields should stay out of bulk edit',
+  );
+  assert.equal(
+    batchFields.some((field) => field.entityType === 'place' && field.field === 'parentId'),
+    false,
+    'place parent should stay out of bulk edit',
+  );
+  assert.equal(batchEdit.getAtdbBatchEditableFields('event').length, 0, 'events should stay out of bulk edit');
+  safeLog('bulk-field-split: ok');
 
   for (const parseIntegerInput of [integerInput.parseAtdbIntegerInput, batchEdit.parseAtdbBatchIntegerInput]) {
     assert.equal(parseIntegerInput('12'), 12, 'integer input parse mismatch');
